@@ -957,7 +957,10 @@ class View:
 			list = [self.current_nodes[:]]	# List of one item, containing everything
 			
 		self.foreach_stack.append((block, list, {}))
-		self.start_block_iteration(block)
+		if not self.start_block_iteration(block):
+			# No nodes selected...
+			if not block.is_toplevel():
+				self.set_exec((block, 'next'))
 	
 	def Block(self):
 		assert self.op_in_progress
