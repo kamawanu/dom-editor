@@ -41,6 +41,7 @@ class View:
 		self.current_nodes = [self.root]
 		self.clipboard = None
 		self.recording_where = None
+		self.current_attrib = None
 		model.add_view(self)
 	
 	def __getattr__(self, attr):
@@ -150,7 +151,8 @@ class View:
 		self.move_to(self.root_node)
 	
 	# 'nodes' may be either a node or a list of nodes.
-	def move_to(self, nodes):
+	# If it's a single node, then 'attrib' may also be specified
+	def move_to(self, nodes, attrib = None):
 		if self.current_nodes == nodes:
 			return
 
@@ -159,6 +161,7 @@ class View:
 
 		old_nodes = self.current_nodes
 		self.current_nodes = nodes
+		self.current_attrib = attrib
 
 		for display in self.displays:
 			display.move_from(old_nodes)
@@ -334,9 +337,21 @@ class View:
 		return self.model.doc.createTextNode(str(data))
 	
 	def yank(self):
-		self.clipboard = self.model.doc.createDocumentFragment()
-		for n in self.current_nodes:
-			self.clipboard.appendChild(n.cloneNode(deep = 1))
+		if self.current_attrib:
+			name = self.current_attrib
+			value = self.current.getAttribute(name)
+
+			self.clipboard = self.model.doc.createElement('attribute')
+			n = self.model.doc.createElement('name')
+			n.appendChild(self.model.doc.createTextNode(name))
+			self.clipboard.appendChild(n)
+			n = self.model.doc.createElement('value')
+			n.appendChild(self.model.doc.createTextNode(value))
+			self.clipboard.appendChild(n)
+		else:
+			self.clipboard = self.model.doc.createDocumentFragment()
+			for n in self.current_nodes:
+				self.clipboard.appendChild(n.cloneNode(deep = 1))
 		
 		print "Clip now", self.clipboard
 	
@@ -345,6 +360,9 @@ class View:
 		if not nodes:
 			return
 		self.yank()
+		if self.current_attrib:
+			self.model.set_attrib(self.current, self.current_attrib, None)
+			return
 		new = []
 		for x in nodes:
 			if x != self.root:
@@ -500,10 +518,6 @@ class View:
 		except:
 			raise Beep
 	
-	def attrib(self, name, value):
-		for n in self.current_nodes:
-			self.model.set_attrib(n, name, value)
-	
 	def yank_value(self, name):
 		if not self.current.hasAttribute(name):
 			raise Beep
@@ -545,12 +559,6 @@ class View:
 			for (name, value) in new:
 				self.model.set_attrib(node, name, value)
 	
-	def del_attrib(self, name):
-		if len(self.current_nodes) == 1:
-			self.yank_attrib(name)
-		for n in self.current_nodes:
-			self.model.set_attrib(n, name, None)
-	
 	def compare(self):
 		"Ensure that all selected nodes have the same value."
 		if len(self.current_nodes) < 2:
@@ -562,3 +570,10 @@ class View:
 	
 	def fail(self):
 		raise Beep(may_record = 1)
+	
+	def attribute(self, attrib):
+		if not attrib:
+			attrib = None
+		elif not self.current.hasAttribute(attrib):
+			raise Beep
+		self.move_to(self.current, attrib)

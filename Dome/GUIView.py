@@ -46,7 +46,7 @@ class GUIView(Display):
 		self.view.may_record(action)
 		return 1
 	
-	def node_clicked(self, node, bev, attribute_parent = None):
+	def node_clicked(self, node, bev):
 		if node:
 			if len(self.view.current_nodes) == 0:
 				src = self.view.root
@@ -55,14 +55,19 @@ class GUIView(Display):
 			lit = bev.state & SHIFT_MASK
 			add = bev.state & CONTROL_MASK
 			ns = {}
-			if attribute_parent:
-				path = make_relative_path(src, attribute_parent, lit, ns)
-				attrib_name = node.nodeName
-			else:
-				path = make_relative_path(src, node, lit, ns)
-				attrib_name = None
-			self.view.may_record(["do_search", path, ns, add, attrib_name])
+			path = make_relative_path(src, node, lit, ns)
+			self.view.may_record(["do_search", path, ns, add])
 
+	def attrib_clicked(self, element, attrib, event):
+		if len(self.view.current_nodes) == 0:
+			src = self.view.root
+		else:
+			src = self.view.current_nodes[-1]
+		ns = {}
+		path = make_relative_path(src, element, FALSE, ns)
+		self.view.may_record(["do_search", path, ns, FALSE])
+		self.view.may_record(["attribute", attrib])
+	
 	def show_menu(self, bev):
 		items = [
 			('Search', self.show_search),
@@ -136,9 +141,9 @@ class GUIView(Display):
 
 	def show_attrib(self):
 		def do_attrib(args, self = self):
-			action = ["attrib", args[0], args[1]]
+			action = ["attribute", args]
 			self.view.may_record(action)
-		GetArg('Set attribute:', do_attrib, ['Name:', 'Value:'])
+		GetArg('Select attribute:', do_attrib, ['Name:'])
 
 	def show_pipe(self):
 		def do_pipe(expr, self = self):

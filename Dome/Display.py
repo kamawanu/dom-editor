@@ -24,6 +24,7 @@ class Display(GnomeCanvas):
 		self.window = window
 		self.root_group = None
 		self.update_timeout = 0
+		self.current_attrib = None		# Canvas group
 
 		s = self.get_style().copy()
 		s.bg[STATE_NORMAL] = self.get_color('old lace')
@@ -90,13 +91,11 @@ class Display(GnomeCanvas):
 	def destroyed(self, widget):
 		self.view.remove_display(self)
 	
-	def create_attribs(self, node, group, cramped, parent):
-		group.node = node
+	def create_attribs(self, attrib, group, cramped, parent):
 		group.text = group.add('text', x = 0, y = -6, anchor = ANCHOR_NW,
-					font = 'fixed', fill_color = 'blue',
-					text = "%s=%s" % (node.name, node.value))
-		group.connect('event', self.node_event, node, parent)
-		self.node_to_group[node] = group	# XXX
+					font = 'fixed', fill_color = 'grey40',
+					text = "%s=%s" % (str(attrib.name), str(attrib.value)))
+		group.connect('event', self.attrib_event, parent, attrib.name)
 	
 	def create_tree(self, node, group, cramped = 0):
 		group.node = node
@@ -128,11 +127,13 @@ class Display(GnomeCanvas):
 
 		if node.nodeType == Node.ELEMENT_NODE:
 			ax = hx + 8
+			group.attrib_to_group = {}
 			for a in node.attributes:
 				g = group.add('group', x = ax, y = 0)
 				self.create_attribs(a, g, cramped, node)
 				(alx, xly, ahx, ahy) = g.get_bounds()
 				ax = ahx + 8
+				group.attrib_to_group[a.name] = g
 		
 		kids = []
 		for n in node.childNodes:
@@ -200,17 +201,29 @@ class Display(GnomeCanvas):
 			return 1
 
 	# 'group' and 'node' may be None (for the background)
-	def node_event(self, group, event, node, parent = None):
+	def node_event(self, group, event, node):
 		if event.type != BUTTON_PRESS or event.button == 3:
 			return 0
 		self.do_update_now()
-		self.node_clicked(node, event, parent)
+		self.node_clicked(node, event)
+		return 1
+
+	def attrib_event(self, group, event, element, attrib):
+		if event.type != BUTTON_PRESS or event.button == 3:
+			return 0
+		self.do_update_now()
+		self.attrib_clicked(element, attrib, event)
 		return 1
 	
-	def node_clicked(self, node, parent = None):
+	def node_clicked(self, node, event):
+		return
+	
+	def attrib_clicked(self, element, attrib, event):
 		return
 	
 	def move_from(self, old):
+		self.set_current_attrib(self.view.current_attrib)
+
 		new = self.view.current_nodes
 		for n in old:
 			if n not in new:
@@ -229,7 +242,17 @@ class Display(GnomeCanvas):
 					self.hilight(self.node_to_group[n], TRUE)
 				except KeyError:
 					pass
-	
+
+	def set_current_attrib(self, attrib):
+		"Select 'attrib' attribute of the current node. None to unselect."
+		if self.current_attrib:
+			self.current_attrib.text.set(fill_color = 'grey40')
+			self.current_attrib = None
+		if attrib:
+			group = self.node_to_group[self.view.current].attrib_to_group[attrib]
+			group.text.set(fill_color = 'red')
+			self.current_attrib = group
+
 	def hilight(self, group, state):
 		node = group.node
 		if state:
