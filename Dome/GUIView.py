@@ -123,6 +123,7 @@ class GUIView(Display):
 			('Leave', do('leave')),
 			('Show as HTML', do('show_html')),
 			('Show as canvas', do('show_canvas')),
+			('Send SOAP message', do('soap_send')),
 			('Close Window', self.window.destroy),
 			]
 		Menu(items).popup(bev.button, bev.time)

@@ -18,6 +18,13 @@ import time
 
 DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
 
+def elements(node):
+	out = []
+	for x in node.childNodes:
+		if x.nodeType == Node.ELEMENT_NODE:
+			out.append(x)
+	return out
+
 # An view contains:
 # - A ref to a DOM document
 # - A current node
@@ -52,6 +59,7 @@ record_again = [
 	"attribute",
 	"set_attrib",
 	"add_attrib",
+	"soap_send",
 	"show_canvas",
 	"show_html",
 ]
@@ -1003,3 +1011,89 @@ class View:
 			else:
 				new = 'yes'
 			self.model.set_attrib(node, '', 'hidden', new)
+	
+	def soap_send(self):
+		copy = node_to_xml(self.current)
+		env = copy.documentElement
+
+		if env.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/':
+			report_error("Not a SOAP-ENV:Envelope (bad namespace)")
+			raise Done()
+		if env.localName != 'Envelope':
+			report_error("Not a SOAP-ENV:Envelope (bad local name)")
+			raise Done()
+
+		if len(env.childNodes) != 2:
+			report_error("SOAP-ENV:Envelope must have one header and one body")
+			raise Done()
+
+		kids = elements(env)
+		head = kids[0]
+		body = kids[1]
+
+		if head.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/' or \
+		   head.localName != 'Head':
+			report_error("First child must be a SOAP-ENV:Head element")
+			raise Done()
+
+		if body.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/' or \
+		   body.localName != 'Body':
+			report_error("Second child must be a SOAP-ENV:Body element")
+			raise Done()
+
+		sft = None
+		for header in elements(head):
+			if header.namespaceURI == DOME_NS and header.localName == 'soap-forward-to':
+				sft = header
+				break
+			print header.namespaceURI
+			print header.localName
+
+		if not sft:
+			report_error("Head must contain a dome:soap-forward-to element")
+			raise Done()
+
+		dest = sft.childNodes[0].data
+		parent = sft.parentNode
+		if len(elements(parent)) == 1:
+			sft = parent
+			parent = sft.parentNode	# Delete the whole header
+		parent.removeChild(sft)
+
+		import httplib, urlparse
+
+		(scheme, addr, path, p, q, f) = urlparse.urlparse(dest, allow_fragments = 0)
+		if scheme != 'http':
+			report_error("SOAP is only supported for 'http:' -- sorry!")
+			raise Done()
+
+		stream = StrGrab()
+		ext.PrettyPrint(copy, stream = stream)
+		message = stream.data
+
+		conn = httplib.HTTP(addr)
+		conn.putrequest("POST", path)
+		conn.putheader('Content-Type', 'text/xml; charset="utf-8"')
+		conn.putheader('Content-Length', len(message))
+		conn.putheader('SOAPAction', '')
+		conn.endheaders()
+		conn.send(message)
+		(code, r_mess, r_headers) = conn.getreply()
+
+		reply = conn.getfile().read()
+		print "Got:\n", reply
+
+		reader = PyExpat.Reader()
+		new_doc = reader.fromString(reply)
+		print new_doc
+
+		new = self.model.doc.importNode(new_doc.documentElement, deep = 1)
+		
+		self.model.strip_space(new)
+		self.model.replace_node(self.current, new)
+
+class StrGrab:
+	data = ''
+
+	def write(self, str):
+		self.data += str
