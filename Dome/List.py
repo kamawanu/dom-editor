@@ -9,7 +9,7 @@ import string
 from StringIO import StringIO
 import math
 
-import rox.choices
+from rox import support
 from rox.MultipleChoice import MultipleChoice
 from Menu import Menu
 from GetArg import GetArg
@@ -555,6 +555,16 @@ class ChainDisplay(GnomeCanvas):
 	
 	def edit_op(self, op):
 		def modify(widget):
+			if op.action[0] == 'do_search' or op.action[0] == 'do_global':
+				t = editables[0].get_text()
+				print "Checking", t
+				from Ft.Xml.XPath import XPathParser
+				if t.find('@CURRENT@') == -1:
+					try:
+						XPathParser.new().parse(t)
+					except:
+						support.report_error('Invalid search pattern!')
+						return
 			i = 0
 			for e in editables:
 				i += 1
