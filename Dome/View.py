@@ -82,6 +82,7 @@ record_again = [
 	"do_global",
 	"subst",
 	"python",
+	"xpath",
 	"ask",
 	"yank",
 	"shallow_yank",
@@ -98,6 +99,7 @@ record_again = [
 	"put_after",
 	"put_replace",
 	"put_as_child",
+	"put_as_child_end",
 	"yank_value",
 	"yank_attribs",
 	"paste_attribs",
@@ -777,6 +779,31 @@ class View:
 					self.move_to(n)
 					raise Beep
 			self.move_to(final)
+
+	def xpath(self, expr):
+		"Put the result of 'expr' on the clipboard."
+		expr = 'string(%s)' % expr
+		if len(self.current_nodes) == 0:
+			src = self.root
+		else:
+			src = self.current_nodes[-1]
+		
+		try:
+			code = self.op_in_progress.cached_code
+		except:
+			from Ft.Xml.XPath import XPathParser
+			code = XPathParser.new().parse(self.macro_pattern(expr))
+			if self.op_in_progress and expr.find('@CURRENT@') == -1:
+				self.op_in_progress.cached_code = code
+
+		ns = GetAllNs(src)
+		ns['ext'] = FT_EXT_NAMESPACE
+		c = Context.Context(src, [src], processorNss = ns)
+		
+		rt = code.evaluate(c)
+
+		self.clipboard = self.model.doc.createTextNode(rt)
+		print "Result is", self.clipboard
 
 	def python(self, expr):
 		"Replace node with result of expr(old_value)"

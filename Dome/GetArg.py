@@ -63,14 +63,8 @@ class GetArg(g.Dialog):
 		if destroy_return:
 			self.connect('destroy', lambda widget, cb = callback: cb(None))
 
-		self.connect('key-press-event', self.key)
-
 		self.show_all()
 	
-	def key(self, widget, kev):
-		if kev.keyval == g.keysyms.Escape:
-			self.destroy()
-
 	def to_next(self, widget):
 		next = 0
 		for (a, entry) in self.args:

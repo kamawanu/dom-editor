@@ -5,6 +5,7 @@ from Ft.Xml.Xslt.StylesheetReader import StylesheetReader
 from Ft.Xml.Xslt.StylesheetTree import XsltElement, XsltText
 from Ft.Xml.Xslt.LiteralElement import LiteralElement
 from Ft.Xml.Xslt.ApplyTemplatesElement import ApplyTemplatesElement
+from Ft.Xml.Xslt.ValueOfElement import ValueOfElement
 from Program import Program, Op, Block
 
 def import_sheet(doc):
@@ -155,6 +156,12 @@ def make_template(op, temp):
 
 			op.link_to(block, 'next')
 			op = block
+		elif isinstance(child, ValueOfElement):
+			op = add(op, 'mark_switch')
+			op = add(op, 'xpath', `child._select`)
+			op = add(op, 'mark_switch')
+			op = add(op, 'put_as_child_end')
+			op = add(op, 'move_left')
 		else:
 			print "Unknown template type", child, "(%s)" % child.__class__
 	return op

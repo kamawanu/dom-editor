@@ -92,6 +92,7 @@ menu = Menu('main', [
 		('/Process', None, '<Branch>', ''),
 		('/Process/Substitute', 'menu_show_subst', '', 's'),
 		('/Process/Python expression', 'menu_show_pipe', '', '<Shift>exclam'),
+		('/Process/XPath expression', 'menu_show_xpath', '', ''),
 		('/Process/Normalise', 'do_normalise', '', ''),
 		('/Process/Remove default namespaces', 'do_remove_ns', '', 'r'),
 		('/Process/Comment to text', 'do_convert_to_text', '', ''),
@@ -388,6 +389,12 @@ class GUIView(Display, XDSLoader):
 			action = ["python", expr]
 			self.view.may_record(action)
 		GetArg('Python expression:', do_pipe, ['Eval:'], "'x' is the old text...")
+
+	def menu_show_xpath(self):
+		def go(expr, self = self):
+			action = ["xpath", expr]
+			self.view.may_record(action)
+		GetArg('XPath expression:', go, ['Eval:'], "Result goes on the clipboard")
 
 	def menu_show_global(self):
 		def do_global(pattern, self = self):
