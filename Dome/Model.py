@@ -39,11 +39,8 @@ class Model:
 		"Replace document with contents of this XML file."
 		reader = PyExpat.Reader()
 		new_doc = reader.fromUri(path)
-		new_doc.documentElement.setAttribute('bob', 'fred')
-		print new_doc.documentElement
-		print new_doc.documentElement.cloneNode(deep = 1)
-		new = new_doc.documentElement.cloneNode(deep = 1)
-		new = self.doc.importNode(new, deep = 1)
+
+		new = self.doc.importNode(new_doc.documentElement, deep = 1)
 		self.doc.replaceChild(new, self.doc.documentElement)
 		self.strip_space()
 		self.update_all(self.doc)

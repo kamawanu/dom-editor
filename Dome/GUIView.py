@@ -70,6 +70,9 @@ class GUIView(Display):
 		ns = {}
 		path = make_relative_path(src, element, FALSE, ns)
 		self.view.may_record(["do_search", path, ns, FALSE])
+		print attrib
+		print attrib.localName
+		print attrib.namespace
 		self.view.may_record(["attribute", attrib])
 	
 	def show_menu(self, bev):

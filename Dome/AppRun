@@ -40,4 +40,7 @@ else:
 	win.show()
 
 if tl_windows > 0:
+	#import profile
+	#profile.run('mainloop()')
+
 	mainloop()
