@@ -183,6 +183,12 @@ class Model:
 				self.strip_space(k)
 
 	# Changes
+
+	def normalise(self, node):
+		old = node.cloneNode(1)
+		node.normalize()
+		self.add_undo(lambda: self.replace_node(node, old))
+		self.update_all(node)
 	
 	def set_name(self, node, namespace, name):
 		if self.get_locks(node):

@@ -25,18 +25,24 @@ menu = Menu('Dome', 'main', [
 		('/Edit/Yank attributes', 'menu_show_yank_attribs', '', ''),
 		('/Edit/Paste attributes', 'do_paste_attribs', '', ''),
 		('/Edit/Yank attrib value', 'do_yank_value', '', ''),
+		('/Edit/', '', '', '<separator>'),
 		('/Edit/Cut', 'do_delete_node', '', 'x'),
 		('/Edit/Delete', 'do_delete_node_no_clipboard', '', '<Ctrl>X'),
 		('/Edit/Shallow cut', 'do_delete_shallow', '', '<Shift>X'),
+		('/Edit/', '', '', '<separator>'),
 		('/Edit/Yank', 'do_yank', '', 'y'),
 		('/Edit/Shallow yank', 'do_shallow_yank', '', '<Shift>Y'),
+		('/Edit/', '', '', '<separator>'),
 		('/Edit/Paste (replace)','do_put_replace', '', '<Shift>R'),
 		('/Edit/Paste (inside)', 'do_put_as_child', '', 'bracketright'),
 		('/Edit/Paste (before)', 'do_put_before', '', '<Shift>P'),
 		('/Edit/Paste (after)', 'do_put_after', '', 'p'),
+		('/Edit/', '', '', '<separator>'),
+		('/Edit/Edit value', 'toggle_edit', '', 'Return'),
+		('/Edit/Normalise', 'do_normalise', '', ''),
+		('/Edit/', '', '', '<separator>'),
 		('/Edit/Undo', 'do_undo', '', 'u'),
 		('/Edit/Redo', 'do_redo', '', '<Ctrl>R'),
-		('/Edit/Edit value', 'toggle_edit', '', 'Return'),
 
 		('/Move', None, '<Branch>', ''),
 		('/Move/XPath search', 'menu_show_search', '', 'slash'),
@@ -471,6 +477,7 @@ class GUIView(Display):
 	do_show_canvas = make_do('show_canvas')
 	do_compare = make_do('compare')
 	do_again = make_do('again')
+	do_normalise = make_do('normalise')
 
 	do_mark_switch = make_do('mark_switch')
 	do_mark_selection = make_do('mark_selection')

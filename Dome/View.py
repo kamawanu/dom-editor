@@ -1731,6 +1731,9 @@ class View:
 	
 	def clear_mark(self):
 		self.set_marked([])
+	
+	def normalise(self):
+		self.model.normalise(self.get_current())
 
 class StrGrab:
 	data = ''
