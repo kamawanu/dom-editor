@@ -745,7 +745,9 @@ class View:
 		check = len(nodes) == 1
 		a = self.current_attrib
 		if a:
-			new = re.sub(replace, with, a.value)
+			new, num = re.subn(replace, with, a.value)
+			if not num:
+				raise Beep
 			a = self.model.set_attrib(nodes[0], a.name, new)
 			self.move_to(nodes[0], a)
 		else:
