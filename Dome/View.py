@@ -470,7 +470,7 @@ class View:
 			return
 
 		if exit == 'fail' and not self.innermost_failure:
-			print "Setting innermost_failure"
+			print "Setting innermost_failure on", op
 			self.innermost_failure = op
 
 		if self.callback_on_return:
@@ -700,7 +700,18 @@ class View:
 			if c:
 				self.call_on_done = None
 				c(exit)
+			elif exit == 'fail':
+				self.jump_to_innermost_failure()
 			raise Done()
+	
+	def jump_to_innermost_failure(self):
+		assert self.innermost_failure != None
+
+		print "Returning to innermost failure:", self.innermost_failure
+		self.set_exec((self.innermost_failure, 'fail'))
+		for l in self.lists:
+			if hasattr(l, 'set_innermost_failure'):
+				l.set_innermost_failure(self.innermost_failure)
 
 	def play(self, name, done = None):
 		"Play this macro. When it returns, restore the current op_in_progress (if any)"
@@ -762,6 +773,9 @@ class View:
 			finally:
 				self.in_callback = 0
 		except Done:
+			(op, exit) = self.exec_point
+			if exit == 'fail' and self.innermost_failure:
+				self.jump_to_innermost_failure()
 			print "Done, at " + time.ctime(time.time())
 			self.run_new()
 			return 0

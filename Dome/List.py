@@ -94,6 +94,9 @@ class List(GtkVBox):
 		self.tree.show()
 		self.view.lists.append(self)
 		self.view.model.root_program.watchers.append(self)
+		
+	def set_innermost_failure(self, op):
+		self.show_prog(op.program)
 	
 	def destroy(self):
 		self.view.lists.remove(self)
@@ -143,10 +146,8 @@ class List(GtkVBox):
 	
 	def run_return(self, exit):
 		if exit != 'next':
-			op = self.view.innermost_failure
-			print "run_return: Innermost failed is", op
-			self.view.set_exec((op, 'fail'))
-			self.show_prog(op.program)
+			print "run_return: failure!"
+			self.view.jump_to_innermost_failure()
 			def cb(choice, self = self):
 				if choice == 0:
 					self.view.record_at_point()
