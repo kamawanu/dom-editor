@@ -25,6 +25,11 @@ def load(program, chain):
 			action[0] = 'enter'
 		elif action[0] == 'unchroot':
 			action[0] = 'leave'
+		#elif action[0] == 'set_attrib':
+		#	if action[3] == '':
+		#		action = ('add_attrib', action[1], action[2])
+		#	else:
+		#		action = ('set_attrib', action[3])
 		elif action[0] == 'playback':
 			action[0] = 'map'
 

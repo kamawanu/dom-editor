@@ -55,10 +55,13 @@ class Model:
 	def add_view(self, view):
 		"'view' provides:"
 		"'update_all(subtree) - called when a major change occurs."
+		print "New view:", view
 		self.views.append(view)
 	
 	def remove_view(self, view):
+		print "Removing view", view
 		self.views.remove(view)
+		print "Now:", self.views
 
 	def update_all(self, node):
 		"Called when 'node' has been updated."

@@ -68,9 +68,10 @@ class View:
 			if len(self.current_nodes) == 1:
 				return self.current_nodes[0]
 			raise Exception('This operation required exactly one selected node!')
-		elif attr == '__cmp__':
-			return (lambda a, self = self: a is self)
 		return self.__dict__[attr]
+		
+	def __cmp__(a, b):
+		return a is not b
 	
 	def running(self):
 		return self.idle_cb != 0
@@ -792,10 +793,15 @@ class View:
 		else:
 			raise Beep()
 	
-	def set_attrib(self, namespaceURI, name, value):
-		# 'name' must include the prefix if namespaceURI is not ''
-		self.model.set_attrib(self.current, namespaceURI, name, value)
-		self.move_to(self.current, self.current.getAttributeNodeNS(namespaceURI, name))
+	def set_attrib(self, value):
+		a = self.current_attrib
+		if not a:
+			raise Beep()
+		self.model.set_attrib(self.current, a.namespaceURI, a.localName, value)
+	
+	def add_attrib(self, namespace, name):
+		self.model.set_attrib(self.current, namespace, name, "")
+		self.move_to(self.current, self.current.getAttributeNodeNS(namespace, name))
 	
 	def load_html(self, path):
 		"Replace root with contents of this HTML file."
@@ -821,8 +827,7 @@ class View:
 	
 	def show_canvas(self):
 		node = self.current
-		nv = View(self.model)
-		nv.move_to(node)
-		nv.enter()
-		Canvas(nv).show()
+		#nv = View(self.model)
+		#nv.clipboard = self.clipboard.cloneNode(deep = 1)
+		Canvas(self, node).show()
 	

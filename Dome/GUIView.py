@@ -225,8 +225,7 @@ class GUIView(Display):
 	def commit_edit(self, new):
 		if self.cursor_attrib:
 			name, value = string.split(new, '=', 1)
-			self.view.may_record(['set_attrib', self.cursor_attrib.namespaceURI,
-						self.cursor_attrib.localName, value])
+			self.view.may_record(['set_attrib', value])
 		else:
 			self.view.may_record(['change_node', new])
 	
@@ -291,7 +290,7 @@ class GUIView(Display):
 			else:
 				(prefix, localName) = ('', name)
 			namespaceURI = self.view.model.prefix_to_namespace(self.view.current, prefix)
-			action = ["set_attrib", namespaceURI, name, ""]
+			action = ["add_attrib", namespaceURI, name]
 			self.view.may_record(action)
 		GetArg('Create attribute:', do_it, ['Name:'])
 

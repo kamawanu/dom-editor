@@ -36,7 +36,9 @@ def action_to_text(action):
 		elif action[0] == 'attribute':
 			details = str(action[2])
 		elif action[0] == 'set_attrib':
-			details = str(action[2]) + '=' + str(action[3])
+			details = str(action[1])
+		elif action[0] == 'add_attrib':
+			details = str(action[2])
 		elif action[0] == 'add_node':
 			details = action[2]
 		elif action[0] == 'play' or action[0] == 'map':

@@ -6,9 +6,10 @@ import sys
 import traceback
 
 class Canvas(GtkWindow):
-	def __init__(self, view):
+	def __init__(self, view, node):
 		GtkWindow.__init__(self)
 		self.view = view
+		self.display_root = node
 
 		self.canvas = GnomeCanvas()
 		self.add(self.canvas)
@@ -30,9 +31,13 @@ class Canvas(GtkWindow):
 	
 	def update_all(self, node = None):
 		print "Update!"
+		if not self.view.has_ancestor(self.display_root, self.view.root):
+			print "Display node lost - killing canvas!"
+			self.destroy()
+			return
 		if self.group:
 			self.group.destroy()
-		self.group = self.build(self.canvas.root(), self.view.root)
+		self.group = self.build(self.canvas.root(), self.display_root)
 		self.set_bounds()
 	
 	def set_bounds(self):
@@ -65,8 +70,11 @@ class Canvas(GtkWindow):
 		else:
 			onClick = None
 			
+		name = str(node.localName)
+		if name == 'TR':
+			name = 'group'
 		try:
-			item = apply(group.add, [str(node.localName)], attrs)
+			item = apply(group.add, [name], attrs)
 		except:
 			type, val, tb = sys.exc_info()
 			list = traceback.extract_tb(tb)
