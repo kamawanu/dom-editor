@@ -338,7 +338,6 @@ class View:
 	# (duplicates will be removed)
 	# If it's a single node, then an 'attrib' node may also be specified
 	def move_to(self, nodes, attrib = None):
-		print "move_to", nodes
 		if self.current_nodes == nodes:
 			return
 
