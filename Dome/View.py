@@ -9,6 +9,8 @@ import Html
 from Beep import Beep
 import Exec
 
+DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
+
 # An view contains:
 # - A ref to a DOM document
 # - A current node
@@ -331,7 +333,7 @@ class View:
 	def python_to_node(self, data):
 		"Convert a python data structure into a tree and return the root."
 		if type(data) == types.ListType:
-			list = self.model.doc.createElement('list')
+			list = self.model.doc.createElementNS(DOME_NS, 'dome:list')
 			for x in data:
 				list.appendChild(self.python_to_node(x))
 			return list
@@ -340,11 +342,14 @@ class View:
 	def yank(self):
 		if self.current_attrib:
 			a = self.current_attrib
-			self.clipboard = self.model.doc.createElement('attribute')
-			n = self.model.doc.createElement('name')
-			n.appendChild(self.model.doc.createTextNode(a.name))
+			self.clipboard = self.model.doc.createElementNS(DOME_NS, 'attribute')
+			n = self.model.doc.createElementNS(DOME_NS, 'dome:namespaceURI')
+			n.appendChild(self.model.doc.createTextNode(a.namespaceURI))
 			self.clipboard.appendChild(n)
-			n = self.model.doc.createElement('value')
+			n = self.model.doc.createElementNS(DOME_NS, 'dome:name')
+			n.appendChild(self.model.doc.createTextNode(a.localName))
+			self.clipboard.appendChild(n)
+			n = self.model.doc.createElementNS(DOME_NS, 'dome:value')
 			n.appendChild(self.model.doc.createTextNode(a.value))
 			self.clipboard.appendChild(n)
 		else:
@@ -362,7 +367,7 @@ class View:
 		if self.current_attrib:
 			ca = self.current_attrib
 			self.current_attrib = None
-			self.model.set_attrib(self.current, ca.name, None)
+			self.model.set_attrib(self.current, ca.namespaceURI, ca.localName, None)
 			return
 		new = []
 		for x in nodes:
@@ -455,8 +460,8 @@ class View:
 			p = node
 			base = None
 			while p:
-				if p.hasAttribute('uri'):
-					base = p.getAttribute('uri')
+				if p.hasAttributeNS(DOME_NS, 'uri'):
+					base = p.getAttributeNS(DOME_NS, 'uri')
 					break
 				p = p.parentNode
 			if base:
@@ -473,7 +478,7 @@ class View:
 		root = reader.fromStream(cout)
 		cout.close()
 		new = html_to_xml(node.ownerDocument, root)
-		new.setAttribute('uri', uri)
+		new.setAttributeNS(DOME_NS, 'dome:uri', uri)
 		self.model.replace_node(node, new)
 	
 	def put_before(self):
@@ -536,16 +541,19 @@ class View:
 			
 		print attribs
 		for a in attribs:
-			n = self.model.doc.createElement('attribute')
-			name = self.model.doc.createElement('name')
-			val = self.model.doc.createElement('value')
+			n = self.model.doc.createElementNS(DOME_NS, 'dome:attribute')
+			ns = self.model.doc.createElementNS(DOME_NS, 'dome:namespaceURI')
+			name = self.model.doc.createElementNS(DOME_NS, 'dome:name')
+			val = self.model.doc.createElementNS(DOME_NS, 'dome:value')
 			
+			n.appendChild(ns)
 			n.appendChild(name)
 			n.appendChild(val)
 
 			self.clipboard.appendChild(n)
 
-			name.appendChild(self.model.doc.createTextNode(a.name))
+			ns.appendChild(self.model.doc.createTextNode(a.namespaceURI))
+			name.appendChild(self.model.doc.createTextNode(a.nodeName))
 			val.appendChild(self.model.doc.createTextNode(a.value))
 		print "Clip now", self.clipboard
 	
@@ -556,17 +564,18 @@ class View:
 			attribs = [self.clipboard]
 		new = []
 		def get(a, name):
-			return a.getElementsByTagName(name)[0].childNodes[0].data
+			return a.getElementsByTagNameNS(DOME_NS, name)[0].childNodes[0].data
 		for a in attribs:
 			try:
-				name = get(a, 'name')
+				namespaceURI = get(a, 'namespaceURI')
+				nodename = get(a, 'name')
 				value = get(a, 'value')
-				new.append((name, value))
+				new.append((namespaceURI, nodename, value))
 			except IndexError:
 				raise Beep
 		for node in self.current_nodes:
-			for (name, value) in new:
-				self.model.set_attrib(node, name, value)
+			for (ns, local, value) in new:
+				self.model.set_attrib(node, ns, local, value)
 	
 	def compare(self):
 		"Ensure that all selected nodes have the same value."
@@ -580,15 +589,19 @@ class View:
 	def fail(self):
 		raise Beep(may_record = 1)
 	
-	def attribute(self, attrib = None):
+	def attribute(self, namespace = None, attrib = None):
 		if attrib is None:
 			self.move_to(self.current)
 			return
 
-		if self.current.hasAttribute(attrib):
-			self.move_to(self.current, self.current.getAttributeNode(attrib))
+		print "(ns, attrib)", `namespace`, attrib
+
+		if self.current.hasAttributeNS(namespace, attrib):
+			self.move_to(self.current,
+				self.current.getAttributeNodeNS(namespace, attrib))
 		else:
 			raise Beep()
 	
-	def set_attrib(self, name, value):
-		self.model.set_attrib(self.current, name, value)
+	def set_attrib(self, namespaceURI, name, value):
+		# 'name' must include the prefix if namespaceURI is not ''
+		self.model.set_attrib(self.current, namespaceURI, name, value)

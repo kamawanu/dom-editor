@@ -5,7 +5,7 @@
 # All changes to the DOM must go through here.
 # Notification to views of changes is done.
 
-from xml.dom import implementation
+from xml.dom import implementation, XMLNS_NAMESPACE
 from xml.dom.ext.reader import PyExpat
 from xml.dom import ext
 from xml.dom import Node
@@ -14,7 +14,7 @@ import Html
 import Change
 from Beep import Beep
 
-from support import html_to_xml, import_xml, my_GetAllNs
+from support import html_to_xml
 
 class Model:
 	def __init__(self, macro_list):
@@ -40,7 +40,7 @@ class Model:
 		reader = PyExpat.Reader()
 		new_doc = reader.fromUri(path)
 
-		new = import_xml(self.doc, new_doc.documentElement)
+		new = self.doc.importNode(new_doc.documentElement, deep = 1)
 		
 		self.doc.replaceChild(new, self.doc.documentElement)
 		self.strip_space()
@@ -125,14 +125,14 @@ class Model:
 			Change.insert_before(node, new, parent)
 		self.update_all(parent)
 	
-	def set_attrib(self, node, name, value):
+	def set_attrib(self, node, namespaceURI, localName, value):
 		"Set an attribute's value. If value is None, remove the attribute."
-		Change.set_attrib(node, name, value)
+		Change.set_attrib(node, namespaceURI, localName, value)
 		self.update_all(node)
-
+	
 	def prefix_to_namespace(self, node, prefix):
 		"Use the xmlns attributes to workout the namespace."
-		nss = my_GetAllNs(node)
+		nss = ext.GetAllNs(node)
 		if nss.has_key(prefix):
 			return nss[prefix]
 		if prefix:

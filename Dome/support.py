@@ -1,6 +1,6 @@
 import sys
 import traceback
-from xml.dom import ext, Node, implementation, XML_NAMESPACE
+from xml.dom import ext, Node, implementation
 
 from string import find, lower, join
 from socket import gethostbyaddr, gethostname
@@ -25,24 +25,6 @@ bad_xpm = [
 " ..XXXXXX.. ",
 "            "]
 
-def my_GetAllNs(node):
-    #The xml namespace is implicit
-    nss = {'xml': XML_NAMESPACE}
-    if node.nodeType == Node.ELEMENT_NODE:
-        if node.namespaceURI:
-            nss[node.prefix] = node.namespaceURI
-        for attr in node.attributes.values():
-            if attr.name == 'xmlns':
-	    	nss[''] = attr.value
-            elif attr.name[:6] == 'xmlns:':
-	        nss[attr.name[6:]] = attr.value
-    if node.parentNode:
-        #Inner NS/Prefix mappings take precedence over outer ones
-        parent_nss = my_GetAllNs(node.parentNode)
-        parent_nss.update(nss)
-        nss = parent_nss
-    return nss
-
 def node_to_xml(node):
 	"Takes an XML node and returns an XML documentElement suitable for saving."
 	root = implementation.createDocument('', 'root', None)
@@ -50,24 +32,25 @@ def node_to_xml(node):
 	root.replaceChild(new, root.documentElement)
 	return root
 
-def import_xml(doc, old):
-	"Import 'old' into 'doc', removing attribute namespace stuff as we go..."
-	
-	if old.nodeType == Node.ELEMENT_NODE:
-		new = doc.createElementNS(old.namespaceURI, old.localName)
-		for a in old.attributes:
-			new.setAttribute(a.name, a.value)
-		for k in old.childNodes:
-			new.appendChild(import_xml(doc, k))
-		return new
-	else:
-		return doc.importNode(old, deep = 1)
+def set_default_namespace(node):
+	"Attributes get a namespace of ''."
+	if node.nodeType == Node.ELEMENT_NODE:
+		old = []
+		for a in node.attributes:
+			old.append((a.name, a.value))
+		for (name, value) in old:
+			node.removeAttribute(name)
+			node.setAttributeNS('', name, value)
+	for k in node.childNodes:
+		set_default_namespace(k)
 
 def html_to_xml(doc, html):
 	"Takes an HTML DOM (modified) and creates a corresponding XML DOM."
+	"Attributes are given the namespace ''."
 	ext.StripHtml(html)
 	old_root = html.documentElement
 	node = doc.importNode(old_root, deep = 1)
+	set_default_namespace(node)
 	return node
 
 def load_pixmap(window, path):
@@ -78,6 +61,7 @@ def load_pixmap(window, path):
 		p, m = create_pixmap_from_xpm_d(window, None, bad_xpm)
 	return p, m
 
+_host_name = None
 def our_host_name():
 	global _host_name
 	if _host_name:
