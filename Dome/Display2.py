@@ -47,6 +47,10 @@ def calc_node(display, node, pos):
 				gc = style.fg_gc[g.STATE_NORMAL]
 			surface.draw_layout(gc, x + 12, y, layout)
 
+		if node in display.view.marked:
+			surface.draw_rectangle(style.text_gc[g.STATE_PRELIGHT], False,
+					x - 1, y - 1, width + 12, height)
+
 	bbox = (x, y, x + 12 + width, y + height)
 	return bbox, draw_fn
 
@@ -64,6 +68,7 @@ class Display(g.EventBox):
 		s = self.get_style().copy()
 		s.bg[g.STATE_NORMAL] = g.gdk.color_parse('old lace')
 		s.text[g.STATE_NORMAL] = g.gdk.color_parse('blue')
+		s.text[g.STATE_PRELIGHT] = g.gdk.color_parse('orange')	# Mark
 		self.set_style(s)
 
 		#self.connect('destroy', self.destroyed)
