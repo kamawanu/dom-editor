@@ -76,9 +76,6 @@ if len(sys.argv) > 2:
 	xml_data = sys.argv[2]
 else:
 	xml_data = None
-model = Model(source, dome_data = xml_data)
-
-view = View(model, callback_handlers = (idle_add, idle_remove))
 
 def run_nogui():
 	print "Starting root program of", source
@@ -106,6 +103,9 @@ if show_leaks:
 	for x in gc.get_objects():
 		old[id(x)] = None
 
+model = Model(source, dome_data = xml_data)
+view = View(model, callback_handlers = (idle_add, idle_remove))
+
 if profiling:
 	import profile
 	print "Profiling..."
@@ -114,7 +114,7 @@ else:
 	run_nogui()
 
 if show_leaks:
-	del view, model
+	del view, model, idle_list
 	gc.collect()
 	for x in gc.get_objects():
 		if id(x) not in old:
