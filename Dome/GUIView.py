@@ -124,6 +124,7 @@ class GUIView(Display):
 			('Yank attrib value', do('yank_value')),
 			(None, None),
 			('Cut', do('delete_node')),
+			('Shallow cut', do('delete_shallow')),
 			('Yank', do('yank')),
 			('Shallow yank', do('shallow_yank')),
 			('Paste (replace)', do('put_replace')),
@@ -284,12 +285,6 @@ class GUIView(Display):
 		else:
 			self.show_editbox()
 
-	def show_del_attrib(self):
-		def do_attrib(attrib, self = self):
-			action = ["del_attrib", attrib]
-			self.view.may_record(action)
-		GetArg('Delete attribute:', do_attrib, ['Name:'])
-
 	def show_yank_attribs(self):
 		def do_attrib(attrib, self = self):
 			action = ["yank_attribs", attrib]
@@ -445,7 +440,7 @@ class GUIView(Display):
 		s	: show_subst,
 
 		x	: ["delete_node"],
-		X	: show_del_attrib,
+		X	: ["delete_shallow"],
 
 		ord('.'): ["again"],
 

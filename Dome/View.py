@@ -43,6 +43,7 @@ record_again = [
 	"yank",
 	"shallow_yank",
 	"delete_node",
+	"delete_shallow",
 	"play",
 	"map",
 	"change_node",
@@ -367,6 +368,8 @@ class View:
 		"""Change the display root to a COPY of the selected node.
 		Call Leave to check changes back in."""
 		node = self.get_current()
+		if node == self.root:
+			raise Beep()
 		self.chroots.append((self.model, node))
 		self.set_model(self.model.lock_and_copy(node))
 	
@@ -619,6 +622,17 @@ class View:
 	def shallow_yank(self):
 		self.yank(deep = 0)
 	
+	def delete_shallow(self):
+		nodes = self.current_nodes[:]
+		if not nodes:
+			return
+		if self.root in nodes:
+			raise Beep
+		self.move_to([])
+		for n in nodes:
+			self.model.delete_shallow(n)
+		self.move_home()
+	
 	def delete_node(self):
 		nodes = self.current_nodes[:]
 		if not nodes:
@@ -627,7 +641,8 @@ class View:
 		if self.current_attrib:
 			ca = self.current_attrib
 			self.current_attrib = None
-			self.model.set_attrib(self.get_current(), ca.namespaceURI, ca.localName, None)
+			self.model.set_attrib(self.get_current(),
+					ca.namespaceURI, ca.localName, None)
 			return
 		self.move_to([])	# Makes things go *much* faster!
 		new = []

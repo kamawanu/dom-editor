@@ -175,6 +175,21 @@ class Model:
 			raise Exception('Attempt to replace locked node %s' % old)
 		Change.replace_node(old, new)
 		self.update_replace(old, new)
+
+	def delete_shallow(self, node):
+		"""Replace node with its contents"""
+		kids = node.childNodes[:]
+		next = node.nextSibling
+		parent = node.parentNode
+		for n in kids + [node]:
+			if self.get_locks(n):
+				raise Exception('Attempt to move/delete locked node %s' % n)
+		for k in kids:
+			Change.delete(k)
+		Change.delete(node)
+		for k in kids:
+			Change.insert_before(next, k, parent)
+		self.update_all(parent)
 	
 	def delete_nodes(self, nodes):
 		#print "Deleting", nodes
