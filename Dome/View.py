@@ -203,9 +203,16 @@ class View:
 		self.callback_on_return = None
 		while self.exec_stack:
 			self.pop_stack()
-		self.foreach_stack = []
+		self.reset_foreach_stack()
 		self.status_changed()
 		self.update_stack()
+	
+	def reset_foreach_stack(self):
+		for block, nodes, restore, mark in self.foreach_stack:
+			if mark:
+				print "reset_foreach_stack: unlocking %d nodes" % len(mark)
+				[self.model.unlock(x) for x in mark]
+		self.foreach_stack = []
 
 	def push_stack(self, op):
 		if not isinstance(op, Op):
@@ -961,7 +968,7 @@ class View:
 			raise Done
 		stack_block, nodes_list, restore, old_mark = self.foreach_stack[-1]
 		if stack_block != block:
-			self.foreach_stack = []
+			self.reset_foreach_stack()
 			self.update_stack()
 			raise Exception("Reached the end of a block we never entered")
 
@@ -972,6 +979,8 @@ class View:
 				restore.extend(self.current_nodes)
 			if continuing == 'fail':
 				print "Error in block; exiting early in program", block.get_program()
+				if old_mark:
+					[self.model.unlock(x) for x in old_mark]
 				self.foreach_stack.pop()
 				self.update_stack()
 				return 0
@@ -1496,7 +1505,7 @@ class View:
 		c = Context.Context(src.parentNode, [src.parentNode], processorNss = ns)
 		
 		rt = XPath.Evaluate(xpath, context = c)
-		print "Got", rt
+		#print "Got", rt
 		if src in rt:
 			raise Beep(may_record = 1)
 	

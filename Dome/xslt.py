@@ -1,12 +1,6 @@
 from constants import XSLT_NS
 from xml.dom import Node
 
-# Plan:
-
-# Root program is the template-dispatcher which checks to see if the current node
-# matches a series of patterns (in priority order) and calls the appropriate program
-# for the template.
-
 from Ft.Xml.Xslt.StylesheetReader import StylesheetReader
 from Ft.Xml.Xslt.StylesheetTree import XsltElement, XsltText
 from Ft.Xml.Xslt.LiteralElement import LiteralElement
@@ -18,18 +12,24 @@ def import_sheet(doc):
 
 	root = Program('XSLT')
 
-	# To start with, the mark is on the source document node and
-	# the cursor is on the result document node.
-	#
-	# The root program is called with:
-	# => Cursor = context node
-	#    Mark = result parent (append here)
-	# <= Cursor is undefined
-	#    Mark is unchanged
+	# The root program puts the mark on the Result node and the cursor on the Source.
+	# It then runs the program for the default mode. There is one program for each mode, and
+	# it acts as a dispatcher. It finds a template which matches the cursor node and runs
+	# the program for that template.
+
 	op = add(root.code.start, 'do_search', '/xslt/Result')
 	op = add(op, 'mark_selection')
 	op = add(op, 'do_search', '/xslt/Source')
 	op = add(op, 'play', 'XSLT/Default mode')
+	
+	# To start with, the cursor is on the source document node and
+	# the mark is on the result document node.
+	#
+	# The mode program is called with:
+	# => Cursor = context node
+	#    Mark = result parent (append children here)
+	# <= Cursor is undefined
+	#    Mark is unchanged
 	
 	reader = StylesheetReader()
 	sheet = reader.fromDocument(doc)
@@ -95,7 +95,7 @@ def import_sheet(doc):
 		tests = add(tests, 'mark_switch')
 		[ op.link_to(tests, 'next') for op in loose_ends ]
 
-
+	root.modified = 0
 	return root
 
 def add(op, *action):
@@ -113,14 +113,6 @@ def add(op, *action):
 #
 # Add the instructions to instantiate this template to 'op'.
 def make_template(op, temp):
-	op = add(op, 'mark_switch')
-	block = Block(op.parent)
-	block.toggle_restore()
-	op.link_to(block, 'next')
-	op = block.start
-	op2 = add(block, 'mark_switch')
-
-	op = add(op, 'mark_switch')
 	for child in temp.children:
 		if isinstance(child, XsltText):
 			print "Text node", child.data
@@ -133,12 +125,16 @@ def make_template(op, temp):
 			op = make_template(op, child)
 			op = add(op, 'move_left')
 		elif isinstance(child, ApplyTemplatesElement):
-			op = add(op, 'mark_switch')
-			op = add(op, 'do_global', '*')	# XXX
-			op = add(op, 'map', 'XSLT/Default mode')
-			op = add(op, 'mark_switch')
+			block = Block(op.parent)
+			block.toggle_restore()
+			sub = block.start
+
+			sub = add(sub, 'mark_switch')
+			sub = add(sub, 'do_global', '*')	# XXX
+			sub = add(sub, 'map', 'XSLT/Default mode')
+			sub = add(sub, 'mark_switch')
+
+			op.link_to(block, 'next')
 		else:
 			print "Unknown template type", child, "(%s)" % child.__class__
-	op = add(op, 'mark_switch')
-
-	return op2
+	return op
