@@ -12,7 +12,6 @@ from xml.dom import implementation
 from xml.dom.ext.reader import PyExpat
 
 from rox import choices
-import Html
 from support import *
 from rox.SaveBox import SaveBox
 from rox.Toolbar import Toolbar
