@@ -31,7 +31,6 @@ class Model:
 		print "Reading HTML..."
 		reader = Html.Reader()
 		root = reader.fromUri(path)
-		ext.StripHtml(root)
 		new = html_to_xml(self.doc, root)
 		self.doc.replaceChild(new, self.doc.documentElement)
 		self.update_all(self.doc)

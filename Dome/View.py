@@ -436,7 +436,6 @@ class View:
 		reader = Html.Reader()
 		root = reader.fromStream(cout)
 		cout.close()
-		ext.StripHtml(root)
 		new = html_to_xml(node.ownerDocument, root)
 		new.setAttribute('uri', uri)
 		self.model.replace_node(node, new)
