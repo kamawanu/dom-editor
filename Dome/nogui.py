@@ -63,6 +63,9 @@ while idle_list:
 
 print "Done!"
 
+if view.chroots:
+	raise Exception("Processing stopped in a chroot! -- not saving")
+
 import shutil
 
 shutil.copyfile(source, source + '.bak')

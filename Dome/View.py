@@ -290,10 +290,6 @@ class View:
 		self.model.remove_view(self)
 		self.model = None
 	
-	def home(self):
-		"Move current to the display root."
-		self.move_to(self.root_node)
-	
 	# 'nodes' may be either a node or a list of nodes.
 	# If it's a single node, then an 'attrib' node may also be specified
 	def move_to(self, nodes, attrib = None):
@@ -851,8 +847,9 @@ class View:
 			base = self.model.get_base_uri(node)
 			#print "Relative URI..."
 			if base:
-				#print "Base URI is:", base
+				print "Base URI is:", base, "add", uri
 				uri = urlparse.urljoin(base, uri)
+				print "Result:", uri
 			else:
 				pass
 				#print "Warning: Can't find 'uri' attribute!"
@@ -1280,6 +1277,13 @@ class View:
 		node.appendChild(data)
 
 		return doc
+	
+	def blank_all(self):
+		from xml.dom import implementation
+		doc = implementation.createDocument(None, 'root', None)
+		self.move_home()
+		self.clipboard = self.model.doc.createElementNS(None, 'root')
+		self.put_replace()
 
 class StrGrab:
 	data = ''
