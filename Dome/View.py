@@ -1361,12 +1361,14 @@ class View:
 		self.clipboard = self.model.doc.createTextNode(value)
 		#print "Clip now", self.clipboard
 	
-	def yank_attribs(self, name):
+	def yank_attribs(self, name = None):
+		if name:
+			print "yank_attribs: DEPRECATED -- use Yank instead!"
 		self.clipboard = self.model.doc.createDocumentFragment()
 		if name:
-			if not self.get_current().hasAttribute(name):
+			if not self.get_current().hasAttributeNS(None, name):
 				raise Beep
-			attribs = [self.get_current().getAttributeNode(name)]
+			attribs = [self.get_current().getAttributeNodeNS(None, name)]
 		else:
 			attribs = []
 			dict = self.get_current().attributes

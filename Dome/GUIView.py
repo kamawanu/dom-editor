@@ -22,7 +22,7 @@ menu = Menu('Dome', 'main', [
 		('/File/Blank document', 'do_blank_all', '', '<Ctrl>N'),
 
 		('/Edit', None, '<Branch>', ''),
-		('/Edit/Yank attributes', 'menu_show_yank_attribs', '', ''),
+		('/Edit/Yank attributes', 'do_yank_attributes', '', ''),
 		('/Edit/Paste attributes', 'do_paste_attribs', '', ''),
 		('/Edit/Yank attrib value', 'do_yank_value', '', ''),
 		('/Edit/', '', '', '<separator>'),
@@ -351,12 +351,6 @@ class GUIView(Display):
 		else:
 			self.show_editbox()
 
-	def menu_show_yank_attribs(self):
-		def do_attrib(attrib, self = self):
-			action = ["yank_attribs", attrib]
-			self.view.may_record(action)
-		GetArg('Yank attribute:', do_attrib, ['Name:'], message = 'Blank for all...')
-
 	def menu_select_attrib(self):
 		def do_attrib(name, self = self):
 			if ':' in name:
@@ -461,6 +455,7 @@ class GUIView(Display):
 	do_select_dups = make_do('select_dups')
 	do_paste_attribs = make_do('paste_attribs')
 	do_yank_value = make_do('yank_value')
+	do_yank_attributes = make_do('yank_attribs')
 	do_delete_node = make_do('delete_node')
 	do_delete_node_no_clipboard = make_do('delete_node_no_clipboard')
 	do_delete_shallow = make_do('delete_shallow')
