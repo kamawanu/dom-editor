@@ -97,7 +97,7 @@ def parse_data(data, path):
 
 	try:
 		try:
-			print "Parsing (with entities)..."
+			#print "Parsing (with entities)..."
 			doc = nonvalParse(isrc.fromString(data, path))
 		except:
 			print "Parse failed.. retry without entities..."
@@ -111,7 +111,5 @@ def parse_data(data, path):
 		print data
 		#rox.report_exception()
 		raise
-	else:
-		print "parse OK...",
 	return doc
 	
