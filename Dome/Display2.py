@@ -1,76 +1,43 @@
+from __future__ import generators
+
 import rox
 from rox import g
 from xml.dom import Node
 
-def init_colours(window, gc):
-	global black
-	black = gc
+def draw_node(display, node, pos):
+	if node.nodeType == Node.TEXT_NODE:
+		text = node.nodeValue.strip()
+	elif node.nodeType == Node.ELEMENT_NODE:
+		text = node.nodeName
+	elif node.nodeType == Node.COMMENT_NODE:
+		text = node.nodeValue.strip()
+	elif node.nodeName:
+		text = node.nodeName
+	elif node.nodeValue:
+		text = '<noname>' + node.nodeValue
+	else:
+		text = '<unknown>'
 
-class GUINode:
-	def __init__(self, widget, node):
-		self.widget = widget
-		self.node = node
-		self.text = self.get_text(node)
-		self.layout = widget.create_pango_layout(self.text)
-		w, h = self.layout.get_pixel_size()
-		self.text_width = w
-		self.text_height = h
-		self.bbox = [w + 12, max(h, 8)]
-		self.kids = []
-	
-	def render(self, widget, x, y):
-		surface = widget.pm
-		self.x = x
-		self.y = y
-		fg = widget.style.fg_gc
-		bg = widget.style.bg_gc
-		surface.draw_rectangle(fg[g.STATE_NORMAL], True,
-					x, y, 8, self.text_height - 1)
-		
-		if self.node in self.widget.selection:
-			surface.draw_rectangle(bg[g.STATE_SELECTED], True,
-				x + 12, y, self.text_width - 1, self.text_height - 1)
-			surface.draw_layout(fg[g.STATE_SELECTED], x + 12, y, self.layout)
-		else:
-			surface.draw_layout(fg[g.STATE_NORMAL], x + 12, y, self.layout)
-	
-	def contains_point(self, x, y):
-		# The region which, if clicked, should select this node:
-		node_bbox = (self.x, self.y, self.x + 12 + self.text_width, self.y + self.text_height)
+	layout = display.create_pango_layout(text)
+	width, height = layout.get_pixel_size()
+	surface = display.pm
+	fg = display.style.fg_gc
+	bg = display.style.bg_gc
+	x, y = pos
 
-		return x >= node_bbox[0] and x <= node_bbox[2] and \
-		       y >= node_bbox[1] and y <= node_bbox[3]
-		
-	def get_text(self, node):
-		if node.nodeType == Node.TEXT_NODE:
-			return node.nodeValue.strip()
-		elif node.nodeType == Node.ELEMENT_NODE:
-			return node.nodeName
-		elif node.nodeType == Node.COMMENT_NODE:
-			return node.nodeValue.strip()
-		elif node.nodeName:
-			return node.nodeName
-		elif node.nodeValue:
-			return '<noname>' + node.nodeValue
-		else:
-			return '<unknown>'
+	surface.draw_rectangle(fg[g.STATE_NORMAL], True,
+				x, y, 8, height - 1)
+	surface.draw_rectangle(display.style.white_gc, True,
+				x + 1, y + 1, 6, height - 3)
 	
-	def add_child(self, child):
-		# Add child GUINode, and return start point for next child.
-		# If child is None, return the first free point, but still update
-		# space needed (for initial connector).
-		if not self.kids:
-			self.new_child_pos = [16, max(16, self.text_height + 2)]
-			self.bbox = [max(self.bbox[0], self.new_child_pos[0]),
-				     max(self.bbox[1], self.new_child_pos[1])]
-
-		if child:
-			self.bbox[1] += child.bbox[1]
-			self.bbox[0] = max(self.bbox[0],
-					   child.bbox[0] + self.new_child_pos[0])
-			self.new_child_pos[1] += child.bbox[1]
-			self.kids.append(child)
-		return self.new_child_pos
+	if node in display.selection:
+		surface.draw_rectangle(bg[g.STATE_SELECTED], True,
+			x + 12, y, width - 1, height - 1)
+		surface.draw_layout(fg[g.STATE_SELECTED], x + 12, y, layout)
+	else:
+		surface.draw_layout(fg[g.STATE_NORMAL], x + 12, y, layout)
+	
+	return (x, y, x + 12 + width, y + height)
 
 class Display(g.EventBox):
 	def __init__(self, window, view):
@@ -94,9 +61,10 @@ class Display(g.EventBox):
 
 		#rox.app_options.add_notify(self.options_changed)
 
-		# Display is relative to this node
+		# Display is relative to this node, which is the highest displayed node (possibly
+		# off the top of the screen)
 		self.ref_node = view.root
-		self.scroll_offset = (0, 0)	# 0,0 => ref node at top-left
+		self.ref_pos = (0, 0)
 
 		self.last_alloc = None
 		self.connect('size-allocate', lambda w, a: self.size_allocate(a))
@@ -106,7 +74,6 @@ class Display(g.EventBox):
 		self.set_view(view)
 	
 	def size_allocate(self, alloc):
-		init_colours(self.window, self.style.black_gc)
 		new = (alloc.width, alloc.height)
 		if self.last_alloc == new:
 			return
@@ -121,20 +88,37 @@ class Display(g.EventBox):
 	def update(self):
 		if not self.pm: return
 		print "update"
-		if self.view.current_nodes:
-			self.ref_node = self.view.current_nodes[0] # XXX
+		#if self.view.current_nodes:
+		#	self.ref_node = self.view.current_nodes[0] # XXX
 
 		self.update_timeout = 0
 
 		self.pm.draw_rectangle(self.style.bg_gc[g.STATE_NORMAL], True,
 				  0, 0, self.last_alloc[0], self.last_alloc[1])
 
-		self.drawn = {}	# xmlNode -> GUINode
+		self.drawn = {}	# xmlNode -> (x1, y1, y2, y2)
 
 		self.selection = {}
 		for n in self.view.current_nodes:
 			self.selection[n] = None
-		self.add_node(self.ref_node, self.scroll_offset[0], self.scroll_offset[1])
+
+		pos = list(self.ref_pos)
+		node = self.ref_node
+		while pos[1] <= self.last_alloc[1]:
+			bbox = draw_node(self, node, pos)
+			self.drawn[node] = bbox
+			pos[1] = bbox[3] + 2
+			if node.childNodes:
+				node = node.childNodes[0]
+				pos[0] += 16
+			else:
+				while not node.nextSibling:
+					node = node.parentNode
+					if not node: return
+					pos[0] -= 16
+				node = node.nextSibling
+				if not node:
+					return	# End of document
 
 		self.window.clear()
 
@@ -143,23 +127,15 @@ class Display(g.EventBox):
 	def size_request(self, req):
 		req.width = 4
 		req.height = 4
-	
-	def add_node(self, node, x, y):
-		gn = GUINode(self, node)
-		self.drawn[node] = gn
-		gn.render(self, x, y)
 
-		c = None
-		for k in node.childNodes:
-			cx, cy = gn.add_child(c)
-			cx += x
-			cy += y
-			if cx > self.last_alloc[0] or cy > self.last_alloc[1]:
-				return gn
-			c = self.add_node(k, cx, cy)
-		gn.add_child(c)
-		return gn
-			
+	def add_fwd(self, last):
+		"""Draw all the nodes following this one (child nodes already done)."""
+		while 1:
+			node = last.node
+			while not node.nextSibling:
+				node = node.parentNode
+				#XXX
+	
 	def do_update_now(self):
 		# Update now, if we need to
 		if self.update_timeout:
@@ -192,20 +168,27 @@ class Display(g.EventBox):
 		pass
 
 	def xy_to_node(self, x, y):
-		for (n, g) in self.drawn.iteritems():
-			if g.contains_point(x, y):
+		for (n, (x1, y1, x2, y2)) in self.drawn.iteritems():
+			if x >= x1 and x <= x2 and y >= y1 and y <= y2:
 				return n
 
 	def bg_event(self, widget, event):
 		if event.type == g.gdk.BUTTON_PRESS and event.button == 3:
 			self.show_menu(event)
-		elif (event.type == g.gdk.BUTTON_PRESS or event.type == g.gdk._2BUTTON_PRESS) \
-		      and event.button == 1:
+		elif event.type == g.gdk.BUTTON_PRESS or event.type == g.gdk._2BUTTON_PRESS:
 			self.do_update_now()
 			node = self.xy_to_node(event.x, event.y)
-			if node:
-				print node
-				#self.node_clicked(node, event)
+			if event.button == 1:
+				if node:
+					self.node_clicked(node, event)
+			elif event.button == 2:
+				if node and node.parentNode:
+					self.ref_node = node.parentNode
+					try:
+						self.ref_pos = self.drawn[self.ref_node][:2]
+					except:
+						self.ref_pos = (0, 0)
+					self.update()
 		else:
 			return 0
 		return 1
