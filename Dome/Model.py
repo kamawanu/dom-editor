@@ -46,7 +46,7 @@ class Model:
 							if y.nodeType == Node.ELEMENT_NODE:
 								data_to_load = y
 		else:
-			data_to_load = root
+			data_to_load = root.documentElement
 
 		if root_program:
 			self.root_program = root_program

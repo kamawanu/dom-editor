@@ -81,13 +81,19 @@ class GUIView(Display):
 					src = self.view.root
 				else:
 					src = self.view.current_nodes[-1]
-				lit = bev.state & SHIFT_MASK
+				shift = bev.state & SHIFT_MASK
 				add = bev.state & CONTROL_MASK
+				select_region = shift and node.nodeType == Node.ELEMENT_NODE
+				lit = shift and not select_region
+					
 				ns = {}
 				path = make_relative_path(src, node, lit, ns)
 				if path == '.' and self.view.current_nodes and not self.view.current_attrib:
 					return
-				self.view.may_record(["do_search", path, ns, add])
+				if select_region:
+					self.view.may_record(["select_region", path, ns])
+				else:
+					self.view.may_record(["do_search", path, ns, add])
 			else:
 				self.view.may_record(["toggle_hidden"])
 

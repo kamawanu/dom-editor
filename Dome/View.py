@@ -63,6 +63,7 @@ record_again = [
 	"soap_send",
 	"show_canvas",
 	"show_html",
+	"select_region",
 ]
 
 def same(a, b):
@@ -477,6 +478,39 @@ class View:
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(self.get_current(), [self.get_current()], processorNss = ns)
 		self.move_to(xpath.Evaluate(pattern, context = c))
+
+	def select_region(self, path, ns = None):
+		if len(self.current_nodes) == 0:
+			raise Beep
+		src = self.current_nodes[-1]
+		if not ns:
+			ns = ext.GetAllNs(src)
+		ns['ext'] = FT_EXT_NAMESPACE
+		c = Context.Context(src, [src], processorNss = ns)
+		rt = xpath.Evaluate(path, context = c)
+		node = None
+		for x in rt:
+			if not self.has_ancestor(x, self.root):
+				print "[ skipping search result above root ]"
+				continue
+			if not node:
+				node = x
+		if not node:
+			print "*** Search for '%s' in select_region failed" % path
+			print "    (namespaces were '%s')" % ns
+			raise Beep
+		if node.parentNode != src.parentNode:
+			print "Nodes must have same parent!"
+			raise Beep
+		on = 0
+		selected = []
+		for n in src.parentNode.childNodes:
+			was_on = on
+			if n is src or n is node:
+				on = not was_on
+			if on or was_on:
+				selected.append(n)
+		self.move_to(selected)
 		
 	def do_search(self, pattern, ns = None, toggle = FALSE):
 		if len(self.current_nodes) == 0:
