@@ -4,6 +4,8 @@
 import findrox
 import rox
 
+#rox.setup_app_options('Dome')
+
 from rox.Menu import Menu, set_save_name
  
 set_save_name('Dome')
@@ -20,7 +22,13 @@ from os.path import dirname
 app_dir = dirname(sys.argv[0])
 
 from rox import g, mime
+#from rox.options import Option
 from Window import Window
+
+#default_font = Option('default_font', 'sans 12')
+
+# All options must be registered by the time we get here
+#rox.app_options.notify()
 
 #sys.argv.append('--disable-crash-dialog')
 #import gnome.ui

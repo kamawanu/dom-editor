@@ -2,6 +2,7 @@ from rox import g, TRUE, FALSE
 from gnome2 import canvas
 from xml.dom import Node
 from constants import *
+import rox
 
 watch_cursor = g.gdk.Cursor(g.gdk.WATCH)
 no_cursor = g.gdk.Cursor(g.gdk.TCROSS)
@@ -28,6 +29,9 @@ def wrap(str, width):
 cramped_indent = 16
 normal_indent = 24
 
+#import __main__
+#default_font = __main__.default_font
+
 class Display(canvas.Canvas):
 	def __init__(self, window, view):
 		canvas.Canvas.__init__(self)
@@ -50,6 +54,8 @@ class Display(canvas.Canvas):
 		self.connect('button-press-event', self.bg_event)
 
 		self.set_view(view)
+
+		#rox.app_options.add_notify(self.options_changed)
 	
 	def size_allocate(self, canvas, size):
 		x, y, width, height = self.get_allocation()
@@ -141,11 +147,12 @@ class Display(canvas.Canvas):
 						parent = group.get_property('parent')
 						x = group.get_property('x')
 						y = group.get_property('y')
-						g = parent.add(canvas.CanvasGroup, x = x, y = y)
+						gr = parent.add(canvas.CanvasGroup, x = x, y = y)
 						group.destroy()
-						self.node_to_group[node] = g
+						self.node_to_group[node] = gr
+						gr.connect('event', self.node_event, node)
 						
-						self.create_tree(node, g, cramped = group.cramped)
+						self.create_tree(node, gr, cramped = group.cramped)
 						self.auto_highlight(node, rec = 1)
 						self.child_group_resized(node)
 				else:
@@ -201,13 +208,19 @@ class Display(canvas.Canvas):
 			if rec:
 				map(do, node.childNodes)
 		do(node)
+
+	def options_changed(self):
+		if default_font.has_changed:
+			self.update_all()
 	
 	def destroyed(self, widget):
 		self.view.remove_display(self)
+		#rox.app_options.remove_notify(self.options_changed)
 	
 	def create_attribs(self, attrib, group, cramped, parent):
 		group.text = group.add(canvas.CanvasText, x = 0, y = -6, anchor = g.ANCHOR_NW,
 					fill_color = 'grey40',
+					#font = default_font.value,
 					text = "%s=%s" % (str(attrib.name), str(attrib.value)))
 		group.connect('event', self.attrib_event, parent, attrib)
 
@@ -242,6 +255,7 @@ class Display(canvas.Canvas):
 		else:
 			text = wrap(text, 1000)
 		group.text = group.add(canvas.CanvasText, x = 10 , y = -6, anchor = g.ANCHOR_NW,
+					#font = default_font.value,
 					fill_color = 'black', text = text)
 		self.node_to_group[node] = group
 

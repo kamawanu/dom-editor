@@ -1,0 +1,10 @@
+<?xml version='1.0'?>
+<options>
+  <section title='Dome'>
+    <frame label='Appearance'>
+      <font name='default_font' label='Text font'>
+        Font used for normal text.
+      </font>
+    </frame>
+  </section>
+</options>

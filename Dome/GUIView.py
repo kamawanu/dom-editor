@@ -1,6 +1,7 @@
 from xml.dom import Node
 from rox.loading import XDSLoader
 
+import rox
 from rox import g, TRUE, FALSE
 keysyms = g.keysyms
 
@@ -106,6 +107,8 @@ menu = Menu('main', [
 		('/View/Show as HTML', 'do_show_html', '', ''),
 		('/View/Show as canvas', 'do_show_canvas', '', ''),
 		('/View/Close Window', 'menu_close_window', '', '<Ctrl>Q'),
+
+		#('/Options...', 'menu_options', '', '<Ctrl>O'),
 		])
 
 def make_do(action):
@@ -472,6 +475,9 @@ class GUIView(Display, XDSLoader):
 
 	def menu_close_window(self):
 		self.parent_window.destroy()
+	
+	def menu_options(self):
+		rox.edit_options()
 
 	do_blank_all = make_do('blank_all')
 	do_enter = make_do('enter')
