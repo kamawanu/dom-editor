@@ -276,9 +276,10 @@ class Display(g.HBox):
 			return
 		nodes = [self.view.root.parentNode]
 		node = self.view.root
+		hidden = self.view.model.hidden
 		while node:
 			nodes.append(node)
-			if node.childNodes:
+			if node.childNodes and node not in hidden:
 				node = node.childNodes[0]
 			else:
 				while not node.nextSibling:

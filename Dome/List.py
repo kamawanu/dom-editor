@@ -998,7 +998,7 @@ class ChainDisplay(g.EventBox):
 			self.view.do_one_step()
 		except View.InProgress:
 			rox.bug()
-		print self.exec_point
+		#print self.exec_point
 		self.view.record_at_point()
 		self.view.breakpoints[(b, 'next')] = True
 		
@@ -1018,7 +1018,7 @@ class ChainDisplay(g.EventBox):
 			rox.alert('Nothing to yank!')
 			return
 		self.clipboard = next.to_doc()
-		print self.clipboard
+		print "Yanked", self.clipboard
 	
 	def line_del_chain(self):
 		op, exit = self.line_menu_line

@@ -543,7 +543,7 @@ class View:
 		bp = self.breakpoint()
 		if bp == True or (self.single_step == 0 and bp is not None):
 			print "Hit a breakpoint! At " + time.ctime(time.time())
-			print self.foreach_stack
+			print "Foreach stack:", self.foreach_stack
 			if bp:
 				self.set_rec(self.exec_point)
 			else:
@@ -1715,7 +1715,6 @@ class View:
 		for node in nodes:
 			if node.nodeType != Node.ELEMENT_NODE:
 				raise Beep
-			print code
 			if code:
 				hidden_code[node] = code
 			if node in hidden:
