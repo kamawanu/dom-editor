@@ -864,9 +864,10 @@ class View:
 			raise Beep
 		self.shallow_yank()
 		self.move_to([])
+		new = [x.parentNode for x in nodes]
 		for n in nodes:
 			self.model.delete_shallow(n)
-		self.move_home()
+		self.move_to(new)
 	
 	def delete_node_no_clipboard(self):
 		self.delete_node(yank = 0)

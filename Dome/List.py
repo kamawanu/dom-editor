@@ -409,6 +409,10 @@ class ChainOp(ChainNode):
 		da.backing.draw_line(pen, self.x + dx, self.y + dy, dest.x + 5, dest.y)
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
+	def nearby(self, x, y):
+		return x > self.x - 4 and x < self.x + self.width + 20 and \
+		       y > self.y and y < self.y + self.height + 20
+	
 	def maybe_clicked(self, event):
 		x = event.x - self.x
 		if x < 0: return False
@@ -517,6 +521,9 @@ class ChainBlock(ChainOp):
 	
 	def maybe_clicked(self, event):
 		return False
+	
+	def nearby(self, x, y):
+		return False
 
 class ChainDisplay(g.EventBox):
 	"A graphical display of a chain of nodes."
@@ -546,8 +553,12 @@ class ChainDisplay(g.EventBox):
 		self.view.model.root_program.watchers.append(self)
 
 		self.connect('expose-event', self.expose)
-		self.add_events(g.gdk.BUTTON_PRESS_MASK)
+
+		self.add_events(g.gdk.BUTTON_PRESS_MASK |
+				g.gdk.POINTER_MOTION_MASK)
 		self.connect('button-press-event', self.button_press)
+		self.hover = None
+		self.connect('motion-notify-event', self.motion)
 
 		self.switch_to(prog)
 	
@@ -683,6 +694,25 @@ class ChainDisplay(g.EventBox):
 		self.put_point(self.view.exec_point)
 
 		#self.set_bounds()
+
+		op = self.hover
+		if op:
+			pen = self.style.black_gc
+			w = self.window
+			if not op.fail:
+				w.draw_rectangle(pen, False, op.x + 14, op.y + 10, 5, 5)
+			if not op.next:
+				w.draw_rectangle(pen, False, op.x + 2, op.y + 14, 5, 5)
+
+	def motion(self, box, event):
+		hover = None
+		for op in self.op_to_object.itervalues():
+			if op.nearby(event.x, event.y):
+				hover = op
+		if hover == self.hover:
+			return
+		self.hover = hover
+		self.queue_draw()
 	
 	def button_press(self, da, event):
 		for op in self.op_to_object.itervalues():
@@ -938,6 +968,8 @@ class ChainDisplay(g.EventBox):
 		box = rox.Dialog()
 		box.add_button(g.STOCK_CANCEL, g.RESPONSE_CANCEL)
 		box.add_button(g.STOCK_ADD, g.RESPONSE_OK)
+		box.set_position(g.WIN_POS_MOUSE)
+		box.set_has_separator(False)
 
 		foreach = g.CheckButton('Foreach block')
 		box.vbox.pack_start(foreach)
