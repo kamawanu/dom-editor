@@ -38,7 +38,6 @@ class Window(GtkWindow):
 
 		toolbar = Toolbar()
 		for (name, tip) in [
-			('SaveAll', 'Save both program and document'),
 			('Save', 'Save this document'),
 			('Record', 'Start recording here'),
 			('Stop', 'Stop recording or running program'),
@@ -131,11 +130,18 @@ class Window(GtkWindow):
 			self.savebox.destroy()
 		path = self.model.uri
 		self.savebox = SaveBox(self, path, 'application/x-dome')
+		toggle = GtkCheckButton("Export XML")
+		toggle.show()
+		self.savebox.toggle_export_xml = toggle
+		self.savebox.save_area.pack_start(toggle)
 		self.savebox.show()
 	
-	def get_xml(self):
+	def get_xml(self, export_xml = TRUE):
 		print "Saving", self.view.root
-		doc = self.view.export_all()
+		if export_xml:
+			doc = self.view.model.doc
+		else:
+			doc = self.view.export_all()
 		self.output_data = ''
 		from xml.dom import ext
 		ext.PrettyPrint(doc, stream = self)
@@ -147,7 +153,8 @@ class Window(GtkWindow):
 		self.output_data = self.output_data + text
 
 	def save_get_data(self):
-		return self.get_xml()
+		export = self.savebox.toggle_export_xml
+		return self.get_xml(export.get_active())
 		
 	def set_uri(self, uri):
 		self.model.uri = uri
@@ -155,11 +162,8 @@ class Window(GtkWindow):
 
 	# Toolbar bits
 
-	def tool_SaveAll(self):
-		self.save('dome')
-	
 	def tool_Save(self):
-		self.save('xml')
+		self.save()
 	
 	def tool_Stop(self):
 		if self.view.rec_point:

@@ -135,6 +135,7 @@ class GUIView(Display):
 			('Redo', do('redo')),
 			('Enter', do('enter')),
 			('Leave', do('leave')),
+			('Toggle hidden', do('toggle_hidden')),
 			('Show as HTML', do('show_html')),
 			('Show as canvas', do('show_canvas')),
 			('Send SOAP message', do('soap_send')),
