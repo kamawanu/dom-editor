@@ -34,6 +34,16 @@ normal_chars = string.letters + string.digits + "-"
 
 fast_global = re.compile('//([-A-Za-z][-A-Za-z0-9]*:)?[-A-Za-z][-A-Za-z0-9]*$')
 
+def fix_broken_html(data):
+	"""Pre-parse the data before sending to tidy to fix really really broken
+stuff (eg, MS Word output). Returns None if data is OK"""
+	if data.find('<o:p>') == -1:
+		return 		# Doesn't need fixing?
+	import re
+	data = data.replace('<o:p></o:p>', '')
+	data = re.sub('<!\[[^]]*\]>', '', data)
+	return data
+
 # An view contains:
 # - A ref to a DOM document
 # - A set of current nodes
@@ -1018,23 +1028,24 @@ class View:
 	
 	def suck(self):
 		nodes = self.current_nodes[:]
+		attrib = self.current_attrib
 		self.move_to([])
 		final = []
 		for x in nodes:
 			try:
-				new = self.suck_node(x)
+				new = self.suck_node(x, attrib = attrib)
 			finally:
 				self.move_to(x)
 			final.append(new)
 		self.move_to(final)
 		
-	def suck_node(self, node, post_data = None):
+	def suck_node(self, node, post_data = None, attrib = None):
 		uri = None
 		if node.nodeType == Node.TEXT_NODE:
 			uri = node.nodeValue
 		else:
-			if self.current_attrib:
-				uri = self.current_attrib.value
+			if attrib:
+				uri = attrib.value
 			elif node.hasAttributeNS(None, 'uri'):
 				uri = node.getAttributeNS(None, 'uri')
 			else:
@@ -1080,14 +1091,18 @@ class View:
 
 		(r, w) = os.pipe()
 		child = os.fork()
+		fixed = fix_broken_html(data)
 		if child == 0:
 			# We are the child
 			try:
 				os.close(r)
 				os.dup2(w, 1)
 				os.close(w)
-				tin = os.popen('tidy -asxml 2>/dev/null', 'w')
-				tin.write(data)
+				if fixed:
+					tin = os.popen('tidy -utf8 -asxml 2>/dev/null', 'w')
+				else:
+					tin = os.popen('tidy -asxml 2>/dev/null', 'w')
+				tin.write(fixed or data)
 				tin.close()
 			finally:
 				os._exit(0)
