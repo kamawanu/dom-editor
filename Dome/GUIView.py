@@ -173,9 +173,11 @@ class GUIView(Display):
 		else:
 			src = self.view.current_nodes[-1]
 		ns = {}
+
 		print "attrib_clicked", attrib, attrib.namespaceURI, attrib.localName
 		path = make_relative_path(src, element, FALSE, ns)
-		self.view.may_record(["do_search", path, ns, FALSE])
+		if path != '.':
+			self.view.may_record(["do_search", path, ns, FALSE])
 		self.view.may_record(["attribute", attrib.namespaceURI, attrib.localName])
 	
 	def menu_save(self):
@@ -346,20 +348,7 @@ class GUIView(Display):
 
 	def menu_show_add_attrib(self):
 		def do_it(name, self = self):
-			if ':' in name:
-				(prefix, localName) = string.split(name, ':', 1)
-			else:
-				(prefix, localName) = (None, name)
-
-			if prefix:
-				node = self.view.get_current()
-				namespaceURI = self.view.model.prefix_to_namespace(node, prefix)
-			else:
-				# Attributes don't use the default namespace
-				prefix = None
-				namespaceURI = None
-
-			action = ["add_attrib", namespaceURI, name]
+			action = ["add_attrib", "UNUSED", name]
 			self.view.may_record(action)
 		GetArg('Create attribute:', do_it, ['Name:'])
 

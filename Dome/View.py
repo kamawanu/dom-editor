@@ -735,8 +735,7 @@ class View:
 		if self.current_attrib:
 			ca = self.current_attrib
 			self.current_attrib = None
-			self.model.set_attrib(self.get_current(),
-					ca.namespaceURI, ca.localName, None)
+			self.model.set_attrib(self.get_current(), ca.name, None)
 			return
 		if self.root in nodes:
 			raise Beep
@@ -773,7 +772,7 @@ class View:
 	def default_done(self, exit):
 		"Called when execution of a program returns. op_in_progress has been "
 		"restored - move to the exit."
-		print "default_done(%s)" % exit
+		#print "default_done(%s)" % exit
 		if self.op_in_progress:
 			op = self.op_in_progress
 			self.set_oip(None)
@@ -1022,7 +1021,7 @@ class View:
 		current_last_mod = node.getAttributeNS(None, 'last-modified')
 		if current_last_mod and last_mod:
 			if current_last_mod == last_mod:
-				self.model.set_attrib(node, None, 'modified', None)
+				self.model.set_attrib(node, 'modified', None)
 				print "Not modified => not sucking!\n"
 				return
 
@@ -1054,7 +1053,7 @@ class View:
 		new_md5 = md5.new(data).hexdigest()
 		
 		if old_md5 and new_md5 == old_md5:
-			self.model.set_attrib(node, None, 'modified', None)
+			self.model.set_attrib(node, 'modified', None)
 			print "MD5 sums match => not parsing!\n"
 			return
 		
@@ -1170,7 +1169,7 @@ class View:
 			else:
 				value = self.clipboard.data
 			a = self.current_attrib
-			self.model.set_attrib(node, a.namespaceURI, a.localName, value)
+			self.model.set_attrib(node, a.name, value)
 			return
 		if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
 			if len(self.clipboard.childNodes) != 1:
@@ -1253,16 +1252,15 @@ class View:
 		else:
 			attribs = [self.clipboard]
 		new = []
-		def get(a, name):
-			return a.getElementsByTagNameNS(DOME_NS, name)[0].childNodes[0].data
 		for a in attribs:
 			try:
-				new.append((a.namespaceURI, a.nodeName, a.childNodes[0].data))
+				new.append((a.name, a.childNodes[0].data))
 			except:
 				raise Beep
 		for node in self.current_nodes:
-			for (ns, local, value) in new:
-				self.model.set_attrib(node, ns, local, value)
+			# XXX: Set NS attribs first...
+			for (name, value) in new:
+				self.model.set_attrib(node, name, value)
 	
 	def compare(self):
 		"Ensure that all selected nodes have the same value."
@@ -1277,33 +1275,37 @@ class View:
 		raise Beep(may_record = 1)
 	
 	def attribute(self, namespace = None, attrib = ''):
+		node = self.get_current()
+
 		if attrib == '':
-			self.move_to(self.get_current())
+			self.move_to(node)
 			return
 
+		if attrib == 'xmlns':
+			attrib = None
 		#print "(ns, attrib)", `namespace`, attrib
 
-		if self.get_current().hasAttributeNS(namespace, attrib):
-			#print "Moving to", self.get_current().getAttributeNodeNS(namespace, attrib)
-			self.move_to(self.get_current(),
-				self.get_current().getAttributeNodeNS(namespace, attrib))
+		a = node.attributes.get((namespace, attrib), None)
+
+		if a:
+			print "Moving to", a
+			self.move_to(node, a)
 		else:
-			#print "No such attribute"
+			print "No such attribute"
 			raise Beep()
 	
 	def set_attrib(self, value):
 		a = self.current_attrib
 		if not a:
 			raise Beep()
-		namespace, name = (a.namespaceURI, a.localName)
-		self.model.set_attrib(self.get_current(), namespace, name or 'xmlns', value)
-		self.move_to(self.get_current(), self.get_current().getAttributeNodeNS(namespace, name))
+		node = self.get_current()
+		self.model.set_attrib(node, a.name, value)
+		self.move_to(node, a)
 	
-	def add_attrib(self, namespace, name, value = ''):
-		if name == 'xmlns':
-			namespace = XMLNS_NAMESPACE
-		self.model.set_attrib(self.get_current(), namespace, name, value)
-		self.move_to(self.get_current(), self.get_current().getAttributeNodeNS(namespace, name))
+	def add_attrib(self, UNUSED, name, value = ''):
+		node = self.get_current()
+		self.model.set_attrib(node, name, value)
+		self.move_to(node, node.getAttributeNodeNS(namespace, name))
 	
 	def load_html(self, path):
 		"Replace root with contents of this HTML file."
@@ -1369,7 +1371,7 @@ class View:
 				new = None
 			else:
 				new = 'yes'
-			self.model.set_attrib(node, None, 'hidden', new, with_update = 0)
+			self.model.set_attrib(node, 'hidden', new, with_update = 0)
 		self.model.update_all(self.root)
 		self.move_to(nodes)
 	

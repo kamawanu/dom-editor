@@ -174,11 +174,13 @@ class Model:
 		old_ns = node.namespaceURI
 
 		kids = node.childNodes[:]
+		attrs = node.attributes.values()
 		parent = node.parentNode
 		[ node.removeChild(k) for k in kids ]
 		new = node.ownerDocument.createElementNS(namespace, name)
 		parent.replaceChild(new, node)
 		[ new.appendChild(k) for k in kids ]
+		[ new.setAttributeNS(a.namespaceURI, a.name, a.value) for a in attrs ]
 
 		self.add_undo(lambda: self.set_name(new, old_ns, old_name))
 	
@@ -296,20 +298,30 @@ class Model:
 			self.insert_before_interal(node, new, parent)
 		self.update_all(parent)
 	
-	def set_attrib(self, node, namespaceURI, localName, value, with_update = 1):
+	def set_attrib(self, node, name, value, with_update = 1):
 		"Set an attribute's value. If value is None, remove the attribute."
+		if name == 'xmlns' or name.startswith('xmlns:'):
+			namespaceURI = XMLNS_NAMESPACE
+			localName = name
+		elif ':' in name:
+			prefix, localName = string.split(name, ':')
+			namespaceURI = self.prefix_to_namespace(node, prefix)
+		else:
+			namespaceURI = None
+			localName = name
+
 		if node.hasAttributeNS(namespaceURI, localName):
 			old = node.getAttributeNS(namespaceURI, localName)
 		else:
 			old = None
+		print "Set (%s,%s) = %s" % (namespaceURI, name, value)
 		if value != None:
-			if localName == None:
-				localName = 'xmlns'
-			node.setAttributeNS(namespaceURI, localName, value)
+			node.setAttributeNS(namespaceURI, name, value)
 		else:
 			node.removeAttributeNS(namespaceURI, localName)
+		print "After setting:", node.attributes
 
-		self.add_undo(lambda: self.set_attrib(node, namespaceURI, localName, old))
+		self.add_undo(lambda: self.set_attrib(node, name, old))
 		
 		if with_update:
 			self.update_all(node)
