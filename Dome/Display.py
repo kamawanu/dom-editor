@@ -1,6 +1,7 @@
 from gtk import *
 from gnome.ui import *
 from GDK import *
+from GDK import _2BUTTON_PRESS
 from _gtk import *
 from xml.dom import Node
 
@@ -137,11 +138,14 @@ class Display(GnomeCanvas):
 		"The group for this node has changed size. Work up the tree making room for "
 		"it (and put it in the right place)."
 		kids = []
-		if node == self.view.root:
+		if node == self.view.root or not self.node_to_group.has_key(node):
 			return
 		node = node.parentNode
 		for n in node.childNodes:
-			kids.append(self.node_to_group[n])
+			try:
+				kids.append(self.node_to_group[n])
+			except KeyError:
+				pass
 		self.position_kids(self.node_to_group[node], kids)
 		self.child_group_resized(node)
 	
@@ -153,8 +157,11 @@ class Display(GnomeCanvas):
 	
 	def auto_hightlight(self, node):
 		"Highlight this node depending on its selected state."
-		self.hightlight(self.node_to_group[node],
-			self.view.current_attrib == None and node in self.view.current_nodes)
+		try:
+			self.hightlight(self.node_to_group[node],
+				self.view.current_attrib == None and node in self.view.current_nodes)
+		except KeyError:
+			pass
 	
 	def destroyed(self, widget):
 		self.view.remove_display(self)
@@ -173,9 +180,13 @@ class Display(GnomeCanvas):
 		group.rect.hide()
 	
 	def create_tree(self, node, group, cramped = 0):
+		hidden = node.hasAttributeNS('', 'hidden')
+
 		group.node = node
 		group.cramped = cramped
-		if node.nodeType == Node.TEXT_NODE:
+		if hidden:
+			c = 'red'
+		elif node.nodeType == Node.TEXT_NODE:
 			c = 'lightblue'
 		else:
 			c = 'yellow'
@@ -205,34 +216,36 @@ class Display(GnomeCanvas):
 			cramped = 1
 
 		if node.nodeType == Node.ELEMENT_NODE:
-			ax = hx + 8
-			ay = 0
 			group.attrib_to_group = {}
-			if not cramped:
-				l = 0
-				for a in node.attributes:
-					l += len(str(a.name)) + len(str(a.value))
-				acramped = l > 80
-			else:
-				acramped = cramped
-			for a in node.attributes:
-				g = group.add('group', x = ax, y = ay)
-				self.create_attribs(a, g, cramped, node)
-				(alx, aly, ahx, ahy) = g.get_bounds()
-				if acramped:
-					ay = ahy + 8
-					hy = ahy
+			if not hidden:
+				ax = hx + 8
+				ay = 0
+				if not cramped:
+					l = 0
+					for a in node.attributes:
+						l += len(str(a.name)) + len(str(a.value))
+					acramped = l > 80
 				else:
-					ax = ahx + 8
-				group.attrib_to_group[a] = g
+					acramped = cramped
+				for a in node.attributes:
+					g = group.add('group', x = ax, y = ay)
+					self.create_attribs(a, g, cramped, node)
+					(alx, aly, ahx, ahy) = g.get_bounds()
+					if acramped:
+						ay = ahy + 8
+						hy = ahy
+					else:
+						ax = ahx + 8
+					group.attrib_to_group[a] = g
 		
 		group.hy = hy
 		kids = []
-		for n in node.childNodes:
-			g = group.add('group', x = 0, y = 0)
-			g.connect('event', self.node_event, n)
-			self.create_tree(n, g, cramped)
-			kids.append(g)
+		if not hidden:
+			for n in node.childNodes:
+				g = group.add('group', x = 0, y = 0)
+				g.connect('event', self.node_event, n)
+				self.create_tree(n, g, cramped)
+				kids.append(g)
 		
 		self.position_kids(group, kids)
 		group.rect.lower_to_bottom()
@@ -316,11 +329,11 @@ class Display(GnomeCanvas):
 
 	# 'group' and 'node' may be None (for the background)
 	def node_event(self, group, event, node):
-		if event.type != BUTTON_PRESS or event.button == 3:
-			return 0
-		self.do_update_now()
-		self.node_clicked(node, event)
-		return 1
+		if (event.type == BUTTON_PRESS or event.type == _2BUTTON_PRESS) and event.button == 1:
+			self.do_update_now()
+			self.node_clicked(node, event)
+			return 1
+		return 0
 
 	def attrib_event(self, group, event, element, attrib):
 		if event.type != BUTTON_PRESS or event.button == 3:

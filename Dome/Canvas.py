@@ -56,7 +56,10 @@ class Canvas(GtkWindow):
 		attrs = {}
 		try:
 			for a in node.attributes:
-				attrs[str(a.localName)] = eval(str(a.value))
+				try:
+					attrs[str(a.localName)] = eval(str(a.value))
+				except:
+					pass
 		except:
 			type, val, tb = sys.exc_info()
 			list = traceback.extract_tb(tb)
@@ -71,7 +74,7 @@ class Canvas(GtkWindow):
 			onClick = None
 			
 		name = str(node.localName)
-		if name == 'TR':
+		if name not in ('rect', 'line', 'text', 'ellipse'):
 			name = 'group'
 		try:
 			item = apply(group.add, [name], attrs)

@@ -65,15 +65,20 @@ class GUIView(Display):
 
 	def node_clicked(self, node, bev):
 		if node:
-			if len(self.view.current_nodes) == 0:
-				src = self.view.root
+			if bev.type == BUTTON_PRESS:
+				if len(self.view.current_nodes) == 0:
+					src = self.view.root
+				else:
+					src = self.view.current_nodes[-1]
+				lit = bev.state & SHIFT_MASK
+				add = bev.state & CONTROL_MASK
+				ns = {}
+				path = make_relative_path(src, node, lit, ns)
+				if path == '.' and not self.view.current_attrib:
+					return
+				self.view.may_record(["do_search", path, ns, add])
 			else:
-				src = self.view.current_nodes[-1]
-			lit = bev.state & SHIFT_MASK
-			add = bev.state & CONTROL_MASK
-			ns = {}
-			path = make_relative_path(src, node, lit, ns)
-			self.view.may_record(["do_search", path, ns, add])
+				self.view.may_record(["toggle_hidden"])
 
 	def attrib_clicked(self, element, attrib, event):
 		if len(self.view.current_nodes) == 0:
@@ -407,6 +412,8 @@ class GUIView(Display):
 
 		x	: ["delete_node"],
 		X	: show_del_attrib,
+
+		ord('.'): ["again"],
 
 		# Undo/redo
 		u	: ["undo"],

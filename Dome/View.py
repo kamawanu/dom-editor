@@ -24,6 +24,35 @@ DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
 # It does not have any display code. It does contain code to perform actions
 # (actions affect the document AND the view state).
 
+# These actions can be repeated using '.'
+record_again = [
+	"do_global",
+	"subst",
+	"python",
+	"ask",
+	"yank",
+	"shallow_yank",
+	"delete_node",
+	"play",
+	"map",
+	"change_node",
+	"add_node",
+	"suck",
+	"put_before",
+	"put_after",
+	"put_replace",
+	"put_as_child",
+	"yank_value",
+	"yank_attribs",
+	"paste_attribs",
+	"compare",
+	"fail",
+	"attribute",
+	"set_attrib",
+	"add_attrib",
+	"show_canvas",
+]
+
 def same(a, b):
 	"Recursivly compare two nodes."
 	if a.nodeType != b.nodeType or a.nodeName != b.nodeName:
@@ -113,6 +142,9 @@ class View:
 	def may_record(self, action):
 		"Perform and, possibly, record this action"
 		rec = self.rec_point
+
+		if action[0] in record_again:
+			self.last_action = action
 
 		exit = 'next'
 		try:
@@ -282,6 +314,8 @@ class View:
 
 	def do_action(self, action):
 		"'action' is a tuple (function, arg1, arg2, ...)"
+		if action[0] == 'again':
+			action = self.last_action
 		fn = getattr(self, action[0])
 		exit = 'next'
 		#print "DO:", action[0]
@@ -839,3 +873,10 @@ class View:
 		#nv.clipboard = self.clipboard.cloneNode(deep = 1)
 		Canvas(self, node).show()
 	
+	def toggle_hidden(self):
+		for node in self.current_nodes:
+			if node.hasAttributeNS('', 'hidden'):
+				new = None
+			else:
+				new = 'yes'
+			self.model.set_attrib(node, '', 'hidden', new)
