@@ -25,6 +25,13 @@ bad_xpm = [
 " ..XXXXXX.. ",
 "            "]
 
+def node_to_xml(node):
+	"Takes an XML node and returns an XML documentElement suitable for saving."
+	root = implementation.createDocument('', 'root', None)
+	new = root.importNode(node, deep = 1)
+	root.replaceChild(new, root.documentElement)
+	return root
+
 def html_to_xml(html):
 	"Takes an HTML DOM and creates a corresponding XML DOM."
 	print html

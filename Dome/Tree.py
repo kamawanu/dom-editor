@@ -174,6 +174,8 @@ class Tree(GtkDrawingArea):
 				new = self.display_root
 			self.move_to_node(new)
 			self.sched_redraw()
+
+		#print self.line_to_node[self.current_line]
 	
 	def may_record(self, action):
 		"Perform, and possibly record, this action"
@@ -184,7 +186,7 @@ class Tree(GtkDrawingArea):
 		except Beep:
 			gdk_beep()
 			return 0
-		
+
 		# Only record if we were recording when this action started
 		if rec:
 			self.recording_where = rec.record(action, self.recording_exit)
@@ -500,10 +502,7 @@ class Tree(GtkDrawingArea):
 		"Chroot"
 		if cur == self.display_root:
 			raise Beep
-		node = cur
-		while node.parentNode != self.display_root:
-			node = node.parentNode
-		self.display_root = node
+		self.display_root = cur
 		return cur
 
 	def unchroot(self, cur):
@@ -596,6 +595,22 @@ class Tree(GtkDrawingArea):
 			raise Beep
 		return new
 
+	def put_replace(self, node):
+		"Replace this code with the clipboard contents"
+		if self.clipboard == None:
+			raise Beep
+		new = self.clipboard.cloneNode(deep = 1)
+		try:
+			Change.replace_node(node, new)
+		except:
+			raise Beep
+
+		if node == self.root:
+			self.root = new
+		if node == self.display_root:
+			self.display_root = new
+		return new
+	
 	def put_as_child(self, node):
 		"Put as child"
 		if self.clipboard == None:
@@ -687,6 +702,11 @@ class Tree(GtkDrawingArea):
 		ext.StripHtml(root)
 		new = node.ownerDocument.importNode(html_to_xml(root).documentElement, deep = 1)
 		Change.replace_node(node, new)
+
+		if node == self.root:
+			self.root = new
+		if node == self.display_root:
+			self.display_root = new
 		return new
 
 	# Undo/redo
@@ -736,6 +756,7 @@ class Tree(GtkDrawingArea):
 		P	: ["put_before"],
 		p	: ["put_after"],
 		bracketright : ["put_as_child"],
+		R	: ["put_replace"],
 
 		ord('^'): ["suck"],
 

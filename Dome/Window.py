@@ -127,7 +127,7 @@ class Window(GtkWindow):
 	
 	def get_xml(self):
 		self.output_data = ''
-		ext.PrettyPrint(self.tree.display_root, stream = self)
+		ext.PrettyPrint(node_to_xml(self.tree.display_root), stream = self)
 		d = self.output_data
 		self.output_data = ''
 		return d
@@ -151,6 +151,7 @@ class Window(GtkWindow):
 		('Save', 'Save this macro'),
 		('Record', 'Start recording a new macro'),
 		('Extend', 'Record extra steps at the current point'),
+		('Stop', 'Stop a running macro'),
 		('Play', 'Run this macro from the start'),
 		('Next', 'Run until the next step in this macro'),
 		('Step', 'Run one step, stopping in any macro'),
@@ -159,6 +160,9 @@ class Window(GtkWindow):
 	def tool_Save(self):
 		self.save()
 	
+	def tool_Stop(self):
+		self.tree.exec_state.stop()
+
 	def tool_Play(self):
 		self.tree.exec_state.set_step_mode(-1)
 		self.tree.exec_state.sched()
