@@ -341,113 +341,103 @@ class ChainDummy(g.TreeView):
 	def update_points(self):
 		pass
 
-def create_op(op, x, y):
-	if isinstance(op, Block):
-		return ChainBlock(op, x, y)
-	else:
-		return ChainOp(op, x, y)
-
 class ChainNode:
 	"A visual object in the display."
-	def __init__(self, x, y):
+	def __init__(self, da, x, y):
 		self.x = x
 		self.y = y
+		self.da = da
 	
-	def expose(self, da):
+	def expose(self):
+		da = self.da
 		w = da.window
 		print "draw"
 		w.draw_rectangle(da.style.black_gc, True, self.x, self.y, 10, 10)
 
-class ChainOp(ChainNode):
-	def __init__(self, op, x, y):
-		self.op = op
-		ChainNode.__init__(self, x, y)
-		self.layout = None
+	def maybe_clicked(self, event):
+		return False
 
-		if op.next: self.next = create_op(op.next, x, y + 20)
+class ChainOp(ChainNode):
+	def __init__(self, da, op, x, y):
+		self.op = op
+		ChainNode.__init__(self, da, x, y)
+
+		text = str(action_to_text(op.action))
+		self.layout = da.create_pango_layout(text)
+
+		self.width = self.height = 12
+
+		da.op_to_object[op] = self
+
+		if op.next: self.next = da.create_op(op.next, x, y + 20)
 		else: self.next = None
 
-		if op.fail: self.fail = create_op(op.fail, x + 100, y + 20)
+		if op.fail: self.fail = da.create_op(op.fail, x + 100, y + 20)
 		else: self.fail = None
 
-	def expose(self, da):
+	def expose(self):
+		da = self.da
 		w = da.window
 		op = self.op
-		if not self.layout:
-			text = str(action_to_text(op.action))
-			self.layout = da.create_pango_layout(text)
 
 		w.draw_arc(da.style.black_gc, False, self.x, self.y, 10, 10, 0, 360 * 60)
 		w.draw_layout(da.style.black_gc, self.x + 12, self.y, self.layout)
 
-		if self.next: self.next.expose(da)
-		if self.fail: self.fail.expose(da)
-		return
-
-		text_font = 'verdana 10'
-		text_col = 'black'
-		if op.action[0] == 'Start':
-			text = str(op.parent.comment.replace('\\n', '\n'))
-			text_y = 0
-			if mono:
-				text_font = 'verdana bold 10'
+		if self.next: self.next.expose()
+		if self.fail: self.fail.expose()
+	
+	def maybe_clicked(self, event):
+		if self.x <= event.x and self.y <= event.y and \
+		   self.x + self.width >= event.x and self.y + self.height >= event.y:
+			if event.button == 1:
+				self.da.view.set_exec((self.op, 'next'))
 			else:
-				text_col = 'dark blue'
-		else:
-			text = str(action_to_text(op.action))
-			text_y = -8
-		
-		group.ellipse = group.add(canvas.CanvasEllipse,
-					fill_color = self.op_colour(op),
-					outline_color = 'black',
-					x1 = -4, x2 = 4,
-					y1 = -4, y2 = 4,
-					width_pixels = 1)
-		group.ellipse.connect('event', self.op_event, op)
-		if text:
-			label = group.add(canvas.CanvasText,
-						x = -8, 
-						y = text_y,
-						anchor = g.ANCHOR_NE,
-						justification = 'right',
-						fill_color = text_col,
-						font = text_font,
-						text = text)
-
-			#self.update_now()	# GnomeCanvas bug?
-			(lx, ly, hx, hy) = label.get_bounds()
-			next_off_y = hy
-		else:
-			next_off_y = 0
-		group.width, group.height = 0, 0
+				self.da.show_op_menu(event, self.op)
+			return True
 
 class ChainBlock(ChainOp):
-	def __init__(self, block, x, y):
+	def __init__(self, da, block, x, y):
 		assert isinstance(block, Block)
-		ChainOp.__init__(self, block, x, y)
+		ChainOp.__init__(self, da, block, x, y)
 
 		self.width = 100
 		self.height = 100
 
-		self.start = create_op(block.start, x + 4, y + 4)
+		self.start = da.create_op(block.start,
+						x + 4 + self.op.foreach * 6,
+						y + 4 + (self.op.enter + self.op.restore) * 6)
 
-	def expose(self, da):
+	def expose(self):
+		da = self.da
 		w = da.window
 		w.draw_rectangle(da.style.black_gc, False, self.x, self.y, self.width, self.height)
+		pen = da.style.white_gc
+		width = self.width
+		x = self.x
+		y = self.y
 
 		op = self.op
 		if op.foreach:
-			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + 1, 6, self.height - 2)
-		if op.enter:
-			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + 1, self.width, 6)
-			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + self.height - 5, 6)
-		if op.restore:
-			colour = 'orange'
-			margin = op.enter * 8
-			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + 1 + margin, self.width, 6)
-			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + self.height - 5 - margin, 6)
+			pen.set_rgb_fg_color(g.gdk.color_parse('blue'))
+			w.draw_rectangle(pen, True, x + 1, y + 1, 6, self.height - 1)
+			x += 6
+			width -= 6
 
-		self.start.expose(da)
+		if op.enter:
+			pen.set_rgb_fg_color(g.gdk.color_parse('yellow'))
+			w.draw_rectangle(pen, True, x + 1, y + 1, width - 1, 6)
+			w.draw_rectangle(pen, True, x + 1, y + self.height - 6, width - 1, 6)
+		if op.restore:
+			pen.set_rgb_fg_color(g.gdk.color_parse('orange'))
+			margin = op.enter * 6
+			w.draw_rectangle(pen, True, x + 1, y + 1 + margin, width - 1, 6)
+			w.draw_rectangle(pen, True, x + 1, y + self.height - 6 - margin, width - 1, 6)
+
+		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
+		self.start.expose()
+	
+	def maybe_clicked(self, event):
+		return False
 
 class ChainDisplay(g.DrawingArea):
 	"A graphical display of a chain of nodes."
@@ -488,8 +478,7 @@ class ChainDisplay(g.DrawingArea):
 			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('#FFC0C0'))
 	
 	def update_points(self):
-		self.put_point('rec_point')
-		self.put_point('exec_point')
+		self.queue_draw()
 
 		if self.rec_point:
 			self.scroll_to_show(self.rec_point)
@@ -525,47 +514,16 @@ class ChainDisplay(g.DrawingArea):
 		self.scroll_to(sx, sy)
 	
 	def put_point(self, point):
-		print "XXX"; return
-
-		item = getattr(self, point)
-		if item:
-			item.destroy()
-			setattr(self, point, None)
-
-		if not self.prog:
+		if not point: return
+		w = self.window
+		op, exit = point
+		try:
+			obj = self.op_to_object[op]
+		except:
+			print "Can't find %s!\n" % op
 			return
-		
-		opexit = getattr(self.view, point)
-		if point == 'exec_point' and self.view.op_in_progress:
-			opexit = (self.view.op_in_progress, None)
-		if opexit:
-			g = None
-			(op, exit) = opexit
-			if op.get_program() != self.prog:
-				return
-			try:
-				g = self.op_to_group[op]
-			except KeyError:
-				pass
-			if point == 'rec_point':
-				c = 'red'
-				s = 6
-			else:
-				c = 'yellow'
-				s = 3
-			item = self.root().add(canvas.CanvasRect,
-						x1 = -s, x2 = s, y1 = -s, y2 = s,
-						fill_color = c,
-						outline_color = 'black', width_pixels = 1)
-			setattr(self, point, item)
-			item.connect('event', self.line_event, op, exit)
-
-			if g and exit:
-				# TODO: cope with exit == None
-				x1, y1, x2, y2 = self.get_arrow_ends(op, exit)
-				x1, y1 = g.i2w(x1, y1)
-				x2, y2 = g.i2w(x2, y2)
-				item.move((x1 + x2) / 2, (y1 + y2) / 2)
+		w.draw_rectangle(self.style.black_gc, False, obj.x, obj.y + 5, 11, 11)
+		w.draw_rectangle(self.style.bg_gc[g.STATE_SELECTED], True, obj.x + 1, obj.y + 5 + 1, 10, 10)
 	
 	def destroyed(self, widget):
 		self.view.model.root_program.watchers.remove(self)
@@ -584,27 +542,34 @@ class ChainDisplay(g.DrawingArea):
 		if (not op) or op.get_program() == self.prog:
 			self.update_all()
 	
+	def create_op(self, op, x, y):
+		if isinstance(op, Block):
+			return ChainBlock(self, op, x, y)
+		else:
+			return ChainOp(self, op, x, y)
+
 	def update_all(self):
-		self.op_to_obj = {}
+		self.op_to_object = {}
 		if self.prog:
-			self.root_object = create_op(self.prog.code, 4, 4)
+			self.root_object = self.create_op(self.prog.code, 4, 4)
 		else:
 			self.root_object = None
 		self.queue_draw()
 		return 1
 	
 	def expose(self, da, event):
-		print "expose"
 		if self.root_object:
-			self.root_object.expose(da)
+			self.root_object.expose()
 		#self.update_links()
-		#self.update_points()
+		self.put_point(self.view.rec_point)
+		self.put_point(self.view.exec_point)
 
 		#self.set_bounds()
 	
 	def button_press(self, da, event):
 		print "click"
-		self.view.set_exec((self.root_object.op.start, 'next'))
+		for op in self.op_to_object.itervalues():
+			if op.maybe_clicked(event): break
 	
 	def op_colour(self, op):
 		if op in self.view.exec_stack:
