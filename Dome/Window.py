@@ -47,6 +47,7 @@ class Window(GtkWindow):
 			('Play', 'Run this program from here'),
 			('Next', 'Run until the next step in this program'),
 			('Step', 'Run one step, stopping in any program'),
+			('Help', "Show Dome's help file"),
 			]:
 			icon = __main__.app_dir + '/icons/%s.xpm' % name
 			b = toolbar.add_button(name, icon, tip)
@@ -125,8 +126,9 @@ class Window(GtkWindow):
 		return self.get_xml(export.get_active())
 		
 	def set_uri(self, uri):
-		self.model.uri = uri
-		self.update_title()
+		if not self.savebox.toggle_export_xml.get_active():
+			self.model.uri = uri
+			self.update_title()
 
 	# Toolbar bits
 
@@ -181,3 +183,7 @@ class Window(GtkWindow):
 			self.view.stop_recording()
 		else:
 			self.view.record_at_point()
+	
+	def tool_Help(self):
+		os.spawnlp(os.P_NOWAIT, "gvim", "gvim",
+			os.path.join(__main__.app_dir, "Help", "README"))
