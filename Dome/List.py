@@ -1,5 +1,3 @@
-#from __future__ import nested_scopes
-
 import rox
 from rox import g, TRUE, FALSE, alert
 from gnome2 import canvas
@@ -232,10 +230,8 @@ class List(g.VBox):
 			def cb(choice, self = self):
 				if choice == 0:
 					self.view.record_at_point()
-			box = MultipleChoice("Program failed - record a failure case?",
-					[('Record', self.view.record_at_point), 'Cancel'])
-			box.set_title('Dome')
-			box.show()
+			if rox.confirm("Program failed - record a failure case?", g.STOCK_NO, 'Record'):
+				self.view.record_at_point()
 		print "List: execution done!"
 
 	def button_press(self, tree, event):
