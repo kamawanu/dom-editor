@@ -6,7 +6,7 @@ from rox import g, TRUE, FALSE
 keysyms = g.keysyms
 
 from View import View
-from Display import Display
+from Display2 import Display
 from Beep import Beep
 from GetArg import GetArg
 from Path import make_relative_path

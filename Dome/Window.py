@@ -75,9 +75,8 @@ class Window(rox.Window, saving.Saveable):
 		#paned.add2(swin)
 		paned.set_position(200)
 
-		#self.gui_view = GUIView(self, view)
+		self.gui_view = GUIView(self, view)
 		from Display2 import Display
-		self.gui_view = Display(self, view)
 		#swin.add(self.gui_view)
 		paned.add2(self.gui_view)
 		#swin.set_hadjustment(self.gui_view.get_hadjustment())
