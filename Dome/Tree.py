@@ -34,11 +34,14 @@ class Tree(GtkDrawingArea):
 		self.connect('realize', self.realize)
 
 	def key_press(self, widget, kev):
-		#try:
-		stop = self.handle_key(kev)
-		#except:
-			#report_exception()
-			#stop = 1
+		try:
+			stop = self.handle_key(kev)
+		except:
+			report_exception()
+			self.build_index()
+			self.current_line = 0
+			self.force_redraw()
+			stop = 1
 		if stop:
 			widget.emit_stop_by_name('key-press-event')
 		return stop
@@ -91,12 +94,12 @@ class Tree(GtkDrawingArea):
 				self.left_hist = []
 		elif key == greater and cur != self.display_root:
 			node = cur
-			while node.parent != self.display_root:
-				node = node.parent
+			while node.parentNode != self.display_root:
+				node = node.parentNode
 			self.display_root = node
 			new = cur
-		elif key == less and self.display_root.parent:
-			self.display_root = self.display_root.parent
+		elif key == less and self.display_root.parentNode:
+			self.display_root = self.display_root.parentNode
 			new = cur
 		elif key == Prior and cur is not self.display_root:
 			self.move_to_node(cur.previousSibling)
@@ -113,8 +116,8 @@ class Tree(GtkDrawingArea):
 		elif key == P:
 			new = self.clipboard.cloneNode(deep = 1)
 			key = i
-#		elif key == Tab:
-#			edit_node(self, cur)
+		elif key == Tab:
+			edit_node(self, cur)
 		elif key == u and Change.can_undo(self.display_root):
 			Change.do_undo(self.display_root)
 			new = cur
@@ -133,8 +136,8 @@ class Tree(GtkDrawingArea):
 #				cur.parent.flatten(cur)
 #			else:
 #				key = x
-#		elif key == slash:
-#			Search(self)
+		elif key == slash:
+			Search(self)
 
 		if new and (key == o or key == O):
 			Change.insert(cur, new, index = 0)
@@ -173,8 +176,12 @@ class Tree(GtkDrawingArea):
 		return 1
 	
 	def tree_changed(self):
+		if not self.display_root.parentNode:
+			self.display_root = \
+				self.display_root.ownerDocument.documentElement
+		
 		cn = self.line_to_node[self.current_line]
-		cnp = cn.parent
+		cnp = cn.parentNode
 
 		self.build_index()
 

@@ -3,10 +3,14 @@ from GDK import *
 from _gtk import gdk_screen_width
 import string
 
+from xml.dom import Node
+
+import Change
+
 def edit_node(tree, node):
-	if isinstance(node, DataNode):
+	if node.nodeType == Node.TEXT_NODE:
 		DataEditor(node, tree)
-	elif isinstance(node, TagNode):
+	elif node.nodeType == Node.ELEMENT_NODE:
 		TagEditor(node, tree)
 
 class Editor(GtkWindow):
@@ -46,7 +50,7 @@ class DataEditor(Editor):
 		self.set_default_size(gdk_screen_width() * 2 / 3, -1)
 
 		self.text = GtkText()
-		self.text.insert_defaults(string.join(node.text, '\n'))
+		self.text.insert_defaults(node.nodeValue)
 		self.vbox.pack_start(self.text)
 		self.text.set_editable(TRUE)
 
@@ -56,7 +60,7 @@ class DataEditor(Editor):
 		self.text.connect('key-press-event', self.key)
 	
 	def ok(self, b = None):
-		self.node.set_data(self.text.get_chars(0, -1))
+		Change.set_data(self.node, self.text.get_chars(0, -1))
 		self.tree.tree_changed()
 		self.destroy()
 	
@@ -74,7 +78,7 @@ class TagEditor(Editor):
 		Editor.__init__(self, node, tree)
 
 		self.entry = GtkEntry()
-		self.entry.set_text(node.type)
+		self.entry.set_text(node.nodeName)
 		self.vbox.pack_start(self.entry)
 
 		self.entry.grab_focus()
@@ -85,7 +89,7 @@ class TagEditor(Editor):
 		self.show_all(self.vbox)
 	
 	def ok(self, widget):
-		self.node.set_type(self.entry.get_text())
+		Change.set_name(self.node, self.entry.get_text())
 		self.tree.tree_changed()
 		self.destroy()
 
