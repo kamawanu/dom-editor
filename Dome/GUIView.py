@@ -40,6 +40,7 @@ menu = Menu('Dome', 'main', [
 		('/Edit/', '', '', '<separator>'),
 		('/Edit/Edit value', 'toggle_edit', '', 'Return'),
 		('/Edit/Normalise', 'do_normalise', '', ''),
+		('/Edit/Remove default namespaces', 'do_remove_ns', '', 'r'),
 		('/Edit/', '', '', '<separator>'),
 		('/Edit/Undo', 'do_undo', '', 'u'),
 		('/Edit/Redo', 'do_redo', '', '<Ctrl>R'),
@@ -478,6 +479,7 @@ class GUIView(Display):
 	do_compare = make_do('compare')
 	do_again = make_do('again')
 	do_normalise = make_do('normalise')
+	do_remove_ns = make_do('remove_ns')
 
 	do_clear_mark = make_do('clear_mark')
 	do_mark_switch = make_do('mark_switch')

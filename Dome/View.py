@@ -1215,7 +1215,7 @@ class View:
 		if old_md5 and new_md5 == old_md5:
 			self.model.set_attrib(node, 'modified', None)
 			print "MD5 sums match => not parsing!"
-			return
+			return node
 		
 		reader = PyExpat.Reader()
 		print "parsing...",
@@ -1228,6 +1228,8 @@ class View:
 			root = nonvalParse(isrc.fromString(data, uri))
 			ext.StripHtml(root)
 		except:
+			type, val, tb = sys.exc_info()
+			traceback.print_exception(type, val, tb)
 			print "parsing failed!"
 			print "Data was:"
 			print data
@@ -1480,9 +1482,6 @@ class View:
 		self.move_to(node, a)
 	
 	def add_attrib(self, UNUSED, name, value = ''):
-		if name.startswith('xmlns:'):
-			print "*** SET NS ATTRIB ***", self.op_in_progress.get_program()
-
 		node = self.get_current()
 		a = self.model.set_attrib(node, name, value)
 		self.move_to(node, a)
@@ -1738,6 +1737,11 @@ class View:
 	
 	def normalise(self):
 		self.model.normalise(self.get_current())
+	
+	def remove_ns(self):
+		node = self.get_current()
+		self.move_to([])
+		self.move_to(self.model.remove_ns(node))
 
 class StrGrab:
 	data = ''

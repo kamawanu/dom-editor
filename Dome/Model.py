@@ -190,6 +190,30 @@ class Model:
 		self.add_undo(lambda: self.replace_node(node, old))
 		self.update_all(node)
 	
+	def remove_ns(self, node):
+		nss = ext.GetAllNs(node.parentNode)
+		dns = nss.get(None, None)
+		create = node.ownerDocument.createElementNS
+		def ns_clone(node):
+			if node.nodeType != Node.ELEMENT_NODE:
+				return node.cloneNode(1)
+			if node.prefix or node.namespaceURI == dns:
+				new = node.cloneNode(0)
+			else:
+				print "Converting %s to %s" % (node.namespaceURI, dns)
+				new = create(dns, node.localName)
+			for a in node.attributes.values():
+				if a.localName == 'xmlns' and a.prefix is None:
+					print "Removing xmlns attrib on", node
+					continue
+				new.setAttributeNS(a.namespaceURI, a.name, a.value)
+			for k in node.childNodes:
+				new.appendChild(ns_clone(k))
+			return new
+		new = ns_clone(node)
+		self.replace_node(node, new)
+		return new
+	
 	def set_name(self, node, namespace, name):
 		if self.get_locks(node):
 			raise Exception('Attempt to set name on locked node %s' % node)
