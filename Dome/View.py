@@ -28,7 +28,7 @@ def elements(node):
 
 # An view contains:
 # - A ref to a DOM document
-# - A current node
+# - A set of current nodes
 # - A root node
 # - A chroot stack
 # It does not have any display code. It does contain code to perform actions
@@ -112,16 +112,11 @@ class View:
 		self.current_nodes = []
 		self.set_model(model)
 	
-	def __getattr__(self, attr):
-		if attr == 'current':
-			if len(self.current_nodes) == 1:
-				return self.current_nodes[0]
-			raise Exception('This operation required exactly one selected node!')
-		return self.__dict__[attr]
+	def get_current(self):
+		if len(self.current_nodes) == 1:
+			return self.current_nodes[0]
+		raise Exception('This operation required exactly one selected node!')
 		
-	def __cmp__(a, b):
-		return a is not b
-	
 	def set_model(self, model):
 		if self.root:
 			self.move_to([])
@@ -278,7 +273,6 @@ class View:
 		self.root = None
 		self.model.remove_view(self)
 		self.model = None
-		self.current = None
 	
 	def home(self):
 		"Move current to the display root."
@@ -310,14 +304,14 @@ class View:
 			display.move_from(old_nodes)
 	
 	def move_prev_sib(self):
-		if self.current == self.root or not self.current.previousSibling:
+		if self.get_current() == self.root or not self.get_current().previousSibling:
 			raise Beep
-		self.move_to(self.current.previousSibling)
+		self.move_to(self.get_current().previousSibling)
 	
 	def move_next_sib(self):
-		if self.current == self.root or not self.current.nextSibling:
+		if self.get_current() == self.root or not self.get_current().nextSibling:
 			raise Beep
-		self.move_to(self.current.nextSibling)
+		self.move_to(self.get_current().nextSibling)
 	
 	def move_left(self):
 		new = []
@@ -342,9 +336,9 @@ class View:
 		self.move_to(self.root)
 	
 	def move_end(self):
-		if not self.current.childNodes:
+		if not self.get_current().childNodes:
 			raise Beep
-		node = self.current.childNodes[0]
+		node = self.get_current().childNodes[0]
 		while node.nextSibling:
 			node = node.nextSibling
 		self.move_to(node)
@@ -359,7 +353,7 @@ class View:
 	def enter(self):
 		"""Change the display root to a COPY of the selected node.
 		Call Leave to check changes back in."""
-		node = self.current
+		node = self.get_current()
 		self.chroots.append((self.model, node))
 		self.set_model(self.model.lock_and_copy(node))
 	
@@ -455,7 +449,7 @@ class View:
 		if not ns:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
-		c = Context.Context(self.current, [self.current], processorNss = ns)
+		c = Context.Context(self.get_current(), [self.get_current()], processorNss = ns)
 		self.move_to(xpath.Evaluate(pattern, context = c))
 		
 	def do_search(self, pattern, ns = None, toggle = FALSE):
@@ -507,11 +501,11 @@ class View:
 
 	def python(self, expr):
 		"Replace node with result of expr(old_value)"
-		if self.current.nodeType == Node.TEXT_NODE:
-			vars = {'x': self.current.data, 're': re, 'sub': re.sub, 'string': string}
+		if self.get_current().nodeType == Node.TEXT_NODE:
+			vars = {'x': self.get_current().data, 're': re, 'sub': re.sub, 'string': string}
 			result = eval(expr, vars)
 			new = self.python_to_node(result)
-			self.model.replace_node(self.current, new)
+			self.model.replace_node(self.get_current(), new)
 		else:
 			raise Beep
 
@@ -572,7 +566,7 @@ class View:
 		if self.current_attrib:
 			ca = self.current_attrib
 			self.current_attrib = None
-			self.model.set_attrib(self.current, ca.namespaceURI, ca.localName, None)
+			self.model.set_attrib(self.get_current(), ca.namespaceURI, ca.localName, None)
 			return
 		self.move_to([])	# Makes things go *much* faster!
 		new = []
@@ -702,7 +696,7 @@ class View:
 				print "Map: nodes remaining, but an error occurred..."
 				return self.default_done(exit)
 			self.move_to(nodes[0])
-			print "Next:", self.current
+			print "Next:", self.get_current()
 			del nodes[0]
 			if not nodes:
 				next = None
@@ -725,7 +719,7 @@ class View:
 		return prog
 
 	def change_node(self, new_data):
-		node = self.current
+		node = self.get_current()
 		if node.nodeType == Node.TEXT_NODE or node.nodeType == Node.COMMENT_NODE:
 			self.model.set_data(node, new_data)
 		else:
@@ -733,17 +727,17 @@ class View:
 				(prefix, localName) = string.split(new_data, ':', 1)
 			else:
 				(prefix, localName) = ('', new_data)
-			namespaceURI = self.model.prefix_to_namespace(self.current, prefix)
+			namespaceURI = self.model.prefix_to_namespace(self.get_current(), prefix)
 			self.model.set_name(node, namespaceURI, new_data)
 
 	def add_node(self, where, data):
-		cur = self.current
+		cur = self.get_current()
 		if where[1] == 'e':
 			if ':' in data:
 				(prefix, localName) = string.split(data, ':', 1)
 			else:
 				(prefix, localName) = ('', data)
-			namespaceURI = self.model.prefix_to_namespace(self.current, prefix)
+			namespaceURI = self.model.prefix_to_namespace(self.get_current(), prefix)
 			new = self.model.doc.createElementNS(namespaceURI, data)
 		else:
 			new = self.model.doc.createTextNode(data)
@@ -761,7 +755,7 @@ class View:
 		self.move_to(new)
 
 	def suck(self):
-		node = self.current
+		node = self.get_current()
 
 		if node.nodeType == Node.TEXT_NODE:
 			uri = node.nodeValue
@@ -790,7 +784,7 @@ class View:
 		command = "w3m -dump_source '%s' | tidy -asxml 2>/dev/null" % uri
 
 		def done(root, self = self, uri = uri):
-			node = self.current
+			node = self.get_current()
 			new = node.ownerDocument.importNode(root.documentElement, deep = 1)
 			new.setAttributeNS('', 'uri', uri)
 			self.model.replace_node(node, new)
@@ -827,7 +821,7 @@ class View:
 		all[1] = input_add(cout, GDK.INPUT_READ, got_html)
 	
 	def put_before(self):
-		node = self.current
+		node = self.get_current()
 		if self.clipboard == None:
 			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
@@ -837,14 +831,14 @@ class View:
 			raise Beep
 
 	def put_after(self):
-		node = self.current
+		node = self.get_current()
 		if self.clipboard == None:
 			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
 		self.model.insert_after(node, new)
 	
 	def put_replace(self):
-		node = self.current
+		node = self.get_current()
 		if self.clipboard == None:
 			raise Beep
 		if self.current_attrib:
@@ -867,7 +861,7 @@ class View:
 			raise Beep
 
 	def put_as_child(self):
-		node = self.current
+		node = self.get_current()
 		if self.clipboard == None:
 			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
@@ -894,12 +888,12 @@ class View:
 	def yank_attribs(self, name):
 		self.clipboard = self.model.doc.createDocumentFragment()
 		if name:
-			if not self.current.hasAttribute(name):
+			if not self.get_current().hasAttribute(name):
 				raise Beep
-			attribs = [self.current.getAttributeNode(name)]
+			attribs = [self.get_current().getAttributeNode(name)]
 		else:
 			attribs = []
-			for a in self.current.attributes:
+			for a in self.get_current().attributes:
 				attribs.append(a)
 
 		# Make sure the attributes always come out in the same order
@@ -948,14 +942,14 @@ class View:
 	
 	def attribute(self, namespace = None, attrib = None):
 		if attrib is None:
-			self.move_to(self.current)
+			self.move_to(self.get_current())
 			return
 
 		print "(ns, attrib)", `namespace`, attrib
 
-		if self.current.hasAttributeNS(namespace, attrib):
-			self.move_to(self.current,
-				self.current.getAttributeNodeNS(namespace, attrib))
+		if self.get_current().hasAttributeNS(namespace, attrib):
+			self.move_to(self.get_current(),
+				self.get_current().getAttributeNodeNS(namespace, attrib))
 		else:
 			raise Beep()
 	
@@ -963,11 +957,11 @@ class View:
 		a = self.current_attrib
 		if not a:
 			raise Beep()
-		self.model.set_attrib(self.current, a.namespaceURI, a.localName, value)
+		self.model.set_attrib(self.get_current(), a.namespaceURI, a.localName, value)
 	
 	def add_attrib(self, namespace, name):
-		self.model.set_attrib(self.current, namespace, name, "")
-		self.move_to(self.current, self.current.getAttributeNodeNS(namespace, name))
+		self.model.set_attrib(self.get_current(), namespace, name, "")
+		self.move_to(self.get_current(), self.get_current().getAttributeNodeNS(namespace, name))
 	
 	def load_html(self, path):
 		"Replace root with contents of this HTML file."
@@ -1000,10 +994,10 @@ class View:
 	
 	def show_html(self):
 		from HTML import HTML
-		HTML(self.model, self.current).show()
+		HTML(self.model, self.get_current()).show()
 	
 	def show_canvas(self):
-		Canvas(self, self.current).show()
+		Canvas(self, self.get_current()).show()
 	
 	def toggle_hidden(self):
 		for node in self.current_nodes:
@@ -1014,7 +1008,7 @@ class View:
 			self.model.set_attrib(node, '', 'hidden', new)
 	
 	def soap_send(self):
-		copy = node_to_xml(self.current)
+		copy = node_to_xml(self.get_current())
 		env = copy.documentElement
 
 		if env.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/':
@@ -1092,7 +1086,7 @@ class View:
 		
 		self.model.strip_space(new)
 
-		old = self.current
+		old = self.get_current()
 		self.move_to([])
 		self.model.replace_node(old, new)
 		self.move_to(new)

@@ -21,7 +21,6 @@ from Model import Model
 from View import View
 from View import InProgress, Done
 from Program import Program, load_dome_program
-from xml.dom.ext.reader import PyExpat
 
 code = choices.load('Dome', 'RootProgram.xml')
 if code:

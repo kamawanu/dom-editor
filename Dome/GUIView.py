@@ -167,7 +167,7 @@ class GUIView(Display):
 		if self.cursor_node:
 			self.hide_editbox()
 
-		self.cursor_node = self.view.current
+		self.cursor_node = self.view.get_current()
 		group = self.node_to_group[self.cursor_node]
 		self.cursor_attrib = self.view.current_attrib
 
@@ -285,7 +285,7 @@ class GUIView(Display):
 				(prefix, localName) = string.split(name, ':', 1)
 			else:
 				(prefix, localName) = ('', name)
-			namespaceURI = self.view.model.prefix_to_namespace(self.view.current, prefix)
+			namespaceURI = self.view.model.prefix_to_namespace(self.view.get_current(), prefix)
 			action = ["attribute", namespaceURI, localName]
 			self.view.may_record(action)
 		GetArg('Select attribute:', do_attrib, ['Name:'])
@@ -296,7 +296,7 @@ class GUIView(Display):
 				(prefix, localName) = string.split(name, ':', 1)
 			else:
 				(prefix, localName) = ('', name)
-			namespaceURI = self.view.model.prefix_to_namespace(self.view.current, prefix)
+			namespaceURI = self.view.model.prefix_to_namespace(self.view.get_current(), prefix)
 			action = ["add_attrib", namespaceURI, name]
 			self.view.may_record(action)
 		GetArg('Create attribute:', do_it, ['Name:'])
@@ -326,7 +326,7 @@ class GUIView(Display):
 		GetArg('Search for:', do_search, ['XPath:'])
 
 	def new_name(self):
-		cur = self.view.current
+		cur = self.view.get_current()
 		if cur.nodeType == Node.ELEMENT_NODE:
 			return cur.nodeName
 		return cur.parentNode.nodeName

@@ -383,7 +383,7 @@ class Display(GnomeCanvas):
 			self.current_attrib = None
 		if attrib:
 			try:
-				group = self.node_to_group[self.view.current].attrib_to_group[attrib]
+				group = self.node_to_group[self.view.get_current()].attrib_to_group[attrib]
 				group.rect.show()
 				group.text.set(fill_color = 'white')
 				self.current_attrib = group
