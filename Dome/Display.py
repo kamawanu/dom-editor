@@ -247,12 +247,14 @@ class Display(GnomeCanvas):
 				ay = 0
 				if not cramped:
 					l = 0
-					for a in node.attributes:
+					for (ns,name) in node.attributes.keys():
+						a = node.getAttributeNodeNS(ns, name)
 						l += len(a.name) + len(a.value)
 					acramped = l > 80
 				else:
 					acramped = cramped
-				for a in node.attributes:
+				for (ns,name) in node.attributes.keys():
+					a = node.getAttributeNodeNS(ns, name)
 					g = group.add('group', x = ax, y = ay)
 					self.create_attribs(a, g, cramped, node)
 					(alx, aly, ahx, ahy) = g.get_bounds()

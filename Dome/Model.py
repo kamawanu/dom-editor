@@ -7,7 +7,8 @@ from __future__ import nested_scopes
 # All changes to the DOM must go through here.
 # Notification to views of changes is done.
 
-from xml.dom import implementation, XMLNS_NAMESPACE
+from Ft.Xml.Domlette import implementation
+from Ft.Xml import XMLNS_NAMESPACE
 from xml.dom import ext
 from xml.dom import Node
 from xml.dom.Document import Document
@@ -36,9 +37,11 @@ class Model:
 			if path != '-':
 				self.uri = path
 			if not root_program:
-				from xml.dom.ext.reader import PyExpat
-				reader = PyExpat.Reader()
-				doc = reader.fromUri(path)
+				#from xml.dom.ext.reader import PyExpat
+				from Ft.Xml.Domlette import nonvalParse
+				from Ft.Xml.InputSource import InputSourceFactory
+				isrc = InputSourceFactory()
+				doc = nonvalParse(isrc.fromUri(path))
 		if not doc:
 			doc = implementation.createDocument(None, 'root', None)
 		root = doc.documentElement
@@ -97,7 +100,6 @@ class Model:
 			if node == self.doc.documentElement:
 				if node.parentNode:
 					self.unlock(node.parentNode)
-				self.may_free()
 				return
 		else:
 			raise Exception('unlock(%s): Node not locked!' % node)
@@ -139,19 +141,7 @@ class Model:
 		#print "Removing view", view
 		#print "Now:", self.views
 		self.views.remove(view)
-		self.may_free()
 	
-	def may_free(self):
-		if self.views:
-			return
-		if self.get_locks(self.doc.documentElement) == 0:
-			from xml.dom.ext import ReleaseNode
-			ReleaseNode(self.doc.documentElement)
-			#print "(releasing)"
-		else:
-			pass
-			#print "(still locked)"
-
 	def update_all(self, node):
 		"Called when 'node' has been updated."
 		"'node' is still in the document, so deleting or replacing"

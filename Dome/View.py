@@ -4,8 +4,8 @@ import GDK
 from support import *
 from rox import support
 from xml.dom import Node, ext, XMLNS_NAMESPACE
-from xml import xpath
-from xml.xpath import FT_EXT_NAMESPACE, Context
+from Ft.Xml import XPath
+from Ft.Xml.XPath import FT_EXT_NAMESPACE, Context
 from xml.dom.ext.reader import PyExpat
 
 import os, re, string, types
@@ -535,8 +535,12 @@ class View:
 		if not ns:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
-		c = Context.Context(self.get_current(), [self.get_current()], processorNss = ns)
-		self.move_to(xpath.Evaluate(self.macro_pattern(pattern), context = c))
+		print "ns was", ns
+		ns = {}
+		c = Context.Context(self.get_current(), processorNss = ns)
+		nodes = XPath.Evaluate(self.macro_pattern(pattern), context = c)
+		print "Found", nodes
+		self.move_to(nodes)
 
 	def select_region(self, path, ns = None):
 		if len(self.current_nodes) == 0:
@@ -546,7 +550,7 @@ class View:
 			ns = ext.GetAllNs(src)
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
-		rt = xpath.Evaluate(path, context = c)
+		rt = XPath.Evaluate(path, context = c)
 		node = None
 		for x in rt:
 			if not self.has_ancestor(x, self.root):
@@ -594,7 +598,7 @@ class View:
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
 		
-		rt = xpath.Evaluate(self.macro_pattern(pattern), context = c)
+		rt = XPath.Evaluate(self.macro_pattern(pattern), context = c)
 		node = None
 		for x in rt:
 			if not self.has_ancestor(x, self.root):
