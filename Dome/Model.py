@@ -52,6 +52,7 @@ class Model:
 		data_to_load = None
 
 		from Program import Program, load_dome_program
+		print root.namespaceURI, root.localName
 		if root.namespaceURI == constants.DOME_NS and root.localName == 'dome':
 			for x in root.childNodes:
 				if x.namespaceURI == constants.DOME_NS:

@@ -1808,7 +1808,7 @@ class View:
 		reply = conn.getfile().read()
 		print "Got:\n", reply
 
-		new_doc = support.parse_data(reply, None)
+		new_doc = support.parse_data(reply, dest)
 
 		new = self.model.doc.importNode(new_doc.documentElement, 1)
 		
