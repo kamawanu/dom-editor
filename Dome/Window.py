@@ -154,7 +154,6 @@ class Window(GtkWindow):
 
 	tools = [
 		('Save', 'Save this macro'),
-		('New', 'Create a new program'),
 		('Record', 'Start recording here'),
 		('Stop', 'Stop a running macro'),
 		('Play', 'Run this macro from the start'),
@@ -185,6 +184,3 @@ class Window(GtkWindow):
 			self.view.stop_recording()
 		else:
 			self.view.record_at_point()
-	
-	def tool_New(self):
-		self.list.new_prog()

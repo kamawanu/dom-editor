@@ -72,6 +72,14 @@ class List(GtkVBox):
 		self.tree.show()
 		for i in self.tree.children():
 			i.expand()
+		self.view.lists.append(self)
+	
+	def update_points(self):
+		self.chains.update_points()
+	
+	def prog_tree_changed(self):
+		self.tree.clear_items(0, -1)
+		self.build_tree(self.tree, self.view.model.root_program)
 	
 	def chain_resize(self, canvas, c, sb):
 		adj = canvas.get_vadjustment()
@@ -94,13 +102,6 @@ class List(GtkVBox):
 				self.build_tree(subtree, k)
 			item.set_subtree(subtree)
 
-	def new_prog(self):
-		def create(name, self = self):
-			new = Program(name)
-			self.prog.add_sub(new)
-			#self.switch_to(new)
-		GetArg('New program', create, ['Program name:'])
-	
 	def prog_event(self, item, event, prog):
 		if event.button == 2 or event.button == 3:
 			item.emit_stop_by_name('button-press-event')
@@ -124,29 +125,36 @@ class List(GtkVBox):
 			p = p.parent
 		return path[:-1]
 
-	def show_menu(self, event, sub):
-		def del_prog(self = self, sub = sub):
-			parent = sub.parent
-			sub.parent.remove_sub(sub)
-			self.switch_to(parent)
-		def rename_prog(prog = sub):
+	def show_menu(self, event, prog):
+		def del_prog(self = self, prog = prog):
+			parent = prog.parent
+			prog.parent.remove_sub(prog)
+		def rename_prog(prog = prog):
 			def rename(name, prog = prog):
 				prog.rename(name)
 			GetArg('Rename program', rename, ['Program name:'])
+		def new_prog(model = self.view.model, prog = prog):
+			def create(name, model = model, prog = prog):
+				new = Program(model, name)
+				prog.add_sub(new)
+			GetArg('New program', create, ['Program name:'])
+			
 		view = self.view
-		if sub.parent:
+		if prog.parent:
 			dp = del_prog
 		else:
 			dp = None
 		name = self.prog_to_name(prog)
 		def do(play, view = view, name = name):
 			def ret(play = play, view = view, name = name):
-				self.view.single_step = 0
-				self.view.may_record([op, play])
+				view.single_step = 0
+				view.may_record([play, name])
 			return ret
 		items = [
 			('Play', do('play')),
 			('Map', do('map')),
+			(None, None),
+			('New program', new_prog),
 			('Rename', rename_prog),
 			('Delete', dp),
 			]
@@ -170,14 +178,11 @@ class ChainDisplay(GnomeCanvas):
 		self.nodes = None
 		self.subs = None
 		self.set_usize(100, 100)
-
-		self.view.lists.append(self)
 	
 		self.prog = None
 		self.switch_to(prog)
 	
 	def update_points(self):
-		print "update_points"
 		self.put_point('rec_point')
 		self.put_point('exec_point')
 	

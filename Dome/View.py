@@ -74,6 +74,8 @@ class View:
 	def set_exec(self, pos):
 		if self.op_in_progress:
 			raise Exception("Operation in progress...")
+		if pos and not isinstance(pos[0], Op):
+			raise Exception("Not an (operation, exit) tuple", pos)
 		self.exec_point = pos
 		for l in self.lists:
 			l.update_points()
@@ -110,9 +112,9 @@ class View:
 				return 0
 			exit = 'fail'
 
-		print "RECORD:", rec, action
 		# Only record if we were recording when this action started
 		if rec:
+			print "RECORD:", rec, action
 			(op, old_exit) = rec
 			new_op = Op(op.program, action)
 			op.link_to(new_op, old_exit)
@@ -464,7 +466,7 @@ class View:
 	def redo(self):
 		self.model.redo(self.root)
 
-	def play(self, name, when_done = None):
+	def play(self, name):
 		prog = self.name_to_prog(name)
 
 		if self.op_in_progress:
@@ -472,10 +474,9 @@ class View:
 				print "Up to", op
 				self.set_exec((op, 'next'))
 				self.callback_on_return = done
+				self.sched()
 			self.set_oip(None)
-		else:
-			fin = None
-		self.callback_on_return = fin
+			self.callback_on_return = fin
 			
 		self.set_exec((prog.start, 'next'))
 		self.sched()
@@ -493,6 +494,9 @@ class View:
 		self.idle_cb = 0
 		try:
 			self.do_one_step()
+		except Done:
+			print "Done"
+			return 0
 		except:
 			type, val, tb = sys.exc_info()
 			list = traceback.extract_tb(tb)
@@ -514,14 +518,15 @@ class View:
 
 		nodes = self.current_nodes[:]
 		inp = [nodes, None]
-		def next(self = self, name = name, inp = inp):
+		def next(self = self, name = name, inp = inp, old_cb = self.callback_on_return):
 			nodes, next = inp
 			self.move_to(nodes[0])
 			print "Next:", self.current
 			del nodes[0]
 			if not nodes:
-				next = None
-			self.play(name, when_done = next)
+				next = old_cb
+			self.callback_on_return = next
+			self.play(name)
 		inp[1] = next
 		next()
 	
@@ -759,3 +764,7 @@ class View:
 		
 		self.model.strip_space(new)
 		self.model.replace_node(self.root, new)
+	
+	def prog_tree_changed(self):
+		for l in self.lists:
+			l.prog_tree_changed()

@@ -117,5 +117,5 @@ def make_relative_path(src_node, dst_node, lit, ns):
 	path = path[:-1]
 	if lit:
 		path += literal_match(dst_node)
-	print "%s [%s]" % (path, ns)
+	#print "%s [%s]" % (path, ns)
 	return path

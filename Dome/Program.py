@@ -48,12 +48,12 @@ def load(program, chain):
 			op.link_to(fail, 'fail')
 	return start
 
-def load_dome_program(prog):
+def load_dome_program(model, prog):
 	"prog should be a DOM 'dome-program' node."
 	if prog.nodeName != 'dome-program':
 		raise Exception('Not a DOME program!')
 
-	new = Program(str(prog.getAttributeNS('', 'name')))
+	new = Program(model, str(prog.getAttributeNS('', 'name')))
 
 	start = load(new, prog)
 	if start:
@@ -63,15 +63,16 @@ def load_dome_program(prog):
 
 	for node in prog.childNodes:
 		if node.localName == 'dome-program':
-			new.add_sub(load_dome_program(node))
+			new.add_sub(load_dome_program(model, node))
 		
 	return new
 
 class Program:
 	"A program contains a Start Op and any number of sub-programs."
-	def __init__(self, name, start = None):
+	def __init__(self, model, name, start = None):
 		if not start:
 			start = Op(self)
+		self.model = model
 		self.start = start
 		self.name = name
 		self.subprograms = {}
@@ -92,18 +93,18 @@ class Program:
 		if self.subprograms.has_key(prog.name):
 			raise Exception('%s already has a child called %s!' %
 							(self.name, prog.name))
+		if prog.model != self.model:
+			raise Exception('Subprogram is from a different model!')
 		prog.parent = self
 		self.subprograms[prog.name] = prog
-		self.changed(None)
-		prog.changed(None)
+		self.model.prog_tree_changed()
 	
 	def remove_sub(self, prog):
 		if prog.parent != self:
 			raise Exception('%s is no child of mime!' % prog)
 		prog.parent = None
-		self.subprograms.remove(prog.name)
-		self.changed(None)
-		prog.changed(None)
+		del self.subprograms[prog.name]
+		self.model.prog_tree_changed()
 	
 	def rename(self, name):
 		self.parent.remove_sub(self)

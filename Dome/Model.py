@@ -21,12 +21,12 @@ class Model:
 	def __init__(self):
 		self.doc = implementation.createDocument('', 'root', None)
 		self.views = []		# Notified when something changes
-		self.root_program = Program('root')
+		self.root_program = Program(self, 'root')
 	
 	def load_program(self, path):
 		reader = PyExpat.Reader()
 		doc = reader.fromUri(path)
-		self.root_program = load_dome_program(doc.documentElement)
+		self.root_program = load_dome_program(self, doc.documentElement)
 	
 	def get_root(self):
 		"Return the true root node (not a view root)"
@@ -147,3 +147,7 @@ class Model:
 			raise Exception("No such namespace prefix '%s'" % prefix)
 		else:
 			return ''
+
+	def prog_tree_changed(self):
+		for v in self.views:
+			v.prog_tree_changed()
