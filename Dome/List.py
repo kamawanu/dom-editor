@@ -77,7 +77,9 @@ class List(GtkVBox):
 		hbox = GtkHBox()
 		self.pack_start(hbox, expand = 1, fill = 1)
 		hbox.pack_start(self.chains, 1, 1)
-		sb = GtkVScrollbar(self.chains.get_vadjustment())
+		adj = self.chains.get_vadjustment()
+		adj.set_all(0, 0, 0, 10, 0, 0)
+		sb = GtkVScrollbar(adj)
 		hbox.pack_start(sb, 0, 1)
 		self.chains.connect('size-allocate', self.chain_resize, sb)
 
