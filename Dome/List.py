@@ -394,8 +394,16 @@ class ChainOp(ChainNode):
 		w.draw_arc(da.style.black_gc, False, self.x, self.y, 10, 10, 0, 360 * 60)
 		w.draw_layout(da.style.black_gc, self.x + 12, self.y, self.layout)
 
-		if self.next: self.next.expose()
-		if self.fail: self.fail.expose()
+		if self.next:
+			self.next.expose()
+			w.draw_line(da.style.black_gc, self.x + 5, self.y + 10, self.next.x + 5, self.next.y)
+			
+		if self.fail:
+			self.fail.expose()
+			pen = da.style.white_gc
+			pen.set_rgb_fg_color(g.gdk.color_parse('red'))
+			w.draw_line(pen, self.x + 10, self.y + 10, self.fail.x + 5, self.fail.y)
+			pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
 	def maybe_clicked(self, event):
 		if self.x <= event.x and self.y <= event.y and \
@@ -418,6 +426,11 @@ class ChainBlock(ChainOp):
 	def __init__(self, da, block, x, y):
 		assert isinstance(block, Block)
 		ChainOp.__init__(self, da, block, x, y)
+		self.depth = 1
+		p = block.parent
+		while p and not isinstance(p, Program):
+			p = p.parent
+			self.depth += 1
 	
 	def build_leaf(self):
 		x = self.x
@@ -445,6 +458,10 @@ class ChainBlock(ChainOp):
 		width = self.width
 		x = self.x
 		y = self.y
+
+		d = 15 - min(self.depth, 7)
+		pen.set_rgb_fg_color(g.gdk.color_parse('#%x%x%x' % (d, d, d)))
+		w.draw_rectangle(pen, True, self.x + 1, self.y + 1, self.width - 1, self.height - 1)
 
 		op = self.op
 		if op.foreach:
