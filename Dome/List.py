@@ -547,8 +547,38 @@ class ChainDisplay(GnomeCanvas):
 		doc = self.clipboard
 		new = load(doc.documentElement)
 		op.link_to(new, exit)
+	
+	def closest_node(self, op, x, y):
+		"Return the closest (dist, node) in this chain to (x, y)"
+		nx, ny = self.op_to_group[op].i2w(0, 0)
+		best = (op, math.hypot(nx - n, ny - y))
+		if op.next:
+			next = closest_node(op.next)
+			if next[0] < best[0]:
+				best = next
+		if op.fail:
+			fail = closest_node(op.fail)
+			if fail[0] < best[0]:
+				best = fail
+		return best
+	
+	def end_link_drag(self, item, event, op, exit):
+		# Scan all the nodes looking for one nearby...
+		x, y = event.x, event.y
+		node = self.closest_node(self.prog.start, x, y)
+		print "Closest was", str(node)
+
+		# Put the line back to the disconnected state...
+		if exit == 'next':
+			x, y = DEFAULT_NEXT
+		else:
+			x, y = DEFAULT_FAIL
+		item.set(points = connect(0, 0, x, y))
 
 	def line_event(self, item, event, op, exit):
+		# Item may be rec_point or exec_point...
+		item = getattr(self.op_to_group[op], exit + '_line')
+
 		if event.type == BUTTON_PRESS:
 			if event.button == 1:
 				if not getattr(op, exit):
@@ -590,11 +620,7 @@ class ChainDisplay(GnomeCanvas):
 				self.view.set_exec((op, exit))
 				self.drag_last_pos = None
 				if not getattr(op, exit):
-					if exit == 'next':
-						x, y = DEFAULT_NEXT
-					else:
-						x, y = DEFAULT_FAIL
-					item.set(points = connect(0, 0, x, y))
+					self.end_link_drag(item, event, op, exit)
 		elif event.type == MOTION_NOTIFY and self.drag_last_pos:
 			x, y = (event.x, event.y)
 			dx, dy = x - self.drag_last_pos[0], y - self.drag_last_pos[1]
@@ -602,14 +628,13 @@ class ChainDisplay(GnomeCanvas):
 			if abs(dx) > 4 or abs(dy) > 4:
 				x, y = item.w2i(event.x, event.y)
 				item.set(points = connect(0, 0, x, y))
-		elif item != self.exec_point and item != self.rec_point:
-			if event.type == ENTER_NOTIFY:
-				item.set(fill_color = 'white')
-			elif event.type == LEAVE_NOTIFY:
-				if exit == 'next':
-					item.set(fill_color = 'black')
-				else:
-					item.set(fill_color = '#ff6666')
+		elif event.type == ENTER_NOTIFY:
+			item.set(fill_color = 'white')
+		elif event.type == LEAVE_NOTIFY:
+			if exit == 'next':
+				item.set(fill_color = 'black')
+			else:
+				item.set(fill_color = '#ff6666')
 		return 1
 	
 	def set_bounds(self):
