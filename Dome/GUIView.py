@@ -359,9 +359,9 @@ class GUIView(Display, XDSLoader):
 				 ('.//img', 'all <img> descendant elements'),
 				 ('//img[@src]', 'all <img> elements with "src" attributes'),
 				 ('//chapter[title="Intro"]',
-				 	'Any <chapter> with a <title>Intro</title> child.'),
-				 ('img[0]', 'the first child <img> element'),
-				 ('text()', 'the first child text node'),
+				 	'Any <chapter> with a <title>Intro</title> child'),
+				 ('img[1]', 'the first child <img> element'),
+				 ('text()', 'all child text nodes'),
 				 ('//img[@src="@CURRENT@"]',
 				 	"all <img>s whose src is the current node's value"),
 				 ))

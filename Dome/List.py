@@ -337,6 +337,9 @@ class List(g.VBox):
 			self.tree.expand_row(tuple(partial), FALSE)
 		iter = self.prog_model.get_iter(path)
 		self.tree.get_selection().select_iter(iter)
+	
+	def selected_program(self):
+		return self.chains.prog
 
 class ChainDummy(g.TreeView):
 	def __init__(self, view, prog = None):

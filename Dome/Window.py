@@ -254,6 +254,13 @@ class Window(rox.Window, saving.Saveable):
 		if self.view.rec_point:
 			self.view.stop_recording()
 		else:
+			if not self.view.rec_point:
+				prog = self.list.selected_program()
+				if prog:
+					start = prog.code.start
+					if start.next == None:
+						self.view.set_rec((start, 'next'))
+						return
 			self.view.record_at_point()
 	
 	def tool_help(self, button = None):
