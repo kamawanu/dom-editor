@@ -1098,8 +1098,10 @@ class View:
 		"Replace root with contents of this XML (or Dome) file."
 		reader = PyExpat.Reader()
 		new_doc = reader.fromUri(path)
+		self.load_node(new_doc.documentElement)
 
-		new = self.model.doc.importNode(new_doc.documentElement, deep = 1)
+	def load_node(self, root):
+		new = self.model.doc.importNode(root, deep = 1)
 		
 		self.model.strip_space(new)
 
@@ -1236,6 +1238,12 @@ class View:
 		doc = implementation.createDocument(DOME_NS, 'dome', None)
 		node = self.root_program.to_xml(doc)
 		doc.documentElement.appendChild(node)
+		node = doc.createElementNS(DOME_NS, 'dome-data')
+		doc.documentElement.appendChild(node)
+
+		data = doc.importNode(self.model.doc.documentElement, deep = 1)
+		node.appendChild(data)
+
 		return doc
 
 class StrGrab:

@@ -6,7 +6,6 @@ import os.path
 
 import __main__
 
-from rox import choices
 from support import *
 from rox.SaveBox import SaveBox
 from rox.Toolbar import Toolbar
@@ -22,7 +21,6 @@ class Window(GtkWindow):
 		self.set_position(WIN_POS_CENTER)
 		self.savebox = None
 
-		self.connect('destroy', self.destroyed)
 		self.show()
 		gdk_flush()
 
@@ -58,27 +56,45 @@ class Window(GtkWindow):
 		paned = GtkHPaned()
 		vbox.pack_start(paned)
 
-		global root_program
-		code = choices.load('Dome', 'RootProgram.xml')
-		if code:
+		root_program = None
+		data_to_load = None
+
+		if path:
+			if path != '-':
+				self.model.uri = path
 			from xml.dom.ext.reader import PyExpat
 			reader = PyExpat.Reader()
-			doc = reader.fromUri(code)
-			root_program = load_dome_program(doc.documentElement)
-		else:
+			doc = reader.fromUri(path)
+			root = doc.documentElement
+			import constants
+			if root.namespaceURI == constants.DOME_NS and root.localName == 'dome':
+				for x in root.childNodes:
+					if x.namespaceURI == constants.DOME_NS:
+						if x.localName == 'dome-program':
+							root_program = load_dome_program(x)
+						elif x.localName == 'dome-data':
+							for y in x.childNodes:
+								if y.nodeType == Node.ELEMENT_NODE:
+									data_to_load = y
+			else:
+				data_to_load = root
+
+		if not root_program:
 			root_program = Program('Root')
 
 		import View
 		view = View.View(self.model, root_program)
+		self.view = view
 		self.list = List(view)
 		paned.add1(self.list)
 		self.list.show()
+
+		if data_to_load:
+			self.view.load_node(data_to_load)
 		
 		swin = GtkScrolledWindow()
 		swin.set_policy(POLICY_AUTOMATIC, POLICY_ALWAYS)
 		paned.add2(swin)
-
-		self.view = view
 
 		self.gui_view = GUIView(self, view)
 		swin.add(self.gui_view)
@@ -91,34 +107,6 @@ class Window(GtkWindow):
 		self.gui_view.grab_focus()
 		self.update_title()
 		
-		if path:
-			self.load_file(path)
-	
-	def load_file(self, path):
-		if path == '-':
-			self.model.uri = None
-		else:
-			self.model.uri = path
-		self.gui_view.load_file(path)
-	
-	def destroyed(self, widget):
-		path = choices.save('Dome', 'RootProgram.xml')
-		path = None # XXX
-		if not path:
-			print "Not saving macros..."
-			return
-
-		print "Saving programs..."
-		data = root_program.to_xml()
-
-		file = open(path, 'wb')
-
-		file.write('<?xml version="1.0"?>\n')
-		file.write(data)
-		file.close()
-
-		print "Saved to ", path
-
 	def set_state(self, state):
 		if state == self.state:
 			return
@@ -135,37 +123,19 @@ class Window(GtkWindow):
 	
 	def key(self, widget, kev):
 		if kev.keyval == F3:
-			if kev.state & SHIFT_MASK:
-				self.save('html')
-			else:
-				self.save('xml')
+			self.save()
 		return 1
 	
-	def save(self, type):
+	def save(self):
 		if self.savebox:
 			self.savebox.destroy()
 		path = self.model.uri
-		dir, file = os.path.split(path)
-		i = string.rfind(file, '.')
-		if i != -1:
-			file = file[:i + 1] + type
-		else:
-			file += '.' + type
-		path = os.path.join(dir, file)
-		self.savebox = SaveBox(self, path, 'text/' + type)
-		self.savetype = type
+		self.savebox = SaveBox(self, path, 'application/x-dome')
 		self.savebox.show()
 	
 	def get_xml(self):
 		print "Saving", self.view.root
-		if self.savetype == 'xml':
-			doc = node_to_xml(self.view.root)
-		elif self.savetype == 'html':
-			doc = node_to_html(self.view.root)
-		elif self.savetype == 'dome':
-			doc = self.view.export_all()
-		else:
-			raise Exception('Unknown save type', self.savetype)
+		doc = self.view.export_all()
 		self.output_data = ''
 		from xml.dom import ext
 		ext.PrettyPrint(doc, stream = self)
