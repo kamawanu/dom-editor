@@ -10,7 +10,7 @@ import types
 from support import *
 
 from Editor import edit_node
-from Search import Search
+from GetArg import GetArg
 import Change
 from SaveBox import SaveBox
 from Exec import Exec
@@ -545,7 +545,7 @@ class Tree(GtkDrawingArea):
 		self.move_to_node(cur.nextSibling)
 
 	def search(self):
-		Search(self)
+		GetArg('Search for:', self.user_do_search)
 	
 	def search_next(self, node):
 		self.do_action(self.last_search)
@@ -644,6 +644,23 @@ class Tree(GtkDrawingArea):
 
 	def edit_node(self):
 		edit_node(self, self.line_to_node[self.current_line])
+
+	def python(self, node, expr):
+		"Replace node with result of expr(old_value)"
+		if node.nodeType == Node.TEXT_NODE:
+			vars = {'x': node.data}
+			new = str(eval(expr, vars))
+			Change.set_data(node, new)
+			return node
+		else:
+			raise Beep
+
+	def pipe_python(self):
+		def do_pipe(expr, self = self):
+			action = ["python", expr]
+			self.may_record(action)
+		GetArg('Python expression:', do_pipe,
+			"'x' is the old text...")
 
 	def delete_node(self, cur):
 		"Delete"
@@ -781,6 +798,7 @@ class Tree(GtkDrawingArea):
 		ord('^'): ["suck"],
 
 		Tab	: edit_node,
+		exclam	: pipe_python,
 
 		x	: ["delete_node"],
 		X	: ["delete_prev_sib"],
