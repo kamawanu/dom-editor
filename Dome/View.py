@@ -1,7 +1,7 @@
 from gtk import *
 import GDK
 from support import *
-from xml.dom import Node, ext
+from xml.dom import Node, ext, XMLNS_NAMESPACE
 from xml import xpath
 from xml.xpath import FT_EXT_NAMESPACE, Context
 from xml.dom.ext.reader import PyExpat
@@ -991,27 +991,31 @@ class View:
 	def fail(self):
 		raise Beep(may_record = 1)
 	
-	def attribute(self, namespace = None, attrib = None):
-		if attrib is None:
+	def attribute(self, namespace = None, attrib = ''):
+		if attrib == '':
 			self.move_to(self.get_current())
 			return
 
 		print "(ns, attrib)", `namespace`, attrib
 
 		if self.get_current().hasAttributeNS(namespace, attrib):
+			print "Moving to", self.get_current().getAttributeNodeNS(namespace, attrib)
 			self.move_to(self.get_current(),
 				self.get_current().getAttributeNodeNS(namespace, attrib))
 		else:
+			print "No such attribute"
 			raise Beep()
 	
 	def set_attrib(self, value):
 		a = self.current_attrib
 		if not a:
 			raise Beep()
-		self.model.set_attrib(self.get_current(), a.namespaceURI, a.localName, value)
+		self.model.set_attrib(self.get_current(), a.namespaceURI, a.localName or 'xmlns', value)
 	
-	def add_attrib(self, namespace, name):
-		self.model.set_attrib(self.get_current(), namespace, name, "")
+	def add_attrib(self, namespace, name, value = ''):
+		if name == 'xmlns':
+			namespace = XMLNS_NAMESPACE
+		self.model.set_attrib(self.get_current(), namespace, name, value)
 		self.move_to(self.get_current(), self.get_current().getAttributeNodeNS(namespace, name))
 	
 	def load_html(self, path):

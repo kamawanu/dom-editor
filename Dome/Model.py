@@ -13,8 +13,6 @@ import Html
 import Change
 from Beep import Beep
 
-from support import html_to_xml
-
 class Model:
 	def __init__(self, uri):
 		self.doc = implementation.createDocument(None, 'root', None)
@@ -189,6 +187,7 @@ class Model:
 	
 	def set_attrib(self, node, namespaceURI, localName, value):
 		"Set an attribute's value. If value is None, remove the attribute."
+		print "set_attrib", `namespaceURI`, `localName`
 		Change.set_attrib(node, namespaceURI, localName, value)
 		self.update_all(node)
 	
@@ -196,13 +195,13 @@ class Model:
 		"Use the xmlns attributes to workout the namespace."
 		nss = ext.GetAllNs(node)
 		if nss.has_key(prefix):
-			return nss[prefix]
+			return nss[prefix] or None
 		if prefix:
 			if prefix == 'xmlns':
 				return XMLNS_NAMESPACE
 			raise Exception("No such namespace prefix '%s'" % prefix)
 		else:
-			return ''
+			return None
 
 	def get_base_uri(self, node):
 		"""Go up through the parents looking for a uri attribute.

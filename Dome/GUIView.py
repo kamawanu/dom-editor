@@ -97,6 +97,7 @@ class GUIView(Display):
 		else:
 			src = self.view.current_nodes[-1]
 		ns = {}
+		print "attrib_clicked", attrib, attrib.namespaceURI, attrib.localName
 		path = make_relative_path(src, element, FALSE, ns)
 		self.view.may_record(["do_search", path, ns, FALSE])
 		self.view.may_record(["attribute", attrib.namespaceURI, attrib.localName])
@@ -310,6 +311,8 @@ class GUIView(Display):
 				(prefix, localName) = string.split(name, ':', 1)
 			else:
 				(prefix, localName) = (None, name)
+			if prefix == '':
+				prefix = None
 			namespaceURI = self.view.model.prefix_to_namespace(self.view.get_current(), prefix)
 			action = ["add_attrib", namespaceURI, name]
 			self.view.may_record(action)
