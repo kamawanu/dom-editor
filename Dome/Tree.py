@@ -20,6 +20,33 @@ class Beep(Exception):
 def get_text(node, line):
 	return string.split(node.nodeValue, '\n')[line]
 
+def jump_to_sibling(src, dst):
+	"Return an XPath which, given a context 'src' will move to sibling 'dst'."
+	name = dst.nodeName
+
+	# Search forwards for 'dst', counting how many matching nodes we pass.
+	count = 0
+	check = src
+	while check != dst:
+		check = check.nextSibling
+		if not check:
+			break
+		if check.nodeName == dst.nodeName:
+			count += 1
+	if check:
+		return 'following-sibling::%s[%d]/' % (name, count)
+
+	# Not found - search backwards for 'dst', counting how many matching nodes we pass.
+	count = 0
+	check = src
+	while check != dst:
+		check = check.previousSibling
+		if not check:
+			return			# Error!
+		if check.nodeName == dst.nodeName:
+			count += 1
+	return 'preceding-sibling::%s[%d]/' % (name, count)
+
 class Tree(GtkDrawingArea):
 	vmargin = 4
 
@@ -124,15 +151,76 @@ class Tree(GtkDrawingArea):
 			self.current_line = 0
 		self.force_redraw()
 	
+	def line_to_relative_path(self, line):
+		"Return an XPath which will move us from current_line to line."
+		src_node = self.line_to_node[self.current_line]
+		dst_node = self.line_to_node[line]
+
+		def path_to(self, node):
+			"Returns a path to the node in the form [display_root, ... , node]"
+			ps = [node]
+			while node != self.display_root:
+				node = node.parentNode
+				ps.insert(0, node)
+			return ps
+
+		src_parents = path_to(self, src_node)
+		dst_parents = path_to(self, dst_node)
+
+		# Trim off all the common path elements...
+		# Note that this may leave either path empty, if one node is an ancestor of the other.
+		while src_parents and dst_parents and src_parents[0] == dst_parents[0]:
+			del src_parents[0]
+			del dst_parents[0]
+
+		# Now, the initial context node is 'src_node'.
+		# Build the path from here...
+		path = ''
+
+		# We need to go up one level for each element left in src_parents, less one
+		# (so we end up as a child of the lowest common parent, on the src side).
+		# If src is an ancestor of dst then this does nothing.
+		# If dst is an ancestor of src then go up an extra level, because we don't jump
+		# across in the next step.
+		for p in range(0, len(src_parents) - 1):
+			path += '../'
+		if not dst_parents:
+			path += '../'
+
+		# We then jump across to the correct sibling and head back down the tree...
+		# If src is an ancestor of dst or the other way round we do nothing.
+		if src_parents and dst_parents:
+			path += jump_to_sibling(src_parents[0], dst_parents[0])
+			del dst_parents[0]
+
+		# dst_parents is now a list of nodes to visit to get to dst.
+		for node in dst_parents:
+			prev = 1
+			
+			p = node
+			while p.previousSibling:
+				p = p.previousSibling
+				if p.nodeName == node.nodeName:
+					prev += 1
+			
+			print "Move to", node, "pos", prev
+			path += 'child::' + node.nodeName + '[' + `prev` + ']/'
+
+		path = path[:-1]
+		print path
+		parser = XPathParser.XPathParser()
+		return parser.parseExpression(path)
+	
 	def button_press(self, widget, bev):
 		if bev.type != BUTTON_PRESS:
 			return
 		if bev.button == 1:
 			height = self.row_height
 			line = int((bev.y - self.vmargin) / height)
-			def action(self, cur, line = line):
-				"Move"
-				node = self.move_to(line)
+			path = self.line_to_relative_path(line)
+			def action(self, cur, path = path):
+				"Relative move"
+				self.do_search(self.line_to_node[self.current_line], path)
 			self.may_record(action)
 	
 	def move_to_node(self, node):
@@ -292,22 +380,25 @@ class Tree(GtkDrawingArea):
 		self.recording = None
 		self.window.update_title()
 	
+	def do_search(self, cur, path):
+		c = Context.Context(cur, [cur])
+		rt = path.select(c)
+		if len(rt) == 0:
+			raise Beep
+		node = rt[0]
+		for x in rt:
+			if self.node_to_line[x] > self.current_line:
+				node = x
+				break
+		self.move_to_node(node)
+
 	def user_do_search(self, pattern):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 	
 		def action(self, cur, path = path):
 			"Search"
-			c = Context.Context(cur, [cur])
-			rt = path.select(c)
-			if len(rt) == 0:
-				raise Beep
-			node = rt[0]
-			for x in rt:
-				if self.node_to_line[x] > self.current_line:
-					node = x
-					break
-			self.move_to_node(node)
+			self.do_search(cur, path)
 		
 		self.may_record(action)
 		self.last_search = action
