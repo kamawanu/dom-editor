@@ -26,7 +26,7 @@ def get_xslt_source(doc, dome_data):
 class Model:
 	def __init__(self, path, root_program = None, dome_data = None):
 		"If root_program is given, then no data is loaded (used for lock_and_copy)."
-		self.uri = 'Document'
+		self.uri = 'Prog.dome'
 
 		if dome_data:
 			from Ft.Xml.InputSource import InputSourceFactory

@@ -14,6 +14,8 @@ code = None
 from codecs import lookup
 utf8_encoder = lookup('UTF-8')[0]
 
+save_formats = ('a', 'b')
+
 class Window(rox.Window, saving.Saveable):
 	def __init__(self, path = None, data = None):
 		# 'data' is used when 'path' is a stylesheet...
@@ -115,6 +117,20 @@ class Window(rox.Window, saving.Saveable):
 		self.savebox = saving.SaveBox(self, path,
 					'application/x-dome', discard = discard)
 		toggle = g.CheckButton("Export XML")
+		def changed(toggle):
+			name = self.savebox.save_area.entry.get_text()
+			if name.endswith('.xml'):
+				name = name[:-4]
+			elif name.endswith('.dome'):
+				name = name[:-5]
+			if toggle.get_active():
+				name += '.xml'
+				self.savebox.set_type('text/xml')
+			else:
+				name += '.dome'
+				self.savebox.set_type('application/x-dome')
+			self.savebox.save_area.entry.set_text(name)
+		toggle.connect('toggled', changed)
 		toggle.show()
 		self.savebox.toggle_export_xml = toggle
 		self.savebox.vbox.pack_start(toggle)
