@@ -993,7 +993,6 @@ class View:
 			if ns is None:
 				post.append((str(name),
 					     str(attrs[(ns, name)].value)))
-		print "POST", post
 		self.suck(post_data = urllib.urlencode(post))
 		
 	def suck(self, post_data = None):
@@ -1027,7 +1026,8 @@ class View:
 
 		print "Sucking", uri
 
-		print "POSTING", post_data
+		if post_data is not None:
+			print "POSTING", post_data
 		stream = urllib.urlopen(uri, post_data)
 		headers = stream.info().headers
 		last_mod = None
