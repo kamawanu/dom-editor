@@ -9,7 +9,7 @@ from Ft.Xml.XPath import FT_EXT_NAMESPACE, Context
 from xml.dom.ext.reader import PyExpat
 from Ft.Xml.cDomlette import implementation
 
-import os, re, string, types
+import os, re, string, types, sys
 import urlparse
 import Html
 from StringIO import StringIO
@@ -919,7 +919,7 @@ class View:
 			restore.append(self.get_current())
 
 		if continuing == 'fail':
-			print "Error in block; exiting early"
+			print "Error in block; exiting early in program", block.get_program()
 			self.foreach_stack.pop()
 			return 0
 
@@ -1019,6 +1019,7 @@ class View:
 			"This is called while in do_one_step() - normal rules apply."
 			nodes, next = inp
 			print "[ %d to go ]" % len(nodes),
+			sys.stdout.flush()
 			if exit == 'fail':
 				print "Map: nodes remaining, but an error occurred..."
 				return self.default_done(exit)
