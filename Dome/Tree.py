@@ -1,11 +1,14 @@
 from gtk import *
 from GDK import *
 from _gtk import *
+import string
 from xml.dom import Node
+from xml.xpath import XPathParser
+from xml.xpath import Context
 
 from support import *
 
-from Editor import *
+from Editor import edit_node
 from Search import Search
 import Change
 
@@ -70,15 +73,7 @@ class Tree(GtkDrawingArea):
 		except KeyError:
 			return 0
 
-		try:
-			need_update = self.do_action(action)
-		except Beep:
-			gdk_beep()
-			return 1
-		
-		if self.recording != None:
-			self.recording.append(action)
-			print "Recorded:", action.__doc__
+		need_update = self.may_record(action)
 			
 		if need_update:
 			def cb(self = self, line = self.current_line):
@@ -97,6 +92,19 @@ class Tree(GtkDrawingArea):
 			self.move_to_node(new)
 			return 1
 		return 0
+	
+	def may_record(self, action):
+		"Perform, and possibly record, this action"
+		try:
+			need_update = self.do_action(action)
+		except Beep:
+			gdk_beep()
+			return 1
+		
+		if self.recording != None and action.__doc__:
+			self.recording.append(action)
+			print "Recorded:", action.__doc__
+		return need_update
 	
 	def tree_changed(self):
 		if not self.display_root.parentNode:
@@ -280,6 +288,22 @@ class Tree(GtkDrawingArea):
 		self.macro = self.recording
 		self.recording = None
 		self.window.update_title()
+	
+	def user_do_search(self, pattern):
+		p = XPathParser.XPathParser()	
+		path = p.parseExpression(pattern)
+	
+		def action(self, cur, path = path):
+			"Search"
+			c = Context.Context(self.display_root,
+						[self.display_root])
+			rt = path.select(c)
+			if len(rt) > 0:
+				return rt[0]
+			else:
+				raise Beep
+		
+		self.may_record(action)
 
 	# Motions
 	def move_up(self, node):
@@ -358,7 +382,6 @@ class Tree(GtkDrawingArea):
 		self.move_to_node(cur.nextSibling)
 
 	def search(self, node):
-		"Search"
 		Search(self)
 
 	# Changes
