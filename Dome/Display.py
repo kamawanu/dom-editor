@@ -126,7 +126,7 @@ class Display(GnomeCanvas):
 
 		if node == self.view.root:
 			self.update_nodes = {node: None}
-		elif not self.update_nodes.has_key(node):
+		elif node not in self.update_nodes:
 			# Note: we don't eliminate duplicates (parent and child) nodes
 			# here because it takes *ages*
 			self.update_nodes[node] = None
@@ -151,7 +151,7 @@ class Display(GnomeCanvas):
 		#print "Update...", self.update_nodes
 		set_busy(self)
 		try:
-			for node in self.update_nodes.keys():
+			for node in self.update_nodes:
 				root = self.view.root
 				if node is not root and self.view.has_ancestor(node, root):
 					# The root is OK - the change is inside...
@@ -164,8 +164,10 @@ class Display(GnomeCanvas):
 						print "(node missing)"
 						pass
 					else:
+						ntg = self.node_to_group
 						for i in group.children():
 							i.destroy()
+							if i in ntg: del ntg[i]
 						self.create_tree(node, group, cramped = group.cramped)
 						self.auto_highlight(node, rec = 1)
 						self.child_group_resized(node)
@@ -195,10 +197,10 @@ class Display(GnomeCanvas):
 		"The group for this node has changed size. Work up the tree making room for "
 		"it (and put it in the right place)."
 		kids = []
-		if node == self.view.root or not self.node_to_group.has_key(node):
+		if node == self.view.root or node not in self.node_to_group:
 			return
 		node = node.parentNode
-		if not self.node_to_group.has_key(node):
+		if node not in self.node_to_group:
 			return
 		for n in node.childNodes:
 			try:
@@ -216,8 +218,7 @@ class Display(GnomeCanvas):
 		def do(node):
 			"After creating the tree, everything is highlighted..."
 			try:
-				self.highlight(self.node_to_group[node],
-					cattr == None and a.has_key(node))
+				self.highlight(self.node_to_group[node], cattr == None and node in a)
 			except KeyError:
 				return
 			if rec:
@@ -285,14 +286,14 @@ class Display(GnomeCanvas):
 				ay = 0
 				if not cramped:
 					l = 0
-					for key in node.attributes.keys():
+					for key in node.attributes:
 						a = node.attributes[key]
 						value = a.value or ''
 						l += len(a.name) + len(value)
 					acramped = l > 80
 				else:
 					acramped = cramped
-				for key in node.attributes.keys():
+				for key in node.attributes:
 					a = node.attributes[key]
 					g = add_group(group, x = ax, y = ay)
 					self.create_attribs(a, g, cramped, node)
@@ -468,7 +469,7 @@ class Display(GnomeCanvas):
 		for n in nodes:
 			try:
 				group = self.node_to_group[n]
-				group.rect.set(outline_color = (marked.has_key(n) and 'orange') or None)
+				group.rect.set(outline_color = (n in marked and 'orange') or None)
 			except KeyError:
 				pass 	# Will regenerate later
 
@@ -487,7 +488,7 @@ class Display(GnomeCanvas):
 				fast_set(group.text._o, {'fill_color': 'darkgreen'})
 			else:
 				fast_set(group.text._o, {'fill_color': 'red'})
-		if self.view.marked.has_key(node):
+		if node in self.view.marked:
 			fast_set(group.rect._o, {'outline_color': 'orange'})
 		else:
 			fast_set(group.rect._o, {'outline_color': None})
