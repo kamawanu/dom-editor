@@ -82,15 +82,11 @@ class View:
 		self.set_rec(self.exec_point)
 		self.set_exec(None)
 
-	def toggle_record(self):
-		"Start or stop recording"
+	def stop_recording(self):
 		if self.rec_point:
 			self.set_rec(None)
 		else:
-			# XXX
-			node = self.current_nodes[0]
-			self.recording_where = self.model.macro_list.record_new(node.nodeName).start
-			self.recording_exit = 'next'
+			report_error("Not recording!")
 
 	def may_record(self, action):
 		"Perform and, possibly, record this action"
@@ -422,13 +418,14 @@ class View:
 	def redo(self):
 		self.model.redo(self.root)
 
-	def play(self, macro_name):
-		print "Play", macro_name
-		self.exec_state = Exec.exec_state	# XXX
-		self.exec_state.play(macro_name)
+	def play(self, prog):
+		print "Play", prog.name
+		#self.exec_state = Exec.exec_state	# XXX
+		#self.exec_state.play(macro_name)
 
-	def map(self, macro_name):
-		print "Map", macro_name
+	def map(self, prog):
+		print "Map", prog.name
+		return
 
 		nodes = self.current_nodes[:]
 		inp = [nodes, None]

@@ -58,16 +58,11 @@ class Window(GtkWindow):
 		if code:
 			self.model.load_program(code)
 		view = View(self.model)
-		list = List(view)
-		hbox.pack_start(list, FALSE, TRUE, 0)
-		list.show()
+		self.list = List(view)
+		hbox.pack_start(self.list, FALSE, TRUE, 0)
+		self.list.show()
 		
 		self.uri = "Document"
-
-		if path:
-			if path != '-':
-				self.uri = path
-			self.load_file(path)
 
 		swin = GtkScrolledWindow()
 		hbox.pack_start(swin, TRUE, TRUE, 0)
@@ -87,6 +82,13 @@ class Window(GtkWindow):
 		self.gui_view.grab_focus()
 		self.update_title()
 		self.connect('destroy', self.destroyed)
+		self.show()
+		gdk_flush()
+
+		if path:
+			if path != '-':
+				self.uri = path
+			self.load_file(path)
 	
 	def destroyed(self, widget):
 		path = choices.save('Dome', 'RootProgram')
@@ -179,8 +181,8 @@ class Window(GtkWindow):
 
 	tools = [
 		('Save', 'Save this macro'),
-		('Record', 'Start recording a new macro'),
-		('Extend', 'Record extra steps at the current point'),
+		('New', 'Create a new program'),
+		('Record', 'Start recording here'),
 		('Stop', 'Stop a running macro'),
 		('Play', 'Run this macro from the start'),
 		('Next', 'Run until the next step in this macro'),
@@ -205,7 +207,10 @@ class Window(GtkWindow):
 		self.view.do_one_step()
 	
 	def tool_Record(self):
-		self.gui_view.view.toggle_record()
+		if self.view.rec_point:
+			self.view.stop_recording()
+		else:
+			self.view.record_at_point()
 	
-	def tool_Extend(self):
-		self.gui_view.view.record_at_point()
+	def tool_New(self):
+		self.list.new_prog()

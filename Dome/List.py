@@ -70,6 +70,7 @@ class List(GnomeCanvas):
 		def create(name, self = self):
 			new = Program(name)
 			self.prog.add_sub(new)
+			self.switch_to(new)
 		GetArg('New program', create, ['Program name:'])
 	
 	def update_points(self):
@@ -187,9 +188,6 @@ class List(GnomeCanvas):
 
 			y += height + 12
 
-		g = self.subs.add('group', x = 0, y = y)
-		y += self.create_prog('<new>', g, 'white') + 12
-
 		self.op_to_group = {}
 		self.nodes = self.root().add('group', x = 0, y = y + 32)
 		self.create_node(self.prog.start, self.nodes)
@@ -223,17 +221,32 @@ class List(GnomeCanvas):
 			rect.set(width_pixels = 1)
 		elif event.type == BUTTON_PRESS:
 			if event.button == 1:
+				if event.state & SHIFT_MASK:
+					self.view.map(sub)
+				else:
+					self.view.play(sub)
+			elif event.button == 2:
 				self.switch_to(sub)
 			elif event.button == 3:
-				def del_prog(prog = sub):
-					prog.parent.remove_sub(prog)
+				def del_prog(self = self, sub = sub):
+					parent = sub.parent
+					sub.parent.remove_sub(sub)
+					self.switch_to(parent)
 				def rename_prog(prog = sub):
 					def rename(name, prog = prog):
 						prog.rename(name)
 					GetArg('Rename program', rename, ['Program name:'])
+				view = self.view
+				if sub.parent:
+					dp = del_prog
+				else:
+					dp = None
 				items = [
-					('Delete', del_prog),
+					('Play', lambda view = view, s = sub: view.play(s)),
+					('Map', lambda view = view, s = sub: view.map(s)),
+					('View', lambda self = self, s = sub: self.switch_to(s)),
 					('Rename', rename_prog),
+					('Delete', dp),
 					]
 				menu = Menu(items)
 				menu.popup(event.button, event.time)
@@ -290,17 +303,44 @@ class List(GnomeCanvas):
 		self.op_to_group[op] = group
 	
 	def op_event(self, item, event, op):
-		if event.type == BUTTON_PRESS and event.button == 1:
-			print op
+		if event.type == BUTTON_PRESS:
+			if event.button == 1:
+				print op
+			else:
+				self.show_op_menu(event, op)
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')
 		elif event.type == LEAVE_NOTIFY:
 			item.set(fill_color = 'blue')
 
+	def show_op_menu(self, event, op):
+		del_node = None
+		del_chain = None
+		
+		def yank_chain(self = self, op = op):
+			self.clipboard = op.to_xml()
+		def swap_nf(self = self, op = op):
+			op.swap_nf()
+		if op.prev:
+			def del_chain(self = self, op = op, yc = yank_chain):
+				self.clipboard = op.del_chain()
+			if not (op.next and op.fail):
+				def del_node(self = self, op = op):
+					self.clipboard = op.del_node()
+				
+		items = [('Delete chain', del_chain),
+			('Yank chain', yank_chain),
+			('Remove node', del_node),
+			('Swap next/fail', swap_nf)]
+		Menu(items).popup(event.button, event.time)
+
 	def line_event(self, item, event, op, exit):
-		if event.type == BUTTON_PRESS and event.button == 1:
-			print "Clicked exit %s of %s" % (exit, op)
-			self.view.set_exec((op, exit))
+		if event.type == BUTTON_PRESS:
+			if event.button == 1:
+				print "Clicked exit %s of %s" % (exit, op)
+				self.view.set_exec((op, exit))
+			elif event.button == 2:
+				print "Paste", self.clipboard
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')
 		elif event.type == LEAVE_NOTIFY:

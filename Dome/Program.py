@@ -142,10 +142,17 @@ class Op:
 	def changed(self):
 		self.program.changed(self)
 	
+	def swap_nf(self):
+		(self.next, self.fail) = (self.fail, self.next)
+		self.changed()
+	
 	def link_to(self, child, exit):
 		# Create a link from this exit to this child Op
 		if getattr(self, exit) != None:
 			raise Exception('%s already has a %s child op!' % (self, exit))
+		if child.prev:
+			raise Exception('%s is already in a chain!' % child)
+		child.prev = self
 		setattr(self, exit, child)
 		self.changed()
 	
@@ -188,13 +195,17 @@ class Op:
 			exit = 'next'
 		else:
 			exit = 'fail'
-		prev.link_to(next, exit)
+		prev.unlink(self)
+		if next:
+			prev.link_to(next, exit)
 
-		self.action = None
 		self.prev = None
 		self.next = None
+		xml = self.to_xml()
+		self.action = None
 		self.fail = None
 		self.program = None
+		return xml
 	
 	def del_chain(self):
 		xml = self.to_xml()
