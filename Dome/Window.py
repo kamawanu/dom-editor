@@ -17,21 +17,11 @@ from support import *
 from rox.SaveBox import SaveBox
 from rox.Toolbar import Toolbar
 
-print "a"
-from Model import Model
-print "b"
-from Program import Program, load_dome_program
-print "c"
-
 code = None
 
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
-		
-		self.model = Model('Document')
-		self.gui_view = None
-		self.state = ""
 		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
 				      gdk_screen_height() * 2 / 3)
@@ -42,6 +32,12 @@ class Window(GtkWindow):
 		self.show()
 		gdk_flush()
 
+		import Model
+		self.model = Model.Model('Document')
+		self.gui_view = None
+		self.state = ""
+		
+		from Program import Program, load_dome_program
 		from GUIView import GUIView
 		from List import List
 
