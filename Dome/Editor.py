@@ -45,10 +45,11 @@ class Editor(GtkWindow):
 
 		self.show_all(self.vbox)
 	
-	def do_it(self, action):
+	def do_it(self, data):
 		if self.where:
-			self.tree.may_record(["add_node", self.where])
-		self.tree.may_record(action)
+			self.tree.may_record(['add_node', self.where, data])
+		else:
+			self.tree.may_record(['change_node', data])
 		self.destroy()
 
 class DataEditor(Editor):
@@ -67,7 +68,7 @@ class DataEditor(Editor):
 		self.text.connect('key-press-event', self.key)
 	
 	def ok(self, b = None):
-		self.do_it(["change_data", self.text.get_chars(0, -1)])
+		self.do_it(self.text.get_chars(0, -1))
 	
 	def key(self, text, kev):
 		key = kev.keyval
@@ -94,7 +95,7 @@ class TagEditor(Editor):
 		self.show_all(self.vbox)
 	
 	def ok(self, widget):
-		self.do_it(["set_element_name", self.entry.get_text()])
+		self.do_it(self.entry.get_text())
 
 	def key(self, text, kev):
 		key = kev.keyval

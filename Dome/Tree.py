@@ -8,19 +8,12 @@ from xml.xpath import Context
 import types
 
 from support import *
-from loader import make_xds_loader
 
 from Editor import edit_node
 from Search import Search
 import Change
 from SaveBox import SaveBox
-
-# Macros:
-
-# A macro is a tree: (ACTION, MACRO-IF-OK, MACRO-IF-FAIL)
-# None means that recording should start here...
-
-# Graphical tree widget
+from Macro import Macro
 
 class Beep(Exception):
 	pass
@@ -90,11 +83,8 @@ class Tree(GtkDrawingArea):
 		self.left_hist = []
 		self.connect('realize', self.realize)
 
-		self.macro = None
-		self.macro_point = None		# Current execution/recording point in macro
-		self.recording = FALSE
-
-		make_xds_loader(self, self)
+		self.macro = Macro()
+		self.recording_macro = None
 
 	def key_press(self, widget, kev):
 		try:
@@ -114,23 +104,20 @@ class Tree(GtkDrawingArea):
 		key = kev.keyval
 
 		if key == q:
-			self.create_failure_case = 0
-			if self.recording:
-				self.recording = FALSE
-				self.window.update_title()
+			if self.recording_macro:
+				self.macro = self.recording_macro
+				self.recording_macro = None
 			else:
-				self.recording = TRUE
-				self.macro = None
-				self.macro_point = None
-				self.window.update_title()
+				self.recording_macro = self.macro
+				self.last_op_failed = 0
+			
+			self.window.update_title()
 			return 1
 		elif key == Q:
-			if self.recording:
-				report_error("Can't save while recording!")
-			elif hasattr(self, 'macro'):
-				MacroSaver(self.macro)
+			if self.recording_macro:
+				self.recording_macro.show_all()
 			else:
-				report_error("No macro to save!")
+				self.macro.show_all()
 			return 1
 
 		if key == F3 or key == Return:
@@ -170,7 +157,7 @@ class Tree(GtkDrawingArea):
 	
 	def may_record(self, action):
 		"Perform, and possibly record, this action"
-		rec = self.recording
+		rec = self.recording_macro
 
 		try:
 			need_update = self.do_action(action)
@@ -180,15 +167,8 @@ class Tree(GtkDrawingArea):
 		
 		# Only record if we were recording when this action started
 		if rec:
-			if not self.macro_point:
-				self.macro = [action, None, None]
-				self.macro_point = self.macro
-			else:
-				op = self.macro_point
-				self.macro_point = [action, None, None]
-				op[1 + self.create_failure_case] = self.macro_point
-				self.create_failure_case = 0
-			print "Recorded:", self.macro_point
+			self.recording_macro.record(action, self.last_op_failed)
+			self.last_op_failed = 0
 		return need_update
 	
 	def tree_changed(self):
@@ -575,7 +555,10 @@ class Tree(GtkDrawingArea):
 		if self.clipboard == None:
 			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
-		Change.insert_before(node, new)
+		try:
+			Change.insert_before(node, new)
+		except:
+			raise Beep
 		return new
 
 	def put_after(self, node):
@@ -583,7 +566,10 @@ class Tree(GtkDrawingArea):
 		if self.clipboard == None:
 			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
-		Change.insert_after(node, new)
+		try:
+			Change.insert_after(node, new)
+		except:
+			raise Beep
 		return new
 
 	def put_as_child(self, node):
@@ -591,7 +577,10 @@ class Tree(GtkDrawingArea):
 		if self.clipboard == None:
 			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
-		Change.insert(node, new, index = 0)
+		try:
+			Change.insert(node, new, index = 0)
+		except:
+			raise Beep
 		return new
 
 	def edit_node(self):
@@ -620,58 +609,82 @@ class Tree(GtkDrawingArea):
 		Change.delete(cur)
 		return new
 	
-	def playback(self, node):
-		"Playback"
-		up = 0
-		point = self.macro
-		while point:
-			try:
-				up = up | self.do_action(point[0])
-			except Beep:
-				if point[2]:
-					point = point[2]
-				else:
-					print "Failed op:", point[0]
-					c = get_choice("Macro execution failed - record an alternative?",
-							"Playback",
-							("Yes", "No"))
-					if c == 0:
-						self.recording = TRUE
-						self.macro_point = point
-						self.create_failure_case = 1
-						self.window.update_title()
-					point = None
-					break
-			else:
-				point = point[1]
+	def playstep(self, node):
+		up = self.step()
 		if up:
 			def cb(self = self, line = self.current_line):
 				self.move_to(line)
 				return 0
 			idle_add(cb)
 			self.force_redraw()
-
-	def change_data(self, node, new_data):
-		Change.set_data(node, new_data)
-		return node
-
-	def set_element_name(self, node, new_name):
-		Change.set_name(node, new_name)
-		return node
 	
-	def add_node(self, node, where):
+	def step(self):
+		if self.recording_macro:
+			raise Beep
+		if not self.macro.more_moves:
+			c = get_choice("No more steps... create a new operation?",
+					"Playback",
+					("Yes", "No"))
+			if c == 0:
+				self.recording_macro = self.macro
+				self.window.update_title()
+			return 0
+
+		action = self.macro.get_next_action()
+
+		up = 0
+		try:
+			up = self.do_action(action)
+		except Beep:
+			self.macro.move_fail()
+			self.last_op_failed = 1
+		else:
+			self.macro.move_next()
+			self.last_op_failed = 0
+		return up
+
+	def playback(self, node):
+		"Playback"
+		self.macro.rewind()
+		up = 0
+		while self.macro.more_moves:
+			up = up | self.step()
+			if self.last_op_failed and not self.macro.more_moves:
+				self.step()
+				break
+		if up:
+			def cb(self = self, line = self.current_line):
+				self.move_to(line)
+				return 0
+			idle_add(cb)
+			self.force_redraw()
+	
+	def Start(self, node):
+		pass
+
+	def change_node(self, node, new_data):
+		if node.nodeType == Node.TEXT_NODE:
+			Change.set_data(node, new_data)
+		else:
+			Change.set_name(node, new_data)
+		return node
+
+	def add_node(self, node, where, data):
 		cur = self.line_to_node[self.current_line]
 		if where[1] == 'e':
-			new = self.new_element()
+			new = self.doc.createElement(data)
 		else:
-			new = self.doc.createTextNode('')
+			new = self.doc.createTextNode(data)
 		
-		if where[0] == 'i':
-			Change.insert_before(cur, new)
-		elif where[0] == 'a':
-			Change.insert_after(cur, new)
-		else:
-			Change.insert(cur, new)
+		try:
+			if where[0] == 'i':
+				Change.insert_before(cur, new)
+			elif where[0] == 'a':
+				Change.insert_after(cur, new)
+			else:
+				Change.insert(cur, new)
+		except:
+			raise Beep
 			
 		return new
 
@@ -729,39 +742,9 @@ class Tree(GtkDrawingArea):
 		X	: ["delete_prev_sib"],
 
 		at	: ["playback"],
+		semicolon : ["playstep"],
 
 		# Undo/redo
 		u	: ["undo"],
 		r	: ["redo"]
 	}
-	
-	def load_file(self, file):
-		f = open(file, 'r')
-		data = f.read()
-		f.close()
-		self.load_data(data)
-
-	def load_data(self, data):
-		# The data is actually a macro file...
-		self.macro = eval(data)
-		self.do_action(["playback"])
-
-class MacroSaver(SaveBox):
-	def __init__(self, macro):
-		self.uri = 'Macro'
-		SaveBox.__init__(self, self, 'text', 'plain')
-		self.macro = macro
-		self.show_all()
-	
-	def get_data(self):
-		return `self.macro`
-	
-	def save_as(self, path):
-		return send_to_file(self.get_data(), path)
-
-	def send_raw(self, selection_data):
-		selection_data.set(selection_data.target, 8, self.get_data())
-	
-	def set_uri(self, uri):
-		pass
-		

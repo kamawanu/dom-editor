@@ -75,7 +75,7 @@ class Window(GtkWindow):
 	
 	def update_title(self):
 		title = self.uri
-		if self.tree.recording:
+		if self.tree.recording_macro:
 			title += ' (recording)'
 		self.set_title(title)
 	
