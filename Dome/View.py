@@ -906,7 +906,7 @@ class View:
 	def start_block_iteration(self, block, continuing = None):
 		"True if we are going to run the block, False to exit the loop"
 		"Continuing is 'next' or 'fail' if we reached the end of the block."
-		print "Start interation"
+		#print "Start interation"
 		if not self.foreach_stack:
 			raise Exception("Reached the end of a block we never entered!")
 		stack_block, nodes_list, restore = self.foreach_stack[-1]
@@ -925,7 +925,8 @@ class View:
 
 		if not nodes_list:
 			self.foreach_stack.pop()
-			self.move_to(restore)
+			if block.enter:
+				self.move_to(restore)
 			return 0	# Nothing left to do
 		nodes = nodes_list[0]
 		del nodes_list[0]
