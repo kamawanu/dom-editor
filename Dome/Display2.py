@@ -76,34 +76,41 @@ def calc_node(display, node, pos):
 	bbox = (x, y, text_x + width, y + height)
 	return bbox, draw_fn
 
-class Display(g.EventBox):
+class Display(g.HBox):
 	visible = 1		# Always visible
 
 	def __init__(self, window, view):
-		g.EventBox.__init__(self)
-		self.set_app_paintable(True)
-		self.set_double_buffered(False)
+		g.HBox.__init__(self, False, 0)
+
+		self.surface = g.EventBox()
+		self.pack_start(self.surface, True, True, 0)
+		self.surface.show()
+		self.surface.set_app_paintable(True)
+		self.surface.set_double_buffered(False)
 		self.update_timeout = 0
+
+		self.scroll_adj = g.Adjustment(lower = 0, upper = 100, step_incr = 1)
+		self.scroll_adj.connect('value-changed', self.scroll_to)
+		scale = g.VScale(self.scroll_adj)
+		scale.unset_flags(g.CAN_FOCUS)
+		scale.set_draw_value(False)
+		self.pack_start(scale, False, True, 0)
 		
 		self.view = None
 		self.parent_window = window
 		self.pm = None
 
-		s = self.get_style().copy()
+		s = self.surface.get_style().copy()
 		s.bg[g.STATE_NORMAL] = g.gdk.color_parse('old lace')
 		s.text[g.STATE_NORMAL] = g.gdk.color_parse('blue')
 		s.text[g.STATE_PRELIGHT] = g.gdk.color_parse('orange')	# Mark
 		s.text[g.STATE_INSENSITIVE] = g.gdk.color_parse('dark green')# Comment
 		s.fg[g.STATE_PRELIGHT] = g.gdk.color_parse('red')	# Hidden
-		self.set_style(s)
+		self.surface.set_style(s)
 
 		self.connect('destroy', self.destroyed)
-		self.connect('button-press-event', self.bg_event)
-		self.connect('button-release-event', self.bg_event)
-
-		#self.set_view(view)
-
-		#rox.app_options.add_notify(self.options_changed)
+		self.surface.connect('button-press-event', self.bg_event)
+		self.surface.connect('button-release-event', self.bg_event)
 
 		# Display is relative to this node, which is the highest displayed node (possibly
 		# off the top of the screen)
@@ -111,19 +118,16 @@ class Display(g.EventBox):
 		self.ref_pos = (0, 0)
 
 		self.last_alloc = None
-		self.connect('size-allocate', lambda w, a: self.size_allocate(a))
-		self.connect('size-request', lambda w, r: self.size_request(r))
-		self.connect('expose-event', lambda w, e: 1)
+		self.surface.connect('size-allocate', lambda w, a: self.size_allocate(a))
+		self.surface.connect('size-request', lambda w, r: self.size_request(r))
+		self.surface.connect('expose-event', lambda w, e: 1)
 
 		self.pan_timeout = None
 		self.h_limits = (0, 0)
 		self.set_view(view)
-
-		rox.app_options.add_notify(self.options_changed)
 	
 	def destroyed(self, widget):
 		self.view.remove_display(self)
-		rox.app_options.remove_notify(self.options_changed)
 	
 	def size_allocate(self, alloc):
 		new = (alloc.width, alloc.height)
@@ -132,8 +136,8 @@ class Display(g.EventBox):
 		self.last_alloc = new
 		assert self.window
 		#print "Alloc", alloc.width, alloc.height
-		pm = g.gdk.Pixmap(self.window, alloc.width, alloc.height, -1)
-		self.window.set_back_pixmap(pm, False)
+		pm = g.gdk.Pixmap(self.surface.window, alloc.width, alloc.height, -1)
+		self.surface.window.set_back_pixmap(pm, False)
 		self.pm = pm
 		self.update()
 
@@ -143,7 +147,7 @@ class Display(g.EventBox):
 
 		self.update_timeout = 0
 
-		self.pm.draw_rectangle(self.style.bg_gc[g.STATE_NORMAL], True,
+		self.pm.draw_rectangle(self.surface.style.bg_gc[g.STATE_NORMAL], True,
 				  0, 0, self.last_alloc[0], self.last_alloc[1])
 
 		self.drawn = {}	# xmlNode -> ((x1, y1, y2, y2), attrib_parent)
@@ -185,9 +189,33 @@ class Display(g.EventBox):
 			self.h_limits = (min(self.h_limits[0], bbox[0]),
 					 max(self.h_limits[1], bbox[2]))
 
-		self.window.clear()
+		self.surface.window.clear()
+
+		# Update adjustment
+		r = self.ref_node
+		n = 0
+		pos = 0
+		for x in self.quick_walk():
+			if x is r:
+				pos = n
+			n += 1
+		self.scroll_adj.value = float(pos)
+		self.scroll_adj.upper = float(n)
 
 		return 0
+	
+	def quick_walk(self):
+		"Return all the nodes in the document, in document order. Not attributes."
+		node = self.view.root
+		while node:
+			yield node
+			if node.childNodes:
+				node = node.childNodes[0]
+			else:
+				while not node.nextSibling:
+					node = node.parentNode
+					if not node: return
+				node = node.nextSibling
 	
 	def walk_tree(self, node, pos):
 		"""Yield this (node, bbox), and all following ones in document order."""
@@ -369,3 +397,19 @@ class Display(g.EventBox):
 		if default_font.has_changed:
 			#self.modify_font(pango.FontDescription(default_font.value))
 			self.update_all()
+	
+	def scroll_to(self, adj):
+		n = int(adj.value)
+		for node in self.quick_walk():
+			n -= 1
+			if n < 0:
+				break
+		if self.ref_node == node:
+			return
+		self.ref_node = node
+		x = 0
+		while node.parentNode:
+			x += 16
+			node = node.parentNode
+		self.ref_pos = (x, self.ref_pos[1])
+		self.update_all()
