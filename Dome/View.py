@@ -257,13 +257,20 @@ class View:
 		if rec:
 			print "RECORD:", rec, action
 			(op, old_exit) = rec
-			new_op = Op(action)
+			if action == ['enter']:
+				new_op = Block(op.parent)
+				new_op.toggle_enter()
+			else:
+				new_op = Op(action)
 			op.link_to(new_op, old_exit)
 			self.set_exec(rec)
 			try:
 				self.do_one_step()
 			except InProgress:
-				self.set_rec((new_op, 'next'))
+				if isinstance(new_op, Block):
+					self.set_rec((new_op.start, 'next'))
+				else:
+					self.set_rec((new_op, 'next'))
 				return
 			play_op, exit = self.exec_point
 			# (do_one_step may have stopped recording)
