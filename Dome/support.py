@@ -58,10 +58,11 @@ def import_with_ns(doc, node):
 			continue
 		print "Set namespace:", ns, "->", nss[ns]
 		uri = nss[ns]
-		if ns is None:
-			ns = 'xmlns'
-		else:
-			ns = 'xmlns:' + ns
-		node.setAttributeNS(XMLNS_NAMESPACE, ns, uri)
+		if ns or uri:
+			if ns is None:
+				ns = 'xmlns'
+			else:
+				ns = 'xmlns:' + ns
+			node.setAttributeNS(XMLNS_NAMESPACE, ns, uri)
 	print "Dome"
 	return node

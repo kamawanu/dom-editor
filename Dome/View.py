@@ -18,6 +18,7 @@ from Beep import Beep
 
 import time
 import urllib
+import traceback
 
 from constants import *
 
@@ -405,7 +406,7 @@ class View:
 
 		(old_model, old_node) = self.chroots.pop()
 
-		copy = old_model.doc.importNode(self.model.get_root(), deep = 1)
+		copy = old_model.doc.importNode(self.model.get_root(), 1)
 		self.set_model(old_model)
 		old_model.unlock(old_node)
 		old_model.replace_node(old_node, copy)
@@ -435,6 +436,7 @@ class View:
 		except:
 			if not self.op_in_progress:
 				raise
+			traceback.print_exc()
 			exit = 'fail'
 			new = None
 
@@ -535,9 +537,13 @@ class View:
 		if not ns:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
-		print "ns was", ns
+		print "ns is", ns
 		c = Context.Context(self.get_current(), processorNss = ns)
-		nodes = XPath.Evaluate(self.macro_pattern(pattern), context = c)
+		from Ft.Xml.XPath import XPathParser
+		code = XPathParser.new().parse(self.macro_pattern(pattern))
+		print code
+		nodes = code.evaluate(c)
+		#nodes = XPath.Evaluate(self.macro_pattern(pattern), contextNode = self.get_current())
 		print "Found", nodes
 		self.move_to(nodes)
 
@@ -694,14 +700,14 @@ class View:
 		else:
 			self.clipboard = self.model.doc.createDocumentFragment()
 			for n in self.current_nodes:
-				c = n.cloneNode(deep = deep)
+				c = n.cloneNode(deep)
 				#print n, "->", c
 				self.clipboard.appendChild(c)
 		
 		#print "Clip now", self.clipboard
 	
 	def shallow_yank(self):
-		self.yank(deep = 0)
+		self.yank(0)
 	
 	def delete_shallow(self):
 		nodes = self.current_nodes[:]
@@ -1045,8 +1051,12 @@ class View:
 		reader = PyExpat.Reader()
 		print "Parsing..."
 
+		from Ft.Xml.InputSource import InputSourceFactory
+		from Ft.Xml.cDomlette import nonvalParse
+		isrc = InputSourceFactory()
+
 		try:
-			root = reader.fromStream(StringIO(data))
+			root = nonvalParse(isrc.fromString(data, uri))
 			ext.StripHtml(root)
 		except:
 			print "parsing failed"
@@ -1054,8 +1064,10 @@ class View:
 			print data
 			support.report_exception()
 			raise Beep
+		else:
+			print "Parse OK"
 		
-		new = node.ownerDocument.importNode(root.documentElement, deep = 1)
+		new = node.ownerDocument.importNode(root.documentElement, 1)
 		new.setAttributeNS(None, 'uri', uri)
 
 		if last_mod:
@@ -1125,7 +1137,7 @@ class View:
 		node = self.get_current()
 		if self.clipboard == None:
 			raise Beep
-		new = self.clipboard.cloneNode(deep = 1)
+		new = self.clipboard.cloneNode(1)
 		try:
 			self.model.insert_before(node, new)
 		except:
@@ -1135,7 +1147,7 @@ class View:
 		node = self.get_current()
 		if self.clipboard == None:
 			raise Beep
-		new = self.clipboard.cloneNode(deep = 1)
+		new = self.clipboard.cloneNode(1)
 		self.model.insert_after(node, new)
 	
 	def put_replace(self):
@@ -1153,9 +1165,9 @@ class View:
 		if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
 			if len(self.clipboard.childNodes) != 1:
 				raise Beep
-			new = self.clipboard.childNodes[0].cloneNode(deep = 1)
+			new = self.clipboard.childNodes[0].cloneNode(1)
 		else:
-			new = self.clipboard.cloneNode(deep = 1)
+			new = self.clipboard.cloneNode(1)
 		if new.nodeType != Node.ELEMENT_NODE:
 			raise Beep
 		self.move_to([])
@@ -1177,7 +1189,7 @@ class View:
 		node = self.get_current()
 		if self.clipboard == None:
 			raise Beep
-		new = self.clipboard.cloneNode(deep = 1)
+		new = self.clipboard.cloneNode(1)
 		if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
 			to = []
 			for n in new.childNodes:
@@ -1272,7 +1284,9 @@ class View:
 		a = self.current_attrib
 		if not a:
 			raise Beep()
-		self.model.set_attrib(self.get_current(), a.namespaceURI, a.localName or 'xmlns', value)
+		namespace, name = (a.namespaceURI, a.localName)
+		self.model.set_attrib(self.get_current(), namespace, name or 'xmlns', value)
+		self.move_to(self.get_current(), self.get_current().getAttributeNodeNS(namespace, name))
 	
 	def add_attrib(self, namespace, name, value = ''):
 		if name == 'xmlns':
@@ -1287,7 +1301,7 @@ class View:
 
 		def done(root, md5, self = self):
 			print "Loaded!"
-			new = self.root.ownerDocument.importNode(root.documentElement, deep = 1)
+			new = self.root.ownerDocument.importNode(root.documentElement, 1)
 
 			if self.root:
 				self.model.unlock(self.root)
@@ -1306,7 +1320,7 @@ class View:
 		self.load_node(new_doc.documentElement)
 
 	def load_node(self, root):
-		new = self.model.doc.importNode(root, deep = 1)
+		new = self.model.doc.importNode(root, 1)
 		
 		self.model.strip_space(new)
 
@@ -1423,7 +1437,7 @@ class View:
 		new_doc = reader.fromString(reply)
 		print new_doc
 
-		new = self.model.doc.importNode(new_doc.documentElement, deep = 1)
+		new = self.model.doc.importNode(new_doc.documentElement, 1)
 		
 		self.model.strip_space(new)
 
@@ -1459,7 +1473,7 @@ class View:
 		node = doc.createElementNS(DOME_NS, 'dome-data')
 		doc.documentElement.appendChild(node)
 
-		data = doc.importNode(self.model.doc.documentElement, deep = 1)
+		data = doc.importNode(self.model.doc.documentElement, 1)
 		node.appendChild(data)
 
 		return doc
