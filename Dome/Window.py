@@ -20,9 +20,12 @@ class Window(GtkWindow):
 	def __init__(self, path = None, data = None):
 		# 'data' is used when 'path' is a stylesheet...
 		GtkWindow.__init__(self)
+
+		# Make it square, to cope with Xinerama
+		size = min(gdk_screen_width(), gdk_screen_height())
+		size = size * 3 / 4
 		
-		self.set_default_size(gdk_screen_width() * 2 / 3,
-				      gdk_screen_height() * 2 / 3)
+		self.set_default_size(size, size)
 		self.set_position(WIN_POS_CENTER)
 		self.savebox = None
 
