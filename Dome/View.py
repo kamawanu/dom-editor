@@ -306,7 +306,7 @@ class View:
 			#	return 0
 			exit = 'fail'
 		except:
-			support.report_exception()
+			rox.report_exception()
 			raise
 	
 	def add_display(self, display):
@@ -1327,7 +1327,7 @@ class View:
 			print "parsing failed!"
 			print "Data was:"
 			print data
-			#support.report_exception()
+			#rox.report_exception()
 			raise Beep
 		else:
 			print "parse OK...",
@@ -1562,7 +1562,7 @@ class View:
 			print "parsing failed!"
 			print "Data was:"
 			print data
-			#support.report_exception()
+			#rox.report_exception()
 			raise Beep
 		else:
 			print "parse OK...",

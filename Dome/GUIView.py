@@ -1,7 +1,7 @@
 from xml.dom import Node
 #from loader import make_xds_loader
 
-from rox import report_exception, g, TRUE, FALSE
+from rox import g, TRUE, FALSE
 keysyms = g.keysyms
 
 from View import View

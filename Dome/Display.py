@@ -138,9 +138,16 @@ class Display(canvas.Canvas):
 						print "(node missing)"
 						pass
 					else:
-						for i in group.children():
-							i.destroy()
-						self.create_tree(node, group, cramped = group.cramped)
+						# Can't delete all children, so create a new group
+						# instead.
+						parent = group.get_property('parent')
+						x = group.get_property('x')
+						y = group.get_property('y')
+						g = parent.add(canvas.CanvasGroup, x = x, y = y)
+						group.destroy()
+						self.node_to_group[node] = g
+						
+						self.create_tree(node, g, cramped = group.cramped)
 						self.auto_highlight(node, rec = 1)
 						self.child_group_resized(node)
 				else:
