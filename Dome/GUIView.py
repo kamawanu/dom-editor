@@ -210,6 +210,9 @@ class GUIView(Display):
 	def hide_editbox(self):
 		if self.cursor_node:
 			group = self.node_to_group[self.cursor_node]
+			if self.cursor_attrib:
+				self.cursor_hidden_text.set(text = '%s=%s' %
+					(self.cursor_attrib.name, self.cursor_attrib.value))
 			self.cursor_hidden_text.show()
 			self.auto_hightlight(self.cursor_node)
 			self.cursor_node = None
@@ -232,7 +235,11 @@ class GUIView(Display):
 			group = group.attrib_to_group[self.cursor_attrib]
 
 		self.cursor_hidden_text = group.text
-		group.text.hide()
+		if not self.cursor_attrib:
+			# Don't hide for attributes, so we can still see the name
+			group.text.hide()
+		else:
+			group.text.set(text = str(self.cursor_attrib.name) + '=')
 			
 		lx, ly, hx, hy = group.text.get_bounds()
 		x, y = group.i2w(lx, ly)
@@ -240,11 +247,15 @@ class GUIView(Display):
 		eb = GtkText()
 		self.edit_box = eb
 		m = 3
-		self.edit_box_item = self.root().add('widget', widget = eb,
-						x = x - m, y = y - m,
-						anchor = ANCHOR_NW)
 		s = eb.get_style().copy()
 		s.font = load_font('fixed')
+		if self.cursor_attrib:
+			name_width = s.font.measure(self.cursor_attrib.name + '=') + 1
+		else:
+			name_width = 0
+		self.edit_box_item = self.root().add('widget', widget = eb,
+						x = x - m + name_width, y = y - m,
+						anchor = ANCHOR_NW)
 		eb.set_style(s)
 
 		eb.set_editable(TRUE)
@@ -261,8 +272,7 @@ class GUIView(Display):
 		node = self.cursor_node
 		if node.nodeType == Node.ELEMENT_NODE:
 			if self.cursor_attrib:
-				name, value = (self.cursor_attrib.name, self.cursor_attrib.value)
-				return "%s=%s" % (str(name), str(value))
+				return str(self.cursor_attrib.value)
 			return node.nodeName
 		else:
 			return node.nodeValue
@@ -287,8 +297,7 @@ class GUIView(Display):
 
 	def commit_edit(self, new):
 		if self.cursor_attrib:
-			name, value = string.split(new, '=', 1)
-			self.view.may_record(['set_attrib', value])
+			self.view.may_record(['set_attrib', new])
 		else:
 			self.view.may_record(['change_node', new])
 	
