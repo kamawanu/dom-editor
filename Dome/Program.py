@@ -51,7 +51,8 @@ def load(node, parent, ns):
 					action[0] = 'map'
 				elif action[0] == 'add_attrib':
 					action[1] = "UNUSED"
-				elif action[0] == 'do_search' and action[2] != 'unused':
+				elif action[0] == 'do_search' and len(action) > 2 and \
+				  action[2] != 'unused':
 					print "Converting search namespaces..."
 					for p, u in action[2].iteritems():
 						print "Convert", p, u
@@ -61,7 +62,7 @@ def load(node, parent, ns):
 					action[2] = 'unused'
 				op = Op(action)
 			elif op_node.localName == 'block':
-				op = load(op_node, block)
+				op = load(op_node, block, ns)
 			else:
 				if op_node.nodeType == Node.ELEMENT_NODE and op_node.localName != 'fail':
 					print "** WARNING ** Unknown op:", op_node
@@ -133,7 +134,7 @@ def load_dome_program(prog, ns):
 			assert not done_update
 			new.code = load(node, new, ns)
 		if node.localName == 'dome-program':
-			new.add_sub(load_dome_program(node))
+			new.add_sub(load_dome_program(node, ns))
 		
 	new.modified = 0
 	return new

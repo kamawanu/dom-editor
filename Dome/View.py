@@ -1349,7 +1349,7 @@ class View:
 		except:
 			raise Beep
 		
-		new = node.ownerDocument.importNode(root.documentElement, 1)
+		new = self.model.import_with_ns(root.documentElement)
 		new.setAttributeNS(None, 'uri', uri)
 
 		if last_mod:
@@ -1598,19 +1598,6 @@ class View:
 		doc = support.parse_data(data, path)
 		self.set_root_from_doc(doc)
 
-	def load_node(self, root):
-		new = self.model.doc.importNode(root, 1)
-		
-		self.model.strip_space(new)
-
-		if self.root:
-			self.model.unlock(self.root)
-		self.move_to([])
-		self.model.replace_node(self.root, new)
-		self.model.lock(new)
-		self.root = new
-		self.move_to(self.root)
-	
 	def select_dups(self):
 		node = self.get_current()
 		select = []
@@ -1826,6 +1813,8 @@ class View:
 		self.model.normalise(self.get_current())
 	
 	def remove_ns(self):
+		print "remove_ns: Disabled"
+		return
 		nodes = self.current_nodes[:]
 		self.move_to([])
 		nodes = map(self.model.remove_ns, nodes)

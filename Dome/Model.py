@@ -259,7 +259,9 @@ class Model:
 		return new
 	
 	def remove_ns(self, node):
-		raise Exception("Shouldn't need this now!")
+		print "remove_ns: Shouldn't need this now!"
+		return
+
 		nss = GetAllNs(node.parentNode)
 		dns = nss.get(None, None)
 		create = node.ownerDocument.createElementNS
