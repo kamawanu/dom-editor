@@ -33,7 +33,9 @@ class Display(GnomeCanvas):
 		self.window = window
 		self.root_group = None
 		self.update_timeout = 0
+		self.update_nodes = []			# List of nodes to update on update_timeout
 		self.current_attrib = None		# Canvas group
+		self.node_to_group = {}
 
 		s = self.get_style().copy()
 		s.bg[STATE_NORMAL] = self.get_color('old lace')
@@ -78,7 +80,18 @@ class Display(GnomeCanvas):
 	def update_record_state(self):
 		self.window.update_title()
 
-	def update_all(self):
+	def update_all(self, node = None):
+		if not node:
+			node = self.view.model.doc
+
+		if node not in self.update_nodes:
+			for n in self.update_nodes[:]:
+				if self.view.has_ancestor(node, n):
+					return		# Going to update the parent...
+				if self.view.has_ancestor(n, node):
+					self.update_nodes.remove(n)
+			self.update_nodes.append(node)
+
 		if self.update_timeout:
 			return		# Going to update anyway...
 
@@ -95,29 +108,48 @@ class Display(GnomeCanvas):
 	
 	def update_callback(self):
 		self.update_timeout = 0
-		print "Update..."
+		print "Update...", self.update_nodes
 		set_busy(self)
 		try:
-
-			if self.root_group:
-				self.root_group.destroy()
-			self.root_group = self.root().add('group', x = 0, y = 0)
-			self.node_to_group = {}
-			self.create_tree(self.view.root, self.root_group)
-			self.unhighlight(self.view.root)
+			#XXX: self.node_to_group = {}
+			for node in self.update_nodes:
+				root = self.view.root
+				if node is not root and self.view.has_ancestor(node, root):
+					# The root is OK - the change is inside...
+					group = self.node_to_group[node]
+					for i in group.children():
+						i.destroy()
+					self.create_tree(node, group, cramped = group.cramped)
+					self.auto_highlight_rec(node)
+					self.child_group_resized(node)
+				else:
+					# Need to rebuild everything...
+					if self.root_group:
+						self.root_group.destroy()
+					self.root_group = self.root().add('group', x = 0, y = 0)
+					group = self.root_group
+					node = self.view.root
+					self.create_tree(node, group)
+					self.auto_highlight_rec(node)
 			self.move_from()
 			self.set_bounds()
 			if self.view.current_nodes:
 				self.scroll_to_show(self.view.current_nodes[0])
 		finally:
 			set_busy(self, FALSE)
+			self.update_nodes = []
 		return 0
 	
-	def unhighlight(self, node):
+	def child_group_resized(self, node):
+		"The group for this node has changed size. Work up the tree making room for "
+		"it (and put it in the right place)."
+		
+	
+	def auto_highlight_rec(self, node):
 		"After creating the tree, everything is highlighted..."
 		self.auto_hightlight(node)
 		for k in node.childNodes:
-			self.unhighlight(k)
+			self.auto_highlight_rec(k)
 	
 	def auto_hightlight(self, node):
 		"Highlight this node depending on its selected state."
@@ -142,6 +174,7 @@ class Display(GnomeCanvas):
 	
 	def create_tree(self, node, group, cramped = 0):
 		group.node = node
+		group.cramped = cramped
 		group.add('ellipse', x1 = -4, y1 = -4, x2 = 4, y2 = 4,
 					fill_color = 'yellow', outline_color = 'black')
 		text = self.get_text(node)
@@ -211,7 +244,7 @@ class Display(GnomeCanvas):
 				(lx, ly, hx, hy) = g.get_bounds()
 				x -= lx
 				g.move(x, y - ly)
-				g.add('line', points = (0, ly - 4, 0, -4),
+				group.add('line', points = (x, y - 4, x, y - ly - 4),
 					fill_color = 'black',
 					width_pixels = 1)
 				right_child = x
@@ -225,7 +258,7 @@ class Display(GnomeCanvas):
 				(lx, ly, hx, hy) = g.get_bounds()
 				y -= ly
 				lowest_child = y
-				g.add('line', points = (-indent, 0, -4, 0),
+				group.add('line', points = (0, y, indent - 4, y),
 					fill_color = 'black',
 					width_pixels = 1)
 				g.move(indent, y)
@@ -295,7 +328,10 @@ class Display(GnomeCanvas):
 			pass
 		else:
 			for n in new:
-				self.hightlight(self.node_to_group[n], TRUE)
+				try:
+					self.hightlight(self.node_to_group[n], TRUE)
+				except KeyError:
+					print "Warning: Node %s not in node_to_group" % n
 
 	def set_current_attrib(self, attrib):
 		"Select 'attrib' attribute node of the current node. None to unselect."
@@ -304,10 +340,13 @@ class Display(GnomeCanvas):
 			self.current_attrib.text.set(fill_color = 'grey40')
 			self.current_attrib = None
 		if attrib:
-			group = self.node_to_group[self.view.current].attrib_to_group[attrib]
-			group.rect.show()
-			group.text.set(fill_color = 'white')
-			self.current_attrib = group
+			try:
+				group = self.node_to_group[self.view.current].attrib_to_group[attrib]
+				group.rect.show()
+				group.text.set(fill_color = 'white')
+				self.current_attrib = group
+			except KeyError:
+				pass
 
 	def hightlight(self, group, state):
 		node = group.node

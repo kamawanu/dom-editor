@@ -169,7 +169,7 @@ class Exec:
 			# Up the stack and try again with the same exit later
 			new = self.stack[-1]
 			self.unstack_n(1)
-			print "Up to", new
+			#print "Up to", new
 			if callable(new):
 				if self.exit == 'next':
 					new()

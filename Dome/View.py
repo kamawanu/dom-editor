@@ -131,7 +131,6 @@ class View:
 		for n in self.current_nodes[:]:
 			if not self.has_ancestor(n, self.root):
 				# No - remove
-				print "[ lost a current node ]"
 				self.current_nodes.remove(n)
 		if not self.current_nodes:
 			self.current_nodes = [self.root]
@@ -141,7 +140,7 @@ class View:
 			return
 
 		for display in self.displays:
-			display.update_all()
+			display.update_all(node)
 	
 	def delete(self):
 		self.model.remove_view(self)
@@ -415,7 +414,12 @@ class View:
 		if node.nodeType == Node.TEXT_NODE or node.nodeType == Node.COMMENT_NODE:
 			self.model.set_data(node, new_data)
 		else:
-			self.model.set_name(node, new_data)
+			if ':' in new_data:
+				(prefix, localName) = string.split(new_data, ':', 1)
+			else:
+				(prefix, localName) = ('', data)
+			namespaceURI = self.model.prefix_to_namespace(self.current, prefix)
+			self.model.set_name(node, namespaceURI, new_data)
 
 	def add_node(self, where, data):
 		cur = self.current

@@ -11,11 +11,15 @@ undo_state = '__dom_undo'
 undo_clear = 1
 
 # These actually modifiy the DOM
-def set_name(node, new):
+def set_name(node, namespaceURI, qname):
 	# XXX: Hack!
-	add_undo(node, lambda node = node, old = node.nodeName:
-			set_name(node, old))
-	node.__dict__['__nodeName'] = new
+	tmp = node.ownerDocument.createElementNS(namespaceURI, qname)
+	add_undo(node, lambda node = node, ns = node.namespaceURI, name = node.nodeName:
+			set_name(node, ns, name))
+	node.__dict__['__nodeName'] = tmp.__dict__['__nodeName']
+	node.__dict__['__namespaceURI'] = tmp.__dict__['__namespaceURI']
+        node.__dict__['__prefix'] = tmp.__dict__['__prefix']
+        node.__dict__['__localName'] = tmp.__dict__['__localName']
 
 def insert_before(node, new, parent):
 	"Insert 'new' before 'node'. If 'node' is None then insert at the end"

@@ -79,8 +79,8 @@ class Model:
 
 	# Changes
 	
-	def set_name(self, node, name):
-		Change.set_name(node, name)
+	def set_name(self, node, namespace, name):
+		Change.set_name(node, namespace, name)
 		self.update_all(node)
 	
 	def set_data(self, node, data):
