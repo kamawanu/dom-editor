@@ -288,7 +288,6 @@ class Model:
 	
 	def delete_internal(self, node):
 		"Doesn't update display."
-		print "Delete", node
 		next = node.nextSibling
 		parent = node.parentNode
 		parent.removeChild(node)
