@@ -435,14 +435,15 @@ class Model:
 
 	def insert_before(self, node, new, parent = None):
 		"Insert 'new' before 'node'. If 'node' is None then insert at the end"
-		"of parent's children."
+		"of parent's children. New may be a node, a list or a fragment."
 		if not parent:
 			parent = node.parentNode
-		if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
-			for n in new.childNodes[:]:
-				self.insert_before_interal(node, n, parent)
-		else:
-			self.insert_before_interal(node, new, parent)
+		if type(new) != list:
+			if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
+				new = new.childNodes
+			else:
+				new = [new]
+		for n in new: self.insert_before_interal(node, n, parent)
 		self.update_all(parent)
 	
 	def split_qname(self, node, name):

@@ -75,7 +75,7 @@ def import_sheet(doc):
 		print "Mode", mode
 		types = sheet.matchTemplates[mode]
 
-		loose_ends = []
+		#loose_ends = []
 		for type in types.keys():
 			if type == Node.ELEMENT_NODE:
 				templates = types[type].values()
@@ -103,7 +103,8 @@ def import_sheet(doc):
 					tests = add(tests, 'fail_if', pattern)
 					op = Op(action = ['play', temp.get_path()])
 					tests.link_to(op, 'fail')
-					loose_ends.append(op)
+					add(op, 'mark_switch')
+					#loose_ends.append(op)
 		# Now add the built-in rules
 
 		#print "Tidy", loose_ends
@@ -114,9 +115,9 @@ def import_sheet(doc):
 
 		tests = add(tests, 'do_global', '*')
 		tests = add(tests, 'map', prog.get_path())
-		tests = add(tests, 'mark_switch')
-		tests = add(tests, 'mark_switch')
-		[ op.link_to(tests, 'next') for op in loose_ends ]
+		#tests = add(tests, 'mark_switch')
+		#tests = add(tests, 'mark_switch')
+		#[ op.link_to(tests, 'next') for op in loose_ends ]
 
 	root.modified = 0
 	return root

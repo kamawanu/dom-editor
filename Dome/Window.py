@@ -106,7 +106,7 @@ class Window(rox.Window, saving.Saveable):
 		if message:
 			self.status.push(0, message)
 		self.showing_message = bool(message)
-		self.status.draw((0, 0, self.status.allocation.width, self.status.allocation.height))
+		#self.status.draw((0, 0, self.status.allocation.width, self.status.allocation.height))
 		g.gdk.flush()
 	
 	def discard(self):

@@ -849,8 +849,14 @@ class View:
 			return nlist
 		return self.model.doc.createTextNode(str(data))
 	
+	def _copy_attrib(self, n):
+		a = self.model.doc.createAttributeNS(n.namespaceURI, n.nodeName)
+		a.value = n.value
+		return a
+	
 	def yank(self, deep = 1):
 		if self.current_attrib:
+			# XXX: don't need current_attrib anymore?
 			a = self.current_attrib
 
 			self.clipboard = self.model.doc.createElementNS(a.namespaceURI, a.nodeName)
@@ -858,7 +864,10 @@ class View:
 		else:
 			self.clipboard = self.model.doc.createDocumentFragment()
 			for n in self.current_nodes:
-				c = n.cloneNode(deep)
+				if n.nodeType != Node.ATTRIBUTE_NODE:
+					c = n.cloneNode(deep)
+				else:
+					c = self._copy_attrib(n)
 				#print n, "->", c
 				self.clipboard.appendChild(c)
 		
@@ -1419,16 +1428,25 @@ class View:
 		self.put_as_child(end = 1)
 
 	def put_as_child(self, end = 0):
+		clip = self.clipboard
 		node = self.get_current()
-		if self.clipboard == None:
+		if node.nodeType == Node.ATTRIBUTE_NODE:
+			node = node.parentNode
+		if clip is None:
 			raise Beep
-		new = self.clipboard.cloneNode(1)
-		if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
-			to = []
-			for n in new.childNodes:
-				to.append(n)
+
+		if clip.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
+			clip = clip.childNodes
 		else:
-			to = new
+			clip = [clip]
+
+		attribs = []
+		new = []
+		for src in clip:
+			if src.nodeType == Node.ATTRIBUTE_NODE:
+				attribs.append((src.name, src.value))
+			else:
+				new.append(src.cloneNode(1))
 		try:
 			if end:
 				self.model.insert_before(None, new, parent = node)
@@ -1437,7 +1455,9 @@ class View:
 		except:
 			raise Beep
 
-		self.move_to(to)
+		for a in attribs:
+			new.append(self.model.set_attrib(node, *a))
+		self.move_to(new)
 	
 	def yank_value(self):
 		if not self.current_attrib:
