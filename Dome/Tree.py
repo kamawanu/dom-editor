@@ -39,16 +39,32 @@ def get_text(node):
 		return ['<unknown>']
 
 # Return a string that will match this node in an XPath.
-def match_name(node):
+# ns is updated with any new namespace required.
+def match_name(node, ns):
 	if node.nodeType == Node.TEXT_NODE:
 		return 'text()'
 	elif node.nodeType == Node.COMMENT_NODE:
 		return 'comment()'
+	elif node.nodeType == Node.ELEMENT_NODE:
+		if node.namespaceURI:
+			for x in ns.keys():
+				if ns[x] == node.namespaceURI:
+					return '%s:%s' % (x, node.localName)
+			n = 1
+			while 1:
+				key = '_ns_%d' % n
+				if not ns.has_key(key):
+					break
+				n += 1
+			ns[key] = node.namespaceURI
+			return '%s:%s' % (key, node.localName)
+		return node.localName
 	else:
 		return node.nodeName
 
-def jump_to_sibling(src, dst):
+def jump_to_sibling(src, dst, ns):
 	"Return an XPath which, given a context 'src' will move to sibling 'dst'."
+	"Namespace 'ns' may be updated if new names are required"
 
 	# Search forwards for 'dst', counting how many matching nodes we pass.
 	count = 0
@@ -60,7 +76,7 @@ def jump_to_sibling(src, dst):
 		if check.nodeName == dst.nodeName:
 			count += 1
 	if check:
-		return 'following-sibling::%s[%d]/' % (match_name(dst), count)
+		return 'following-sibling::%s[%d]/' % (match_name(dst, ns), count)
 
 	# Not found - search backwards for 'dst', counting how many matching nodes we pass.
 	count = 0
@@ -71,7 +87,7 @@ def jump_to_sibling(src, dst):
 			return			# Error!
 		if check.nodeName == dst.nodeName:
 			count += 1
-	return 'preceding-sibling::%s[%d]/' % (match_name(dst), count)
+	return 'preceding-sibling::%s[%d]/' % (match_name(dst, ns), count)
 
 class Tree(GtkDrawingArea):
 	vmargin = 4
@@ -206,9 +222,10 @@ class Tree(GtkDrawingArea):
 			self.current_line = 0
 		self.force_redraw()
 	
-	def line_to_relative_path(self, line, lit):
+	def line_to_relative_path(self, line, lit, ns):
 		"Return an XPath string which will move us from current_line to line."
 		"If 'lit' then the text of the (data) node must match too."
+		"Namespace 'ns' is updated with any required namespaces."
 		src_node = self.line_to_node[self.current_line]
 		dst_node = self.line_to_node[line]
 
@@ -249,7 +266,7 @@ class Tree(GtkDrawingArea):
 		# We then jump across to the correct sibling and head back down the tree...
 		# If src is an ancestor of dst or the other way round we do nothing.
 		if src_parents and dst_parents:
-			path += jump_to_sibling(src_parents[0], dst_parents[0])
+			path += jump_to_sibling(src_parents[0], dst_parents[0], ns)
 			del dst_parents[0]
 
 		# dst_parents is now a list of nodes to visit to get to dst.
@@ -262,12 +279,12 @@ class Tree(GtkDrawingArea):
 				if p.nodeName == node.nodeName:
 					prev += 1
 			
-			path += 'child::%s[%d]/' % (match_name(node), prev)
+			path += 'child::%s[%d]/' % (match_name(node, ns), prev)
 
 		path = path[:-1]
 		if lit:
 			path += literal_match(dst_node)
-		print path
+		print "%s [%s]" % (path, ns)
 		return path
 	
 	def button_press(self, widget, bev):
@@ -278,9 +295,10 @@ class Tree(GtkDrawingArea):
 			line = int((bev.y - self.vmargin) / height)
 			node = self.line_to_node[line]
 			lit = bev.state & CONTROL_MASK
-			path = self.line_to_relative_path(line, lit)
+			ns = {}
+			path = self.line_to_relative_path(line, lit, ns)
 			off = line - self.node_to_line[node]
-			self.may_record(["do_search", path, off])
+			self.may_record(["do_search", path, off, ns])
 	
 	def move_to_node(self, node):
 		if node:
@@ -430,11 +448,13 @@ class Tree(GtkDrawingArea):
 			return len(get_text(node))
 		return 1
 	
-	def do_search(self, cur, pattern, off = 0):
+	def do_search(self, cur, pattern, off = 0, ns = None):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 
-		ns = {'ext': FT_EXT_NAMESPACE}
+		if not ns:
+			ns = {}
+		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(cur, [cur], processorNss = ns)
 		rt = path.select(c)
 		if len(rt) == 0:
