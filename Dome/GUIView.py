@@ -136,6 +136,8 @@ class GUIView(Display):
 
 	def show_editbox(self):
 		"Edit the current node/attribute"
+		self.do_update_now()
+
 		if self.cursor_node:
 			self.hide_editbox()
 
@@ -295,43 +297,41 @@ class GUIView(Display):
 			self.view.may_record(action)
 		GetArg('Search for:', do_search, ['XPath:'])
 
-	def new_element(self):
+	def new_name(self):
 		cur = self.view.current
-		if cur.nodeType == Node.TEXT_NODE:
-			return self.view.model.doc.createElement(cur.parentNode.nodeName)
-		return self.view.model.doc.createElement(cur.nodeName)
+		if cur.nodeType == Node.ELEMENT_NODE:
+			return cur.nodeName
+		return cur.parentNode.nodeName
 	
 	def insert_element(self):
 		"Insert element"
-		new = self.new_element()
-		edit_node(self, new, "ie")
-		return new
+		self.view.may_record(['add_node', 'ie', self.new_name()])
+		self.show_editbox()
 
 	def append_element(self):
 		"Append element"
-		new = self.new_element()
-		edit_node(self, new, "ae")
-		return new
+		self.view.may_record(['add_node', 'ae', self.new_name()])
+		self.show_editbox()
 
 	def open_element(self):
 		"Open element"
-		new = self.new_element()
-		edit_node(self, new, "oe")
+		self.view.may_record(['add_node', 'oe', self.new_name()])
+		self.show_editbox()
 		
 	def insert_text(self):
 		"Insert text"
-		new = self.view.model.doc.createTextNode('')
-		edit_node(self, new, "it")
+		self.view.may_record(['add_node', 'it', ''])
+		self.show_editbox()
 
 	def append_text(self):
 		"Append text"
-		new = self.view.model.doc.createTextNode('')
-		edit_node(self, new, "at")
+		self.view.may_record(['add_node', 'at', ''])
+		self.show_editbox()
 
 	def open_text(self):
 		"Open text"
-		new = self.view.model.doc.createTextNode('')
-		edit_node(self, new, "ot")
+		self.view.may_record(['add_node', 'ot', ''])
+		self.show_editbox()
 
 	key_to_action = {
 		# Motions

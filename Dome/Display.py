@@ -143,7 +143,14 @@ class Display(GnomeCanvas):
 	def child_group_resized(self, node):
 		"The group for this node has changed size. Work up the tree making room for "
 		"it (and put it in the right place)."
-		
+		kids = []
+		if node == self.view.root:
+			return
+		node = node.parentNode
+		for n in node.childNodes:
+			kids.append(self.node_to_group[n])
+		self.position_kids(self.node_to_group[node], kids)
+		self.child_group_resized(node)
 	
 	def auto_highlight_rec(self, node):
 		"After creating the tree, everything is highlighted..."
@@ -175,8 +182,12 @@ class Display(GnomeCanvas):
 	def create_tree(self, node, group, cramped = 0):
 		group.node = node
 		group.cramped = cramped
+		if node.nodeType == Node.TEXT_NODE:
+			c = 'blue'
+		else:
+			c = 'yellow'
 		group.add('ellipse', x1 = -4, y1 = -4, x2 = 4, y2 = 4,
-					fill_color = 'yellow', outline_color = 'black')
+					fill_color = c, outline_color = 'black')
 		text = self.get_text(node)
 		try:
 			text = str(text)
@@ -223,48 +234,63 @@ class Display(GnomeCanvas):
 					ax = ahx + 8
 				group.attrib_to_group[a] = g
 		
+		group.hy = hy
 		kids = []
 		for n in node.childNodes:
 			g = group.add('group', x = 0, y = 0)
 			self.create_tree(n, g, cramped)
 			kids.append(g)
 		
+		self.position_kids(group, kids)
+
+	def position_kids(self, group, kids):
 		if not kids:
 			return
 
-		if cramped:
+		if group.cramped:
 			indent = 16
 		else:
 			indent = 32
 
-		if hbox:
+		node = group.node
+		hy = group.hy
+
+		if hasattr(group, 'lines'):
+			for l in group.lines:
+				l.destroy()
+		group.lines = []
+
+		if node.nodeName == 'TR':
 			y = hy + 8
 			x = indent
 			for g in kids:
+				g.set(x = 0, y = 0)
 				(lx, ly, hx, hy) = g.get_bounds()
 				x -= lx
-				g.move(x, y - ly)
-				group.add('line', points = (x, y - 4, x, y - ly - 4),
-					fill_color = 'black',
-					width_pixels = 1)
+				g.set(x = x, y = y - ly)
+				group.lines.append(group.add('line', points = (x, y - 4, x, y - ly - 4),
+						fill_color = 'black',
+						width_pixels = 1))
 				right_child = x
 				x += hx - lx + 8
-			group.add('line', points = (0, 4, 0, y - 4, right_child, y - 4),
+			group.lines.append(group.add('line',
+					points = (0, 4, 0, y - 4, right_child, y - 4),
 					fill_color = 'black',
-					width_pixels = 1)
+					width_pixels = 1))
 		else:
 			y = hy + 4
 			for g in kids:
+				g.set(x = 0, y = 0)
 				(lx, ly, hx, hy) = g.get_bounds()
 				y -= ly
 				lowest_child = y
-				group.add('line', points = (0, y, indent - 4, y),
-					fill_color = 'black',
-					width_pixels = 1)
-				g.move(indent, y)
+				group.lines.append(group.add('line', points = (0, y, indent - 4, y),
+						fill_color = 'black',
+						width_pixels = 1))
+				g.set(x = indent, y = y)
 				y = y + hy + 4
-			group.add('line', points = (0, 4, 0, lowest_child), fill_color = 'black',
-					width_pixels = 1)
+			group.lines.append(group.add('line', points = (0, 4, 0, lowest_child),
+					fill_color = 'black', width_pixels = 1))
 
 	def get_text(self, node):
 		if node.nodeType == Node.TEXT_NODE:

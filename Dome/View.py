@@ -417,7 +417,7 @@ class View:
 			if ':' in new_data:
 				(prefix, localName) = string.split(new_data, ':', 1)
 			else:
-				(prefix, localName) = ('', data)
+				(prefix, localName) = ('', new_data)
 			namespaceURI = self.model.prefix_to_namespace(self.current, prefix)
 			self.model.set_name(node, namespaceURI, new_data)
 
