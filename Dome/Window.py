@@ -8,6 +8,8 @@ from xml.dom import ext
 from xml.dom import implementation
 from xml.dom.ext.reader import PyExpat
 
+import Html
+from support import *
 from Tree import Tree
 from SaveBox import SaveBox
 
@@ -21,19 +23,6 @@ def strip_space(doc):
 			for k in node.childNodes[:]:
 				cb(k, cb)
 	cb(doc.documentElement, cb)
-
-def send_to_file(data, path):
-	try:
-		file = open(path, 'wb')
-		try:
-			file.write(data)
-		finally:
-			file.close()
-	except:
-		report_exception()
-		return 0
-
-	return 1
 
 class Window(GtkWindow):
 	def __init__(self, path = None):
@@ -52,9 +41,16 @@ class Window(GtkWindow):
 		if path:
 			if path != '-':
 				self.uri = path
-			reader = PyExpat.Reader()
-			root = reader.fromUri(path)
-			strip_space(root)
+			if path[-5:] == '.html':
+				print "Reading HTML..."
+				reader = Html.Reader()
+				root = reader.fromUri(path)
+				ext.StripHtml(root)
+			else:
+				print "Reading XML..."
+				reader = PyExpat.Reader()
+				root = reader.fromUri(path)
+				strip_space(root)
 		else:
 			root = implementation.createDocument('', 'root', None)
 
@@ -82,7 +78,10 @@ class Window(GtkWindow):
 	def save(self):
 		if self.savebox:
 			self.savebox.destroy()
-		self.savebox = SaveBox(self, 'text', 'xml')
+		if self.uri[-5:] == '.html':
+			self.savebox = SaveBox(self, 'text', 'html')
+		else:
+			self.savebox = SaveBox(self, 'text', 'xml')
 		self.savebox.show()
 	
 	def get_xml(self):

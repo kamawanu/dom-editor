@@ -157,3 +157,17 @@ def report_error(message, title = 'Error'):
 def report_exception():
 	ex = format_exception_only(sys.exc_type, sys.exc_value)
 	report_error(join(ex, ''))
+
+def send_to_file(data, path):
+	try:
+		file = open(path, 'wb')
+		try:
+			file.write(data)
+		finally:
+			file.close()
+	except:
+		report_exception()
+		return 0
+
+	return 1
+

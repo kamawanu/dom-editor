@@ -59,8 +59,7 @@ class DataEditor(Editor):
 		self.text.connect('key-press-event', self.key)
 	
 	def ok(self, b = None):
-		Change.set_data(self.node, self.text.get_chars(0, -1))
-		self.tree.tree_changed()
+		self.tree.may_record(["change_data", self.text.get_chars(0, -1)])
 		self.destroy()
 	
 	def key(self, text, kev):
@@ -88,8 +87,7 @@ class TagEditor(Editor):
 		self.show_all(self.vbox)
 	
 	def ok(self, widget):
-		Change.set_name(self.node, self.entry.get_text())
-		self.tree.tree_changed()
+		self.tree.may_record(["set_element_name", self.entry.get_text()])
 		self.destroy()
 
 	def key(self, text, kev):

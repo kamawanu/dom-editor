@@ -17,13 +17,13 @@ def insert(node, new, index = 0):
 def insert_after(node, new):
 	insert_before(node.nextSibling, new, parent = node.parentNode)
 
-def set_name(node, new):
-	copy = node.ownerDocument.createElement(new)
-	for k in node.childNodes:
-		copy.insertBefore(k.cloneNode(deep = 1), None)
-	replace_node(node, copy)
-
 # These actually modifiy the DOM
+def set_name(node, new):
+	# XXX: Hack!
+	add_undo(node, lambda node = node, old = node.nodeName:
+			set_name(node, old))
+	node.__dict__['__nodeName'] = new
+
 def insert_before(node, new, parent = None):
 	"Insert 'new' before 'node'. If 'node' is None then insert at the end"
 	"of parent's children."
@@ -42,8 +42,6 @@ def delete(node):
 
 def replace_node(old, new):
 	old.parentNode.replaceChild(new, old)
-	print "new", new
-	print "old", old
 	add_undo(new.parentNode,
 		lambda old = old, new = new:
 			replace_node(new, old))

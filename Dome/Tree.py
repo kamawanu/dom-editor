@@ -5,25 +5,37 @@ import string
 from xml.dom import Node
 from xml.xpath import XPathParser
 from xml.xpath import Context
+import types
 
 from support import *
+from loader import make_xds_loader
 
 from Editor import edit_node
 from Search import Search
 import Change
+from SaveBox import SaveBox
 
 # Graphical tree widget
 
 class Beep(Exception):
 	pass
 
-def get_text(node, line):
-	return string.split(node.nodeValue, '\n')[line]
+def get_text(node):
+	if node.nodeType == Node.TEXT_NODE:
+		return string.split(string.strip(node.nodeValue), '\n')
+	elif node.nodeName:
+		return [node.nodeName]
+	elif node.nodeValue:
+		return ['<noname>' + node.nodeValue]
+	else:
+		return ['<unknown>']
 
 # Return a string that will match this node in an XPath.
 def match_name(node):
 	if node.nodeType == Node.TEXT_NODE:
 		return 'text()'
+	elif node.nodeType == Node.COMMENT_NODE:
+		return 'comment()'
 	else:
 		return node.nodeName
 
@@ -73,6 +85,7 @@ class Tree(GtkDrawingArea):
 		self.left_hist = []
 		self.connect('realize', self.realize)
 		self.recording = None
+		make_xds_loader(self, self)
 
 	def key_press(self, widget, kev):
 		try:
@@ -97,6 +110,14 @@ class Tree(GtkDrawingArea):
 				self.recording = []
 				self.window.update_title()
 			return 1
+		elif key == Q:
+			if self.recording != None:
+				report_error("Can't save while recording!")
+			elif hasattr(self, 'macro'):
+				MacroSaver(self.macro)
+			else:
+				report_error("No macro to save!")
+			return 1
 
 		if key == F3 or key == Return:
 			return 0
@@ -105,6 +126,9 @@ class Tree(GtkDrawingArea):
 			action = self.key_to_action[key]
 		except KeyError:
 			return 0
+
+		if callable(action):
+			return action(self)
 
 		need_update = self.may_record(action)
 			
@@ -117,7 +141,10 @@ class Tree(GtkDrawingArea):
 		return 1
 	
 	def do_action(self, action):
-		new = action(self, self.line_to_node[self.current_line])
+		"'action' is a tuple (function, arg1, arg2, ...)"
+		fn = getattr(self, action[0])
+		new = apply(fn, [self.line_to_node[self.current_line]] + action[1:])
+
 		if new:
 			self.build_index()
 			if not self.node_to_line.has_key(new):
@@ -132,18 +159,14 @@ class Tree(GtkDrawingArea):
 			need_update = self.do_action(action)
 		except Beep:
 			gdk_beep()
-			return 1
+			return 0
 		
-		if self.recording != None and action.__doc__:
+		if self.recording != None:
 			self.recording.append(action)
-			print "Recorded:", action.__doc__
+			print "Recorded:", action
 		return need_update
 	
 	def tree_changed(self):
-		if not self.display_root.parentNode:
-			self.display_root = \
-				self.display_root.ownerDocument.documentElement
-		
 		cn = self.line_to_node[self.current_line]
 		cnp = cn.parentNode
 
@@ -158,13 +181,12 @@ class Tree(GtkDrawingArea):
 		self.force_redraw()
 	
 	def line_to_relative_path(self, line):
-		"Return an XPath which will move us from current_line to line."
+		"Return an XPath string which will move us from current_line to line."
 		src_node = self.line_to_node[self.current_line]
 		dst_node = self.line_to_node[line]
 
 		if src_node == dst_node:
-			parser = XPathParser.XPathParser()
-			return parser.parseExpression('.')
+			return '.'
 
 		def path_to(self, node):
 			"Returns a path to the node in the form [display_root, ... , node]"
@@ -217,8 +239,7 @@ class Tree(GtkDrawingArea):
 
 		path = path[:-1]
 		print path
-		parser = XPathParser.XPathParser()
-		return parser.parseExpression(path)
+		return path
 	
 	def button_press(self, widget, bev):
 		if bev.type != BUTTON_PRESS:
@@ -229,10 +250,7 @@ class Tree(GtkDrawingArea):
 			node = self.line_to_node[line]
 			path = self.line_to_relative_path(line)
 			off = line - self.node_to_line[node]
-			def action(self, cur, path = path, off = off):
-				"Relative move"
-				self.do_search(self.line_to_node[self.current_line], path, off)
-			self.may_record(action)
+			self.may_record(["do_search", path, off])
 	
 	def move_to_node(self, node):
 		if node:
@@ -314,7 +332,7 @@ class Tree(GtkDrawingArea):
 		font = self.st.font
 		y = line * self.row_height + self.vmargin
 
-		if node.nodeType == Node.TEXT_NODE:
+		if node.nodeType != Node.ELEMENT_NODE:
 			gc = self.st.fg_gc[STATE_INSENSITIVE]
 		else:
 			gc = self.st.fg_gc[STATE_NORMAL]
@@ -333,13 +351,9 @@ class Tree(GtkDrawingArea):
 			parents.append(p)
 
 		x = len(parents) * 32 + 8
-		if node.nodeType == Node.TEXT_NODE:
-			gdk_draw_string(self.win, self.st.font, gc,
-				x, y + font.ascent,
-				get_text(node, line - self.node_to_line[node]))
-		else:
-			gdk_draw_string(self.win, self.st.font, gc,
-				x, y + font.ascent, node.nodeName)
+		gdk_draw_string(self.win, self.st.font, gc,
+			x, y + font.ascent,
+			get_text(node)[line - self.node_to_line[node]])
 
 		ly = y + self.row_height / 2
 		if self.node_to_line[node] == line:
@@ -383,7 +397,7 @@ class Tree(GtkDrawingArea):
 	# children)?
 	def get_lines(self, node):
 		if node.nodeType == Node.TEXT_NODE:
-			return len(string.split(node.nodeValue, '\n'))
+			return len(get_text(node))
 		return 1
 	
 	def create_macro(self):
@@ -391,7 +405,10 @@ class Tree(GtkDrawingArea):
 		self.recording = None
 		self.window.update_title()
 	
-	def do_search(self, cur, path, off = 0):
+	def do_search(self, cur, pattern, off = 0):
+		p = XPathParser.XPathParser()	
+		path = p.parseExpression(pattern)
+
 		c = Context.Context(cur, [cur])
 		rt = path.select(c)
 		if len(rt) == 0:
@@ -404,13 +421,7 @@ class Tree(GtkDrawingArea):
 		self.move_to(self.node_to_line[node] + off)
 
 	def user_do_search(self, pattern):
-		p = XPathParser.XPathParser()	
-		path = p.parseExpression(pattern)
-	
-		def action(self, cur, path = path):
-			"Search"
-			self.do_search(cur, path)
-		
+		action = ["do_search", pattern]
 		self.may_record(action)
 		self.last_search = action
 
@@ -490,12 +501,11 @@ class Tree(GtkDrawingArea):
 			raise Beep
 		self.move_to_node(cur.nextSibling)
 
-	def search(self, node):
-		# No comment => don't record
+	def search(self):
 		Search(self)
 	
 	def search_next(self, node):
-		return self.last_search(self, node)
+		return self.do_action(self.last_search)
 
 	# Changes
 	def new_element(self, cur):
@@ -573,9 +583,8 @@ class Tree(GtkDrawingArea):
 		Change.insert(node, new, index = 0)
 		return new
 
-	def edit_node(self, node):
-		"Edit node"
-		edit_node(self, node)
+	def edit_node(self):
+		edit_node(self, self.line_to_node[self.current_line])
 
 	def delete_node(self, cur):
 		"Delete"
@@ -612,6 +621,14 @@ class Tree(GtkDrawingArea):
 			idle_add(cb)
 			self.force_redraw()
 
+	def change_data(self, node, new_data):
+		Change.set_data(node, new_data)
+		return node
+
+	def set_element_name(self, node, new_name):
+		Change.set_name(node, new_name)
+		return node
+
 	# Undo/redo
 	def undo(self, cur):
 		if Change.can_undo(self.display_root):
@@ -629,45 +646,83 @@ class Tree(GtkDrawingArea):
 
 	key_to_action = {
 		# Motions
-		Up	: move_up,
-		Down	: move_down,
-		Left	: move_left,
-		Right	: move_right,
+		Up	: ["move_up"],
+		Down	: ["move_down"],
+		Left	: ["move_left"],
+		Right	: ["move_right"],
 		
-		Home	: move_home,
-		End	: move_end,
+		Home	: ["move_home"],
+		End	: ["move_end"],
 		
-		greater	: chroot,
-		less	: unchroot,
+		greater	: ["chroot"],
+		less	: ["unchroot"],
 		
-		Prior	: move_prev_sib,
-		Next	: move_next_sib,
+		Prior	: ["move_prev_sib"],
+		Next	: ["move_next_sib"],
 
 		slash	: search,
-		n	: search_next,
+		n	: ["search_next"],
 
 		# Changes
-		I	: insert_element,
-		A	: append_element,
-		O	: open_element,
+		I	: ["insert_element"],
+		A	: ["append_element"],
+		O	: ["open_element"],
 		
-		i	: insert_text,
-		a	: append_text,
-		o	: open_text,
+		i	: ["insert_text"],
+		a	: ["append_text"],
+		o	: ["open_text"],
 
-		y	: yank,
-		P	: put_before,
-		p	: put_after,
-		bracketright : put_as_child,
+		y	: ["yank"],
+		P	: ["put_before"],
+		p	: ["put_after"],
+		bracketright : ["put_as_child"],
 
 		Tab	: edit_node,
 
-		x	: delete_node,
-		X	: delete_prev_sib,
+		x	: ["delete_node"],
+		X	: ["delete_prev_sib"],
 
-		at	: playback,
+		at	: ["playback"],
 
 		# Undo/redo
-		u	: undo,
-		r	: redo
+		u	: ["undo"],
+		r	: ["redo"]
 	}
+	
+	def load_file(self, file):
+		f = open(file, 'r')
+		data = f.read()
+		f.close()
+		self.load_data(data)
+
+	def load_data(self, data):
+		# The data is actually a macro file...
+		self.macro = []
+		for line in string.split(data, '\n'):
+			line = string.strip(line)
+			if len(line) > 0 and line[0] != '#':
+				self.macro.append(eval(line))
+		self.do_action(["playback"])
+
+class MacroSaver(SaveBox):
+	def __init__(self, macro):
+		self.uri = 'Macro'
+		SaveBox.__init__(self, self, 'text', 'plain')
+		self.macro = macro
+		self.show_all()
+	
+	def get_data(self):
+		data = "# Macro recorded by Dome\n"
+		for m in self.macro:
+			data += `m` + '\n'
+		return data
+	
+	def save_as(self, path):
+		return send_to_file(self.get_data(), path)
+
+	def send_raw(self, selection_data):
+		selection_data.set(selection_data.target, 8, self.get_data())
+	
+	def set_uri(self, uri):
+		pass
+		
