@@ -46,18 +46,17 @@ def set_data(node, new):
 		lambda node = node, old = old:
 			set_data(node, old))
 
-def set_attrib(node, namespaceURI, localName, value = None):
-	if node.hasAttributeNS(namespaceURI, localName):
-		old = node.getAttributeNS(namespaceURI, localName)
+def set_attrib(node, name, value = None):
+	if node.hasAttribute(name):
+		old = node.getAttribute(name)
 	else:
 		old = None
 	if value != None:
-		node.setAttributeNS(namespaceURI, localName, value)
+		node.setAttribute(name, value)
 	else:
-		node.removeAttributeNS(namespaceURI, localName)
+		node.removeAttribute(name)
 
-	add_undo(node, lambda node = node, namespaceURI = namespaceURI, localName = localName, old = old: \
-				set_attrib(node, namespaceURI, localName, old))
+	add_undo(node, lambda node = node, name = name, old = old: set_attrib(node, name, old))
 
 # Support
 

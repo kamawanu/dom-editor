@@ -70,7 +70,7 @@ class GUIView(Display):
 		ns = {}
 		path = make_relative_path(src, element, FALSE, ns)
 		self.view.may_record(["do_search", path, ns, FALSE])
-		self.view.may_record(["attribute", attrib.namespaceURI, attrib.localName])
+		self.view.may_record(["attribute", attrib.name])
 	
 	def show_menu(self, bev):
 		items = [
@@ -203,8 +203,7 @@ class GUIView(Display):
 
 	def commit_edit(self, new):
 		if self.cursor_attrib:
-			self.view.may_record(['set_attrib', self.cursor_attrib.namespaceURI,
-						self.cursor_attrib.localName, new])
+			self.view.may_record(['set_attrib', self.cursor_attrib.name, new])
 		else:
 			self.view.may_record(['change_node', new])
 	
@@ -253,20 +252,12 @@ class GUIView(Display):
 
 	def show_attrib(self):
 		def do_attrib(name, self = self):
-			if ':' in name:
-				(prefix, localName) = string.split(name, ':', 1)
-			else:
-				(prefix, localName) = ('', name)
-			namespaceURI = self.view.model.prefix_to_namespace(self.view.current, prefix)
-			if self.view.current.hasAttributeNS(namespaceURI, localName):
-				action = ["attribute", namespaceURI, localName]
+			if self.view.current.hasAttribute(name):
+				action = ["attribute", name]
 				self.view.may_record(action)
 			else:
-				def do_create(value, self = self,
-						namespaceURI = namespaceURI,
-						name = name):
-					action = ["set_attrib", namespaceURI, name, value]
-					print action
+				def do_create(value, self = self, name = name):
+					action = ["set_attrib", name, value]
 					self.view.may_record(action)
 				GetArg('Create attribute:', do_create, ['%s = ' % name])
 		GetArg('Select attribute:', do_attrib, ['Name:'])

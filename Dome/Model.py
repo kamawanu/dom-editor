@@ -5,7 +5,7 @@
 # All changes to the DOM must go through here.
 # Notification to views of changes is done.
 
-from xml.dom import implementation, XMLNS_NAMESPACE
+from xml.dom import implementation
 from xml.dom.ext.reader import PyExpat
 from xml.dom import ext
 from xml.dom import Node
@@ -14,7 +14,7 @@ import Html
 import Change
 from Beep import Beep
 
-from support import html_to_xml
+from support import html_to_xml, remove_namespaces
 
 class Model:
 	def __init__(self, macro_list):
@@ -41,6 +41,7 @@ class Model:
 		new_doc = reader.fromUri(path)
 
 		new = self.doc.importNode(new_doc.documentElement, deep = 1)
+		remove_namespaces(new)
 		
 		self.doc.replaceChild(new, self.doc.documentElement)
 		self.strip_space()
@@ -125,19 +126,7 @@ class Model:
 			Change.insert_before(node, new, parent)
 		self.update_all(parent)
 	
-	def set_attrib(self, node, namespaceURI, localName, value):
+	def set_attrib(self, node, name, value):
 		"Set an attribute's value. If value is None, remove the attribute."
-		Change.set_attrib(node, namespaceURI, localName, value)
+		Change.set_attrib(node, name, value)
 		self.update_all(node)
-	
-	def prefix_to_namespace(self, node, prefix):
-		"Use the xmlns attributes to workout the namespace."
-		nss = ext.GetAllNs(node)
-		if nss.has_key(prefix):
-			return nss[prefix]
-		if prefix:
-			if prefix == 'xmlns':
-				return XMLNS_NAMESPACE
-			raise Exception("No such namespace prefix '%s'" % prefix)
-		else:
-			return ''

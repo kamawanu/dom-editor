@@ -265,8 +265,6 @@ class Display(GnomeCanvas):
 		return
 	
 	def move_from(self, old = []):
-		self.set_current_attrib(self.view.current_attrib)
-
 		new = self.view.current_nodes
 		for n in old:
 			if n not in new:
@@ -276,6 +274,7 @@ class Display(GnomeCanvas):
 					pass
 		if self.update_timeout:
 			return		# We'll highlight on the callback...
+		self.set_current_attrib(self.view.current_attrib)
 		# We can update without structural problems...
 		if self.view.current_nodes:
 			self.scroll_to_show(self.view.current_nodes[0])
