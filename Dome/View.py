@@ -203,6 +203,7 @@ class View:
 		self.callback_on_return = None
 		while self.exec_stack:
 			self.pop_stack()
+		self.foreach_stack = []
 		self.status_changed()
 
 	def push_stack(self, op):
