@@ -487,7 +487,7 @@ class View:
 			return
 
 		if exit == 'fail' and not self.innermost_failure:
-			print "Setting innermost_failure on", op
+			#print "Setting innermost_failure on", op
 			self.innermost_failure = op
 
 		if self.callback_on_return:
@@ -906,17 +906,21 @@ class View:
 		def next(exit = exit, self = self, name = name, inp = inp):
 			"This is called while in do_one_step() - normal rules apply."
 			nodes, next = inp
-			print "Map: next (%d to go)" % len(nodes)
+			print "[ %d to go ]" % len(nodes),
 			if exit == 'fail':
 				print "Map: nodes remaining, but an error occurred..."
 				return self.default_done(exit)
+			while nodes and nodes[0].parentNode == None:
+				print "Skipping deleted node", nodes[0]
+				del nodes[0]
+			if not nodes:
+				return self.default_done(exit)
 			self.move_to(nodes[0])
-			#print "Next:", self.get_current()
 			del nodes[0]
 			if not nodes:
 				next = None
 			#print "Map: calling play (%d after this)" % len(nodes)
-			self.play(name, done = next)		# Should raise InProgress
+			self.play(name, done = next)	# Should raise InProgress
 		if nodes is self.current_nodes:
 			raise Exception("Slice failed!")
 		inp[1] = next
