@@ -10,10 +10,8 @@ def calc_node(display, node, pos):
 		text = node.nodeValue.strip()
 	elif node.nodeType == Node.ELEMENT_NODE:
 		text = node.nodeName
-		for key in node.attributes:
-			a = node.attributes[key]
-			attribs.append((a, display.create_pango_layout(' %s=%s'
-					% (unicode(a.name), unicode(a.value)))))
+	elif node.nodeType == Node.ATTRIBUTE_NODE:
+		text = ' %s=%s' % (unicode(node.name), unicode(node.value))
 	elif node.nodeType == Node.COMMENT_NODE:
 		text = node.nodeValue.strip()
 	elif node.nodeName:
@@ -27,46 +25,40 @@ def calc_node(display, node, pos):
 	width, height = layout.get_pixel_size()
 	x, y = pos
 
+	text_x = x
+	if node.nodeType != Node.ATTRIBUTE_NODE:
+		text_x += 12
+
 	def draw_fn():
 		surface = display.pm
 		style = display.style
 		fg = display.style.fg_gc
 		bg = display.style.bg_gc
 
-		surface.draw_rectangle(fg[g.STATE_NORMAL], True,
-					x, y, 8, height - 1)
-		surface.draw_rectangle(display.style.white_gc, True,
-					x + 1, y + 1, 6, height - 3)
+		if node.nodeType != Node.ATTRIBUTE_NODE:
+			surface.draw_rectangle(fg[g.STATE_NORMAL], True,
+						x, y, 8, height - 1)
+			surface.draw_rectangle(display.style.white_gc, True,
+						x + 1, y + 1, 6, height - 3)
 		
 		if node in display.selection:
 			surface.draw_rectangle(bg[g.STATE_SELECTED], True,
-				x + 12, y, width - 1, height - 1)
-			surface.draw_layout(fg[g.STATE_SELECTED], x + 12, y, layout)
+				text_x, y, width - 1, height - 1)
+			surface.draw_layout(fg[g.STATE_SELECTED], text_x, y, layout)
 		else:
 			if node.nodeType == Node.TEXT_NODE:
 				gc = style.text_gc[g.STATE_NORMAL]
+			elif node.nodeType == Node.ATTRIBUTE_NODE:
+				gc = style.fg_gc[g.STATE_INSENSITIVE]
 			else:
 				gc = style.fg_gc[g.STATE_NORMAL]
-			surface.draw_layout(gc, x + 12, y, layout)
-
-		gc = style.fg_gc[g.STATE_INSENSITIVE]
-		ax = x + 12 + width + 4
-		ay = y
-		for attr, alayout in attribs:
-			awidth, aheight = alayout.get_pixel_size()
-			if attr in display.selection:
-				surface.draw_rectangle(bg[g.STATE_SELECTED], True,
-						ax, ay, awidth, aheight)
-				surface.draw_layout(fg[g.STATE_SELECTED], ax, ay, alayout)
-			else:
-				surface.draw_layout(gc, ax, ay, alayout)
-			ax += awidth + 2
+			surface.draw_layout(gc, text_x, y, layout)
 
 		if node in display.view.marked:
 			surface.draw_rectangle(style.text_gc[g.STATE_PRELIGHT], False,
-					x - 1, y - 1, width + 12, height)
+					x - 1, y - 1, width + (text_x - x), height)
 
-	bbox = (x, y, x + 12 + width, y + height)
+	bbox = (x, y, text_x + width, y + height)
 	return bbox, draw_fn
 
 class Display(g.EventBox):
@@ -131,7 +123,7 @@ class Display(g.EventBox):
 		self.pm.draw_rectangle(self.style.bg_gc[g.STATE_NORMAL], True,
 				  0, 0, self.last_alloc[0], self.last_alloc[1])
 
-		self.drawn = {}	# xmlNode -> (x1, y1, y2, y2)
+		self.drawn = {}	# xmlNode -> ((x1, y1, y2, y2), attrib_parent)
 
 		n = self.ref_node
 		p = self.view.root.parentNode
@@ -153,11 +145,17 @@ class Display(g.EventBox):
 		pos = list(self.ref_pos)
 		self.h_limits = (self.ref_pos[0], self.ref_pos[0])	# Left, Right
 		node = self.ref_node
+		attr_parent = None
 		for node, bbox, draw_fn in self.walk_tree(self.ref_node, self.ref_pos):
 			if bbox[1] > self.last_alloc[1]: break	# Off-screen
 
 			draw_fn()
-			self.drawn[node] = bbox
+			if node.nodeType == Node.ATTRIBUTE_NODE:
+				self.drawn[node] = (bbox, attr_parent)
+			else:
+				attr_parent = node
+				self.drawn[node] = (bbox, None)
+
 			if bbox[1] < 0:
 				self.ref_node = node
 				self.ref_pos = bbox[:2]
@@ -174,6 +172,15 @@ class Display(g.EventBox):
 		while node:
 			bbox, draw_fn = calc_node(self, node, pos)
 			yield (node, bbox, draw_fn)
+
+			if node.nodeType == Node.ELEMENT_NODE:
+				apos = [bbox[2] + 4, bbox[0]]
+				for key in node.attributes:
+					a = node.attributes[key]
+					abbox, draw_fn = calc_node(self, a, apos)
+					apos[0] = abbox[2] + 4
+					yield (a, abbox, draw_fn)
+			
 			pos[1] = bbox[3] + 2
 			if node.childNodes:
 				node = node.childNodes[0]
@@ -236,9 +243,10 @@ class Display(g.EventBox):
 		pass
 
 	def xy_to_node(self, x, y):
-		for (n, (x1, y1, x2, y2)) in self.drawn.iteritems():
+		"Return the node at this point and, if it's an attribute, its parent."
+		for (n, ((x1, y1, x2, y2), attrib_parent)) in self.drawn.iteritems():
 			if x >= x1 and x <= x2 and y >= y1 and y <= y2:
-				return n
+				return n, attrib_parent
 	
 	def pan(self):
 		def scale(x):
@@ -307,10 +315,13 @@ class Display(g.EventBox):
 			self.show_menu(event)
 		elif event.type == g.gdk.BUTTON_PRESS or event.type == g.gdk._2BUTTON_PRESS:
 			self.do_update_now()
-			node = self.xy_to_node(event.x, event.y)
+			node, attr_parent = self.xy_to_node(event.x, event.y)
 			if event.button == 1:
 				if node:
-					self.node_clicked(node, event)
+					if attr_parent:
+						self.attrib_clicked(attr_parent, node, event)
+					else:
+						self.node_clicked(node, event)
 			elif event.button == 2:
 				assert self.pan_timeout is None
 				self.pan_start = (event.x, event.y)
