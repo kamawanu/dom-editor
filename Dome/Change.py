@@ -1,21 +1,13 @@
 # All changes go through here so we can undo...
 
+from Beep import Beep
+
 # Which undo list operations will affect.
 # Normal ops add to the undo list.
 # Undo ops add to the redo list.
 # Redo ops add to the undo list, but don't clear the redo list.
 undo_state = '__dom_undo'
 undo_clear = 1
-
-# These two are just for convenience...
-def insert(node, new, index = 0):
-	if len(node.childNodes) > index:
-		insert_before(node.childNodes[index], new)
-	else:
-		insert_before(None, new, parent = node)
-
-def insert_after(node, new):
-	insert_before(node.nextSibling, new, parent = node.parentNode)
 
 # These actually modifiy the DOM
 def set_name(node, new):
@@ -24,11 +16,9 @@ def set_name(node, new):
 			set_name(node, old))
 	node.__dict__['__nodeName'] = new
 
-def insert_before(node, new, parent = None):
+def insert_before(node, new, parent):
 	"Insert 'new' before 'node'. If 'node' is None then insert at the end"
 	"of parent's children."
-	if not parent:
-		parent = node.parentNode
 	parent.insertBefore(new, node)
 	add_undo(parent, lambda new = new: delete(new))
 	
@@ -93,10 +83,12 @@ def add_undo(node, fn):
 
 def do_undo(node):
 	"Undo changes to this node (including descendants)."
+	"Returns the node containing the undone node."
 	if not can_undo(node):
-		return
+		raise Beep
 	
 	node, time = newest_change(node, '__dom_undo')
+	parent = node.parentNode
 	
 	op, fn = node.__dom_undo.pop()
 
@@ -107,12 +99,16 @@ def do_undo(node):
 	undo_clear = 1
 	undo_state = '__dom_undo'
 
+	return parent
+
 def do_redo(node):
 	"Redo undos on this node (including descendants)."
+	"Returns the node containing the redone node."
 	if not can_redo(node):
-		return
+		raise Beep
 	
 	node, time = newest_change(node, '__dom_redo')
+	parent = node.parentNode
 	
 	op, fn = node.__dom_redo.pop()
 
@@ -120,3 +116,5 @@ def do_redo(node):
 	undo_clear = 0
 	fn()
 	undo_clear = 1
+
+	return parent

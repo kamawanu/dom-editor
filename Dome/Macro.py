@@ -132,6 +132,10 @@ class Macro(GtkWindow):
 				action[2] = action[3]
 				del action[3]
 				print 'To', `action`
+			if action[0] == 'chroot':
+				action[0] = 'enter'
+			elif action[0] == 'unchroot':
+				action[0] = 'leave'
 			return action
 			
 		next = None

@@ -5,33 +5,37 @@ from xml.dom.Node import Node
 
 import string
 
-from View import View
-
-class Display(View, GtkDrawingArea):
+class Display(GtkDrawingArea):
 	vmargin = 4
 
-	def __init__(self, model, vadj):
+	def __init__(self, view, vadj):
 		self.vadj = vadj
 		GtkDrawingArea.__init__(self)
 		self.connect('expose-event', self.expose)
-		self.connect('realize', self.realize)
+		self.connect('realize', self.realize, view)
 		self.connect('destroy', self.destroyed)
-		View.__init__(self, model)
+		self.view = None
+	
+	def set_view(self, view):
+		if self.view:
+			self.view.remove_display(self)
+		self.view = view
+		self.view.add_display(self)
+		self.update_all()
 	
 	def update_all(self):
-		View.update_all(self)
 		self.build_index()
 		self.force_redraw()
 	
 	def destroyed(self, widget):
-		self.delete()
+		self.view.remove_display(self)
 	
-	def realize(self, widget):
+	def realize(self, widget, view):
 		self.win = self.get_window()
 		self.st = self.get_style()
 		font = self.st.font
 		self.row_height = font.ascent + font.descent
-		self.build_index()
+		self.set_view(view)
 
 	def expose(self, da, event):
 		self.level = 0
@@ -63,8 +67,8 @@ class Display(View, GtkDrawingArea):
 		else:
 			gc = self.st.fg_gc[STATE_NORMAL]
 
-		off = line - self.node_to_line[self.current]
-		if off >= 0 and off < self.get_lines(self.current):
+		off = line - self.node_to_line[self.view.current]
+		if off >= 0 and off < self.get_lines(self.view.current):
 			self.alloc = self.get_allocation()
 			gdk_draw_rectangle(self.win,
 					self.st.bg_gc[STATE_SELECTED], TRUE,
@@ -73,7 +77,7 @@ class Display(View, GtkDrawingArea):
 
 		parents = []
 		p = node
-		while p != self.root:
+		while p != self.view.root:
 			p = p.parentNode
 			parents.append(p)
 
@@ -112,7 +116,7 @@ class Display(View, GtkDrawingArea):
 		
 		self.node_to_line = {}
 		self.line_to_node = []
-		build(self, self.root, build)
+		build(self, self.view.root, build)
 
 		height = len(self.line_to_node) * self.row_height
 
@@ -166,14 +170,10 @@ class Display(View, GtkDrawingArea):
 		
 		self.queue_draw()
 
-	def move_to(self, node):
-		old_node = self.current
-		View.move_to(self, node)
-		self.scroll_to_show(node)
-		if old_node == self.current:
-			return
-		self.redraw_node(old_node)
-		self.redraw_node(self.current)
+	def move_from(self, old):
+		self.scroll_to_show(self.view.current)
+		self.redraw_node(old)
+		self.redraw_node(self.view.current)
 
 	def scroll_to_show(self, node):
 		# Range of lines to show...

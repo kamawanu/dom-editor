@@ -17,6 +17,7 @@ from List import List
 from Toolbar import Toolbar
 
 from Model import Model
+from View import View
 from GUIView import GUIView
 
 def strip_space(doc):
@@ -34,7 +35,7 @@ class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
 		
-		self.model = Model()
+		self.model = Model(List(self))
 		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
 				      gdk_screen_height() * 2 / 3)
@@ -49,9 +50,8 @@ class Window(GtkWindow):
 		hbox = GtkHBox(FALSE, 0)
 		vbox.pack_start(hbox)
 
-		self.macro_list = List(self)
-		self.macro_list.load_all()
-		hbox.pack_start(self.macro_list, FALSE, TRUE, 0)
+		self.model.macro_list.load_all()
+		hbox.pack_start(self.model.macro_list, FALSE, TRUE, 0)
 		
 		swin = GtkScrolledWindow()
 		hbox.pack_start(swin, TRUE, TRUE, 0)
@@ -66,7 +66,8 @@ class Window(GtkWindow):
 				self.uri = path
 			self.load_file(path)
 
-		self.gui_view = GUIView(self, self.model)
+		view = View(self.model)
+		self.gui_view = GUIView(self, view)
 		self.swin.add_with_viewport(self.gui_view)
 
 		vbox.show_all()
@@ -98,7 +99,7 @@ class Window(GtkWindow):
 	def key(self, widget, kev):
 		if kev.keyval == F3:
 			if kev.state & SHIFT_MASK:
-				self.macro_list.save_all()
+				self.model.macro_list.save_all()
 			else:
 				self.save()
 		return 1

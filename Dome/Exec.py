@@ -1,14 +1,13 @@
 from gtk import *
 from support import *
 
-import Tree
+from Beep import Beep
 
 # An exec represents an executing macro, including the stack, root and cursor position
 
 class Exec:
-	def __init__(self, tree, macro_list):
-		self.tree = tree
-		self.macro_list = macro_list
+	def __init__(self, view):
+		self.view = view
 		
 		# Which node we have just left and which exit we took
 		self.where = None
@@ -38,7 +37,7 @@ class Exec:
 		self.set_pos(None)
 		self.unstack_n(len(self.stack))
 
-		self.stop_after = 0
+		self.stop_after = -1
 
 		if self.sched_tag:
 			idle_remove(self.sched_tag)
@@ -56,13 +55,13 @@ class Exec:
 
 	def rec_cb(self, choice):
 		if choice == 0:
-			self.tree.toggle_record(extend = TRUE)
+			#self.tree.toggle_record(extend = TRUE)
 			self.where.macro.show_all()
 	
 	def play(self, macro_name):
 		self.frozen = 0
 
-		m = self.macro_list.macro_named(macro_name)
+		m = self.view.model.macro_list.macro_named(macro_name)
 		if not m:
 			raise Exception('No macro named `' + macro_name + "'!")
 
@@ -128,9 +127,9 @@ class Exec:
 		self.doing_node = next
 		try:
 			try:
-				self.tree.do_action(action)
+				self.view.do_action(action)
 				dir = 'next'
-			except Tree.Beep:
+			except Beep:
 				dir = 'fail'
 				self.last_fail_node = next
 		finally:
@@ -175,7 +174,7 @@ class Exec:
 		gdk_beep()
 		self.stop_after = 0
 		self.set_pos(self.last_fail_node, 'fail')
-		if self.tree.recording_where == None:
+		if 0 and self.tree.recording_where == None:
 			get_choice("Macro execution failed - record failure case?",
 					self.where.macro.uri,
 					('Record', 'No'),

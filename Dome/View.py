@@ -1,11 +1,13 @@
 from gtk import *
 from support import *
 from xml.dom.Node import Node
+from xml.dom import ext
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
-import re, string, types
+import os, re, string, types
+import Html
 
-class Beep(Exception):
-	pass
+from Beep import Beep
+from Exec import Exec
 
 # An view contains:
 # - A ref to a DOM document
@@ -17,12 +19,33 @@ class Beep(Exception):
 
 class View:
 	def __init__(self, model):
+		self.displays = []
 		self.model = model
 		self.chroots = []
 		self.current = self.model.get_root()
 		self.root = self.current
+		self.clipboard = None
 		model.add_view(self)
+		self.exec_state = Exec(self)
 	
+	def add_display(self, display):
+		"Calls move_from(old_node) when we move and update_all() on updates."
+		self.displays.append(display)
+		print "Added:", self.displays
+	
+	def remove_display(self, display):
+		self.displays.remove(display)
+		print "Removed, now:", self.displays
+	
+	def update_replace(self, old, new):
+		if old == self.root:
+			self.root = new
+		if old == self.current:
+			self.current = new
+			self.update_all(new.parentNode)
+		else:
+			self.update_all(new.parentNode)
+		
 	def has_ancestor(self, node, ancestor):
 		while node != ancestor:
 			node = node.parentNode
@@ -30,12 +53,12 @@ class View:
 				return FALSE
 		return TRUE
 	
-	def update_all(self):
+	def update_all(self, node):
 		# Is the root node still around?
 		if not self.has_ancestor(self.root, self.model.get_root()):
 			# No - reset everything
 			print "[ lost root - using doc root ]"
-			self.root = doc_root
+			self.root = self.model.doc.documentElement
 			self.chroots = []
 		
 		# Is the current node still around?
@@ -43,9 +66,12 @@ class View:
 			# No - move to root
 			print "[ lost current - using root ]"
 			self.current = self.root
-			return
 
-		return
+		if self.has_ancestor(node, self.root) or self.has_ancestor(self.root, node):
+			for display in self.displays:
+				display.update_all()
+		else:
+			print "[ change to %s doesn't affect us (root %s) ]" % (node, self.root)
 	
 	def delete(self):
 		self.model.remove_view(self)
@@ -54,13 +80,17 @@ class View:
 	
 	def home(self):
 		"Move current to the display root."
-		self.move_to_node(self.root_node)
+		self.move_to(self.root_node)
 	
 	def move_to(self, node):
 		if self.current == node:
 			return
 
+		old_node = self.current
 		self.current = node
+
+		for display in self.displays:
+			display.move_from(old_node)
 	
 	def move_prev_sib(self):
 		if self.current == self.root or not self.current.previousSibling:
@@ -84,9 +114,20 @@ class View:
 		else:
 			raise Beep
 	
+	def move_home(self):
+		self.move_to(self.root)
+	
+	def move_end(self):
+		if not self.current.childNodes:
+			raise Beep
+		node = self.current.childNodes[0]
+		while node.nextSibling:
+			node = node.nextSibling
+		self.move_to(node)
+	
 	def set_display_root(self, root):
 		self.root = root
-		self.update_all()
+		self.update_all(root)
 	
 	def enter(self):
 		"Change the display root to the current node."
@@ -129,6 +170,7 @@ class View:
 		c = Context.Context(self.current, [self.current], processorNss = ns)
 		rt = path.select(c)
 		if len(rt) == 0:
+			print "*** Search for '%s' failed" % pattern
 			raise Beep
 		node = rt[0]
 		#for x in rt:
@@ -172,3 +214,115 @@ class View:
 				list.appendChild(self.python_to_node(x))
 			return list
 		return self.model.doc.createTextNode(str(data))
+	
+	def yank(self):
+		node = self.current
+		self.clipboard = node.cloneNode(deep = 1)
+		print "Clip now", self.clipboard
+	
+	def delete_node(self):
+		node = self.current
+		self.clipboard = node.cloneNode(deep = 1)
+		print "Clip now", self.clipboard
+		self.move_left()	# Exception raised if on the root...
+		self.model.delete_node(node)
+	
+	def undo(self):
+		self.model.undo(self.root)
+
+	def redo(self):
+		self.model.redo(self.root)
+
+	def playback(self, macro_name):
+		self.exec_state.play(macro_name)
+
+	def change_node(self, new_data):
+		node = self.current
+		if node.nodeType == Node.TEXT_NODE:
+			self.model.set_data(node, new_data)
+		else:
+			self.model.set_name(node, new_data)
+
+	def add_node(self, where, data):
+		cur = self.current
+		if where[1] == 'e':
+			new = self.model.doc.createElement(data)
+		else:
+			new = self.model.doc.createTextNode(data)
+		
+		try:
+			if where[0] == 'i':
+				self.model.insert_before(cur, new)
+			elif where[0] == 'a':
+				self.model.insert_after(cur, new)
+			else:
+				self.model.insert(cur, new)
+		except:
+			raise Beep
+
+		self.move_to(new)
+
+	def suck(self):
+		node = self.current
+
+		if node.nodeType == Node.TEXT_NODE:
+			uri = node.nodeValue
+		else:
+			uri = None
+			for attr in node.attributes:
+				uri = attr.value
+				if uri.find('//') != -1:
+					break
+		if not uri:
+			print "Can't suck", node
+			raise Beep
+		command = "lynx -source '%s' | tidy" % uri
+		print command
+		cout = os.popen(command)
+
+		reader = Html.Reader()
+		root = reader.fromStream(cout)
+		cout.close()
+		ext.StripHtml(root)
+		new = html_to_xml(node.ownerDocument, root)
+		self.model.replace_node(node, new)
+	
+	def put_before(self):
+		node = self.current
+		if self.clipboard == None:
+			raise Beep
+		new = self.clipboard.cloneNode(deep = 1)
+		try:
+			self.model.insert_before(node, new)
+		except:
+			raise Beep
+
+	def put_after(self):
+		node = self.current
+		if self.clipboard == None:
+			raise Beep
+		new = self.clipboard.cloneNode(deep = 1)
+		try:
+			self.model.insert_after(node, new)
+		except:
+			raise Beep
+
+	def put_replace(self):
+		node = self.current
+		if self.clipboard == None:
+			raise Beep
+		new = self.clipboard.cloneNode(deep = 1)
+		try:
+			self.model.replace_node(node, new)
+		except:
+			raise Beep
+
+	def put_as_child(self):
+		node = self.current
+		if self.clipboard == None:
+			raise Beep
+		new = self.clipboard.cloneNode(deep = 1)
+		try:
+			self.model.insert(node, new, index = 0)
+		except:
+			raise Beep

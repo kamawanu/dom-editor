@@ -72,9 +72,7 @@ class List(GtkVBox):
 		item.grab_default()
 
 		if self.button == 1:
-			self.window.tree.exec_state.clean()
-			self.window.tree.exec_state.set_step_mode(-1)
-			self.window.tree.may_record(["playback", macro.uri])
+			self.window.gui_view.playback(macro)
 		elif self.button == 2:
 			macro.edit()
 		else:

@@ -5,7 +5,7 @@ from xml.dom.Node import Node
 from support import report_exception
 
 from Display import Display
-from View import Beep
+from Beep import Beep
 from Menu import Menu
 from GetArg import GetArg
 from Path import make_relative_path
@@ -13,8 +13,8 @@ from Path import make_relative_path
 class GUIView(Display):
 	vmargin = 4
 
-	def __init__(self, window, model):
-		Display.__init__(self, model, window.vadj)
+	def __init__(self, window, view):
+		Display.__init__(self, view, window.vadj)
 		self.window = window
 		self.connect('button-press-event', self.button_event)
 		window.connect('key-press-event', self.key_press)
@@ -60,35 +60,47 @@ class GUIView(Display):
 			node = self.line_to_node[line]
 		except IndexError:
 			node = None
-		if node and node != self.current:
+		if node and node != self.view.current:
 			lit = bev.state & CONTROL_MASK
 			ns = {}
-			path = make_relative_path(self.current, node, lit, ns)
+			path = make_relative_path(self.view.current, node, lit, ns)
 			self.may_record(["do_search", path, ns])
 
 		if bev.button == 3:
 			items = [
 				('Search', self.show_search),
-				('Enter', self.enter),
-				('Leave', self.leave),
+				('Enter', self.view.enter),
+				('Leave', self.view.leave),
 				(None, None),
-				#('Delete', self.delete_node),
+				('Cut', lambda self = self: self.may_record(['delete_node'])),
+				('Paste (replace)', lambda self = self: self.may_record(['put_replace'])),
+				('Paste (inside)', lambda self = self: self.may_record(['put_as_child'])),
+				('Paste (before)', lambda self = self: self.may_record(['put_before'])),
+				('Paste (after)', lambda self = self: self.may_record(['put_after'])),
+				(None, None),
 				('Substitute', self.show_subst),
 				('Process', self.show_pipe),
 				(None, None),
 				('Question', self.show_ask),
 				(None, None),
+				('Undo', lambda self = self: self.may_record(['undo'])),
+				('Redo', lambda self = self: self.may_record(['redo'])),
 				('Close Window', self.window.destroy),
 				]
 			Menu(items).popup(bev.button, bev.time)
 		return 1
+	
+	def playback(self, macro):
+		"Called when the user clicks on a macro button."
+		# TODO: Reset any running macro...
+		self.may_record(['playback', macro.uri])
 
 	def may_record(self, action):
 		"Perform, and possibly record, this action"
 		#rec = self.recording_where
 
 		try:
-			self.do_action(action)
+			self.view.do_action(action)
 		except Beep:
 			gdk_beep()
 			return 0
@@ -129,8 +141,8 @@ class GUIView(Display):
 		Left	: ["move_left"],
 		Right	: ["move_right"],
 		
-		#Home	: ["move_home"],
-		#End	: ["move_end"],
+		Home	: ["move_home"],
+		End	: ["move_end"],
 		
 		#greater	: ["chroot"],
 		#less	: ["unchroot"],
@@ -166,10 +178,9 @@ class GUIView(Display):
 		exclam	: show_pipe,
 		s	: show_subst,
 
-		#x	: ["delete_node"],
-		#X	: ["delete_prev_sib"],
+		x	: ["delete_node"],
 
 		# Undo/redo
-		#u	: ["undo"],
-		#r	: ["redo"],
+		u	: ["undo"],
+		r	: ["redo"],
 	}
