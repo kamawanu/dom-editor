@@ -31,6 +31,9 @@ def connect(x1, y1, x2, y2):
 		dy *= gap / l
 	return (x1 + dx, y1 + dy, x2 - dx, y2 - dy)
 
+DEFAULT_NEXT = (0, 25)
+DEFAULT_FAIL = (20, 20)
+
 def action_to_text(action):
 	text = action[0]
 	if text[:3] == 'do_':
@@ -414,8 +417,7 @@ class ChainDisplay(GnomeCanvas):
 					font = 'fixed',
 					fill_color = 'black',
 					text = text)
-
-		(x, y) = (0, 25)
+		(x, y) = DEFAULT_NEXT
 		if op.next:
 			(lx, ly, hx, label_bottom) = label.get_bounds()
 			g = group.add('group', x = 0, y = 0)
@@ -433,7 +435,7 @@ class ChainDisplay(GnomeCanvas):
 					width_pixels = 4)
 		group.next_line.connect('event', self.line_event, op, 'next')
 
-		(x, y) = (20, 20)
+		(x, y) = DEFAULT_FAIL
 		if op.fail:
 			y = 46
 			g = group.add('group', x = 0, y = 0)
@@ -587,13 +589,19 @@ class ChainDisplay(GnomeCanvas):
 				print "Clicked exit %s of %s" % (exit, op)
 				self.view.set_exec((op, exit))
 				self.drag_last_pos = None
-				item.ungrab(event.time)
+				if not getattr(op, exit):
+					if exit == 'next':
+						x, y = DEFAULT_NEXT
+					else:
+						x, y = DEFAULT_FAIL
+					item.set(points = connect(0, 0, x, y))
 		elif event.type == MOTION_NOTIFY and self.drag_last_pos:
 			x, y = (event.x, event.y)
 			dx, dy = x - self.drag_last_pos[0], y - self.drag_last_pos[1]
 
-			if dx > 4 or dy > 4:
-				print "Create link!"
+			if abs(dx) > 4 or abs(dy) > 4:
+				x, y = item.w2i(event.x, event.y)
+				item.set(points = connect(0, 0, x, y))
 		elif item != self.exec_point and item != self.rec_point:
 			if event.type == ENTER_NOTIFY:
 				item.set(fill_color = 'white')
