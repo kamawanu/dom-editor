@@ -380,24 +380,23 @@ class ChainDisplay(GnomeCanvas):
 
 	def show_op_menu(self, event, op):
 		del_node = None
-		del_chain = None
 		
-		def yank_chain(self = self, op = op):
-			self.clipboard = op.to_xml()
 		def swap_nf(self = self, op = op):
 			op.swap_nf()
-		if op.prev:
-			def del_chain(self = self, op = op, yc = yank_chain):
-				self.clipboard = op.del_chain()
-			if not (op.next and op.fail):
-				def del_node(self = self, op = op):
-					self.clipboard = op.del_node()
 				
-		items = [('Delete chain', del_chain),
-			('Yank chain', yank_chain),
-			('Remove node', del_node),
-			('Swap next/fail', swap_nf)]
+		if not (op.next and op.fail):
+			def del_node(self = self, op = op):
+				self.clipboard = op.del_node()
+		items = [('Remove node', del_node),
+			 ('Swap next/fail', swap_nf)]
 		Menu(items).popup(event.button, event.time)
+
+	def paste_chain(self, op, exit):
+		print "Paste", self.clipboard
+		reader = PyExpat.Reader()
+		doc = reader.fromStream(StringIO(self.clipboard))
+		new = load(doc.documentElement)
+		op.link_to(new, exit)
 
 	def line_event(self, item, event, op, exit):
 		if event.type == BUTTON_PRESS:
@@ -405,18 +404,33 @@ class ChainDisplay(GnomeCanvas):
 				print "Clicked exit %s of %s" % (exit, op)
 				self.view.set_exec((op, exit))
 			elif event.button == 2:
-				print "Paste", self.clipboard
-				reader = PyExpat.Reader()
-				doc = reader.fromStream(StringIO(self.clipboard))
-				new = load(doc.documentElement)
-				op.link_to(new, exit)
+				self.paste_chain(op, exit)
 			elif event.button == 3:
-				bp = self.view.breakpoints
-				if bp.has_key((op, exit)):
-					del bp[(op, exit)]
+				def paste_chain(self = self, op = op, exit = exit):
+					self.paste_chain(op, exit)
+				def toggle_breakpoint(self = self, op = op, exit = exit):
+					bp = self.view.breakpoints
+					if bp.has_key((op, exit)):
+						del bp[(op, exit)]
+					else:
+						bp[(op, exit)] = 1
+					self.update_all()
+
+				next = getattr(op, exit)
+				if next:
+					def yank_chain(self = self, op = next):
+						self.clipboard = op.to_xml()
+					def del_chain(self = self, op = next):
+						self.clipboard = op.del_chain()
 				else:
-					bp[(op, exit)] = 1
-				self.update_all()
+					del_chain = None
+					yank_chain = None
+
+				items = [('Delete chain', del_chain),
+					('Yank chain', yank_chain),
+					('Paste chain', paste_chain),
+					('Set/clear breakpoint', toggle_breakpoint)]
+				Menu(items).popup(event.button, event.time)
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')
 		elif event.type == LEAVE_NOTIFY:
