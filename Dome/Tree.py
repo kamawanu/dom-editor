@@ -14,6 +14,7 @@ from GetArg import GetArg
 import Change
 from SaveBox import SaveBox
 from Exec import Exec
+from Menu import Menu
 import Macro
 import Html
 
@@ -298,8 +299,22 @@ class Tree(GtkDrawingArea):
 			lit = bev.state & CONTROL_MASK
 			ns = {}
 			path = self.line_to_relative_path(line, lit, ns)
-			off = line - self.node_to_line[node]
-			self.may_record(["do_search", path, off, ns])
+			self.may_record(["do_search", path, ns])
+		elif bev.button == 3:
+			items = [
+				('Search', self.search),
+				('Enter', self.chroot),
+				('Leave', self.unchroot),
+				(None, None),
+				('Delete', self.delete_node),
+				('Substitute', self.show_subst),
+				(None, None),
+				('Question', self.show_ask),
+				(None, None),
+				('Close Window', self.window.destroy),
+				]
+			Menu(items).popup(bev.button, bev.time)
+		return 1
 	
 	def move_to_node(self, node):
 		if node:
@@ -312,7 +327,10 @@ class Tree(GtkDrawingArea):
 		if line != old_cl:
 			self.current_line = line
 			self.force_redraw(self.current_line)
-			self.force_redraw(old_cl)
+			if old_cl >= len(self.line_to_node):
+				self.force_redraw()
+			else:
+				self.force_redraw(old_cl)
 
 		h = self.row_height
 		y = line * h
@@ -386,7 +404,8 @@ class Tree(GtkDrawingArea):
 		else:
 			gc = self.st.fg_gc[STATE_NORMAL]
 
-		if line == self.current_line:
+		off = line - self.current_line
+		if off >= 0 and off < self.get_lines(self.current_node()):
 			self.alloc = self.get_allocation()
 			gdk_draw_rectangle(self.win,
 					self.st.bg_gc[STATE_SELECTED], TRUE,
@@ -422,6 +441,9 @@ class Tree(GtkDrawingArea):
 
 			x = x - 32
 	
+	def current_node(self):
+		return self.line_to_node[self.current_line]
+	
 	def force_redraw(self, line = None, height = None):
 		(x, y, w, h) = self.get_allocation()
 
@@ -430,7 +452,7 @@ class Tree(GtkDrawingArea):
 			if height != None:
 				h = height * self.row_height
 			else:
-				h = self.row_height
+				h = self.row_height * self.get_lines(self.line_to_node[line])
 
 		gdk_draw_rectangle(self.win,
 				self.st.bg_gc[STATE_NORMAL],
@@ -449,7 +471,7 @@ class Tree(GtkDrawingArea):
 			return len(get_text(node))
 		return 1
 	
-	def do_search(self, cur, pattern, off = 0, ns = None):
+	def do_search(self, cur, pattern, ns = None):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 
@@ -465,7 +487,7 @@ class Tree(GtkDrawingArea):
 			if self.node_to_line[x] > self.current_line:
 				node = x
 				break
-		self.move_to(self.node_to_line[node] + off)
+		self.move_to(self.node_to_line[node])
 
 	def user_do_search(self, pattern):
 		action = ["do_search", pattern]
@@ -473,40 +495,22 @@ class Tree(GtkDrawingArea):
 		self.last_search = action
 
 	# Motions
-	def move_up(self, node):
-		"Up"
-		if self.current_line < 1:
-			raise Beep
-		self.move_to(self.current_line - 1)
-
-	def move_down(self, node):
-		"Down"
-		if self.current_line + 1 >= len(self.line_to_node):
-			raise Beep
-		self.move_to(self.current_line + 1)
-
 	def move_left(self, node):
 		"Left"
 		if node is self.display_root:
 			raise Beep
-		self.left_hist.append(self.current_line)
+		#self.left_hist.append(self.current_line)
 		self.move_to_node(node.parentNode)
 
 	def move_right(self, cur):
 		"Right"
- 		if len(self.left_hist) == 0:
+ 		#if len(self.left_hist) == 0:
+			#raise Beep
+		#line = self.left_hist.pop()
+		if len(cur.childNodes) == 0:
 			raise Beep
-		line = self.left_hist.pop()
-		node = None
-		try:
-			node = self.line_to_node[line]
-		except IndexError:
-			pass
-		if node and node.parentNode == cur:
-			self.move_to(line)
-		else:
-			self.left_hist = []
-			raise Beep
+		node = cur.childNodes[0]
+		self.move_to_node(node)
 
 	def move_home(self, node):
 		"Home"
@@ -812,8 +816,8 @@ class Tree(GtkDrawingArea):
 
 	key_to_action = {
 		# Motions
-		Up	: ["move_up"],
-		Down	: ["move_down"],
+		Up	: ["move_prev_sib"],
+		Down	: ["move_next_sib"],
 		Left	: ["move_left"],
 		Right	: ["move_right"],
 		
@@ -823,8 +827,8 @@ class Tree(GtkDrawingArea):
 		greater	: ["chroot"],
 		less	: ["unchroot"],
 		
-		Prior	: ["move_prev_sib"],
-		Next	: ["move_next_sib"],
+		#Prior	: ["move_prev_sib"],
+		#Next	: ["move_next_sib"],
 
 		slash	: search,
 		n	: ["search_next"],

@@ -126,7 +126,13 @@ class Macro(GtkWindow):
 	def load(self, start, node):
 		def action(node):
 			attr = node.attributes[('', 'action')]
-			return eval(str(attr.value))
+			action = eval(str(attr.value))
+			if action[0] == 'do_search' and len(action) == 4:
+				print 'Fixing', `action`
+				action[2] = action[3]
+				del action[3]
+				print 'To', `action`
+			return action
 			
 		next = None
 		fail = None
@@ -216,8 +222,6 @@ class MacroNode:
 		if len(action) > 1:
 			if action[0] == 'do_search':
 				details = '...' + str(action[1])[-12:]
-				if len(action) > 2:
-					details += '+' + `action[2]`
 			elif action[0] == 'add_node':
 				details = action[2]
 			else:
