@@ -505,7 +505,7 @@ class View:
 
 	def fast_global(self, name):
 		"Search for nodes with this name anywhere under the root (//name)"
-		print "Fast global", name
+		#print "Fast global", name
 		if ':' in name:
 			(prefix, localName) = string.split(name, ':', 1)
 		else:
@@ -1057,7 +1057,7 @@ class View:
 			return
 		
 		reader = PyExpat.Reader()
-		print "Parsing...",
+		print "parsing...",
 
 		from Ft.Xml.InputSource import InputSourceFactory
 		from Ft.Xml.cDomlette import nonvalParse
