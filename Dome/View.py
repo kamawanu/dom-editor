@@ -611,6 +611,7 @@ class View:
 		code = XPathParser.new().parse(self.macro_pattern(pattern))
 		#print code
 		nodes = code.evaluate(c)
+		assert type(nodes) == list
 		#nodes = XPath.Evaluate(self.macro_pattern(pattern), contextNode = self.get_current())
 		#print "Found", nodes
 		self.move_to(nodes)
