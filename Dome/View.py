@@ -746,16 +746,16 @@ class View:
 		return prog
 
 	def change_node(self, new_data):
-		node = self.get_current()
-		if node.nodeType == Node.TEXT_NODE or node.nodeType == Node.COMMENT_NODE:
-			self.model.set_data(node, new_data)
-		else:
-			if ':' in new_data:
-				(prefix, localName) = string.split(new_data, ':', 1)
+		for node in self.current_nodes:
+			if node.nodeType == Node.TEXT_NODE or node.nodeType == Node.COMMENT_NODE:
+				self.model.set_data(node, new_data)
 			else:
-				(prefix, localName) = ('', new_data)
-			namespaceURI = self.model.prefix_to_namespace(self.get_current(), prefix)
-			self.model.set_name(node, namespaceURI, new_data)
+				if ':' in new_data:
+					(prefix, localName) = string.split(new_data, ':', 1)
+				else:
+					(prefix, localName) = ('', new_data)
+				namespaceURI = self.model.prefix_to_namespace(node, prefix)
+				self.model.set_name(node, namespaceURI, new_data)
 
 	def add_node(self, where, data):
 		cur = self.get_current()

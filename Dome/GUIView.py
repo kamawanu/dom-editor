@@ -180,7 +180,7 @@ class GUIView(Display):
 		if self.cursor_node:
 			self.hide_editbox()
 
-		self.cursor_node = self.view.get_current()
+		self.cursor_node = self.view.current_nodes[0]
 		group = self.node_to_group[self.cursor_node]
 		self.cursor_attrib = self.view.current_attrib
 
