@@ -12,6 +12,7 @@ from xml.dom.Document import Document
 import string
 import Html
 import Change
+import support
 from Beep import Beep
 
 class Model:
@@ -56,7 +57,7 @@ class Model:
 		if data_to_load:
 			self.doc = implementation.createDocument(None, 'root', None)
 			if not root_program:
-				node = self.doc.importNode(data_to_load, deep = 1)
+				node = support.import_with_ns(self.doc, data_to_load)
 				self.doc.replaceChild(node, self.doc.documentElement)
 				self.strip_space()
 		

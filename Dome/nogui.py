@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import findrox
+from Beep import Beep
 
 try:
 	import rox
@@ -48,7 +49,7 @@ print "Starting root program of", source
 view.run_new(None)
 
 try:
-	self.do_action(['play', model.root_program.name])
+	view.do_action(['play', model.root_program.name])
 except InProgress:
 	pass
 except Beep:

@@ -1,6 +1,6 @@
 import sys
 import traceback
-from xml.dom import ext, Node, implementation
+from xml.dom import ext, Node, implementation, XMLNS_NAMESPACE
 
 from string import find, lower, join
 from socket import gethostbyaddr, gethostname
@@ -43,3 +43,17 @@ def send_to_file(data, path):
 
 	return 1
 
+def import_with_ns(doc, node):
+	nss = ext.GetAllNs(node)
+	node = doc.importNode(node, deep = 1)
+	for ns in nss.keys():
+		if ns == 'xml':
+			continue
+		print "Set namespace:", ns, "->", nss[ns]
+		uri = nss[ns]
+		if ns is None:
+			ns = 'xmlns'
+		else:
+			ns = 'xmlns:' + ns
+		node.setAttributeNS(XMLNS_NAMESPACE, ns, uri)
+	return node
