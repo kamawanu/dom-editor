@@ -7,6 +7,15 @@ from xml.dom import Node
 import string
 import Exec
 
+watch_cursor = cursor_new(WATCH)
+no_cursor = cursor_new(TCROSS)
+
+def set_busy(widget, busy = TRUE):
+	if busy:
+		widget.get_window().set_cursor(watch_cursor)
+	else:
+		widget.get_window().set_cursor(no_cursor)
+
 def wrap(str, width):
 	ret = ''
 	while len(str) > width:
@@ -74,7 +83,7 @@ class Display(GnomeCanvas):
 			return		# Going to update anyway...
 
 		if Exec.exec_state.running():
-			self.update_timeout = timeout_add(200, self.update_callback)
+			self.update_timeout = timeout_add(1000, self.update_callback)
 		else:
 			self.update_timeout = timeout_add(10, self.update_callback)
 	
@@ -87,16 +96,21 @@ class Display(GnomeCanvas):
 	def update_callback(self):
 		self.update_timeout = 0
 		print "Update..."
-		if self.root_group:
-			self.root_group.destroy()
-		self.root_group = self.root().add('group', x = 0, y = 0)
-		self.node_to_group = {}
-		self.create_tree(self.view.root, self.root_group)
-		self.unhighlight(self.view.root)
-		self.move_from()
-		self.set_bounds()
-		if self.view.current_nodes:
-			self.scroll_to_show(self.view.current_nodes[0])
+		set_busy(self)
+		try:
+
+			if self.root_group:
+				self.root_group.destroy()
+			self.root_group = self.root().add('group', x = 0, y = 0)
+			self.node_to_group = {}
+			self.create_tree(self.view.root, self.root_group)
+			self.unhighlight(self.view.root)
+			self.move_from()
+			self.set_bounds()
+			if self.view.current_nodes:
+				self.scroll_to_show(self.view.current_nodes[0])
+		finally:
+			set_busy(self, FALSE)
 		return 0
 	
 	def unhighlight(self, node):
@@ -146,11 +160,18 @@ class Display(GnomeCanvas):
 			ax = hx + 8
 			ay = 0
 			group.attrib_to_group = {}
+			if not cramped:
+				l = 0
+				for a in node.attributes:
+					l += len(str(a.name)) + len(str(a.value))
+				acramped = l > 80
+			else:
+				acramped = cramped
 			for a in node.attributes:
 				g = group.add('group', x = ax, y = ay)
 				self.create_attribs(a, g, cramped, node)
 				(alx, aly, ahx, ahy) = g.get_bounds()
-				if cramped:
+				if acramped:
 					ay = ahy + 8
 					hy = ahy
 				else:

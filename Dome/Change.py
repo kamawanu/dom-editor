@@ -56,7 +56,7 @@ def set_attrib(node, namespaceURI, localName, value = None):
 	else:
 		node.removeAttributeNS(namespaceURI, localName)
 
-	add_undo(node, lambda node = node, attrib = attrib, old = old: \
+	add_undo(node, lambda node = node, namespaceURI = namespaceURI, localName = localName, old = old: \
 				set_attrib(node, namespaceURI, localName, old))
 
 # Support

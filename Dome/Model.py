@@ -5,7 +5,7 @@
 # All changes to the DOM must go through here.
 # Notification to views of changes is done.
 
-from xml.dom import implementation
+from xml.dom import implementation, XMLNS_NAMESPACE
 from xml.dom.ext.reader import PyExpat
 from xml.dom import ext
 from xml.dom import Node
@@ -129,3 +129,15 @@ class Model:
 		"Set an attribute's value. If value is None, remove the attribute."
 		Change.set_attrib(node, namespaceURI, localName, value)
 		self.update_all(node)
+	
+	def prefix_to_namespace(self, node, prefix):
+		"Use the xmlns attributes to workout the namespace."
+		nss = ext.GetAllNs(node)
+		if nss.has_key(prefix):
+			return nss[prefix]
+		if prefix:
+			if prefix == 'xmlns':
+				return XMLNS_NAMESPACE
+			raise Exception("No such namespace prefix '%s'" % prefix)
+		else:
+			return ''

@@ -138,10 +138,9 @@ class GUIView(Display):
 		"Edit the current node/attribute"
 		if self.cursor_node:
 			self.hide_editbox()
-		node = self.view.current
 
-		group = self.node_to_group[node]
-		self.cursor_node = node
+		self.cursor_node = self.view.current
+		group = self.node_to_group[self.cursor_node]
 		self.cursor_attrib = self.view.current_attrib
 
 		self.hightlight(group, FALSE)
@@ -178,8 +177,8 @@ class GUIView(Display):
 		node = self.cursor_node
 		if node.nodeType == Node.ELEMENT_NODE:
 			if self.cursor_attrib:
-				a = node.getAttributeNode(self.cursor_attrib)
-				return "%s=%s" % (str(a.name), str(a.value))
+				name, value = (self.cursor_attrib.name, self.cursor_attrib.value)
+				return "%s=%s" % (str(name), str(value))
 			return node.nodeName
 		else:
 			return node.nodeValue
@@ -195,14 +194,17 @@ class GUIView(Display):
 			self.size_eb()
 		elif key == Tab or key == Return:
 			text = eb.get_chars(0, -1)
-			if text != self.get_edit_text():
-				self.commit_edit(text)
-			self.hide_editbox()
+			try:
+				if text != self.get_edit_text():
+					self.commit_edit(text)
+			finally:
+				self.hide_editbox()
 		return 1
 
 	def commit_edit(self, new):
 		if self.cursor_attrib:
-			self.view.may_record(['set_attrib', new])
+			self.view.may_record(['set_attrib', self.cursor_attrib.namespaceURI,
+						self.cursor_attrib.localName, new])
 		else:
 			self.view.may_record(['change_node', new])
 	
@@ -251,12 +253,19 @@ class GUIView(Display):
 
 	def show_attrib(self):
 		def do_attrib(name, self = self):
-			if self.view.current.hasAttribute(name):
-				action = ["attribute", name]
+			if ':' in name:
+				(prefix, localName) = string.split(name, ':', 1)
+			else:
+				(prefix, localName) = ('', name)
+			namespaceURI = self.view.model.prefix_to_namespace(self.view.current, prefix)
+			if self.view.current.hasAttributeNS(namespaceURI, localName):
+				action = ["attribute", namespaceURI, localName]
 				self.view.may_record(action)
 			else:
-				def do_create(value, self = self, name = name):
-					action = ["set_attrib", ("%s=%s" % (name, value))]
+				def do_create(value, self = self,
+						namespaceURI = namespaceURI,
+						name = name):
+					action = ["set_attrib", namespaceURI, name, value]
 					print action
 					self.view.may_record(action)
 				GetArg('Create attribute:', do_create, ['%s = ' % name])
@@ -289,7 +298,7 @@ class GUIView(Display):
 	def new_element(self):
 		cur = self.view.current
 		if cur.nodeType == Node.TEXT_NODE:
-			return self.view.model.doc.createElement( cur.parentNode.nodeName)
+			return self.view.model.doc.createElement(cur.parentNode.nodeName)
 		return self.view.model.doc.createElement(cur.nodeName)
 	
 	def insert_element(self):

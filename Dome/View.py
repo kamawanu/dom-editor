@@ -1,6 +1,6 @@
 from gtk import *
 from support import *
-from xml.dom import Node
+from xml.dom import Node, ext
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
 import os, re, string, types
 import urlparse
@@ -251,10 +251,12 @@ class View:
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 
-		ns = {}
-		ns['ext'] = FT_EXT_NAMESPACE
 		if len(self.current_nodes) != 1:
 			self.move_to(self.root)
+		ns = {}
+		if not ns:
+			ns = ext.GetAllNs(self.current_nodes[0])
+		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(self.current, [self.current], processorNss = ns)
 		self.global_set = path.select(c)
 		self.move_to(self.global_set)
@@ -263,13 +265,13 @@ class View:
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 
-		if not ns:
-			ns = {}
-		ns['ext'] = FT_EXT_NAMESPACE
 		if len(self.current_nodes) == 0:
 			src = self.root
 		else:
 			src = self.current_nodes[-1]
+		if not ns:
+			ns = ext.GetAllNs(src)
+		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
 		rt = path.select(c)
 		node = None
@@ -284,6 +286,7 @@ class View:
 				#break
 		if not node:
 			print "*** Search for '%s' failed" % pattern
+			print "    (namespaces were '%s')" % ns
 			raise Beep
 		if toggle:
 			new = self.current_nodes[:]
@@ -330,7 +333,7 @@ class View:
 	def python_to_node(self, data):
 		"Convert a python data structure into a tree and return the root."
 		if type(data) == types.ListType:
-			list = self.model.doc.createElement('List')
+			list = self.model.doc.createElementNS(DOME_NS, 'dome:list')
 			for x in data:
 				list.appendChild(self.python_to_node(x))
 			return list
@@ -339,14 +342,14 @@ class View:
 	def yank(self):
 		if self.current_attrib:
 			a = self.current_attrib
-			self.clipboard = self.model.doc.createElement('attribute')
-			n = self.model.doc.createElement('namespaceURI')
+			self.clipboard = self.model.doc.createElementNS(DOME_NS, 'attribute')
+			n = self.model.doc.createElementNS(DOME_NS, 'dome:namespaceURI')
 			n.appendChild(self.model.doc.createTextNode(a.namespaceURI))
 			self.clipboard.appendChild(n)
-			n = self.model.doc.createElement('name')
+			n = self.model.doc.createElementNS(DOME_NS, 'dome:name')
 			n.appendChild(self.model.doc.createTextNode(a.localName))
 			self.clipboard.appendChild(n)
-			n = self.model.doc.createElement('value')
+			n = self.model.doc.createElementNS(DOME_NS, 'dome:value')
 			n.appendChild(self.model.doc.createTextNode(a.value))
 			self.clipboard.appendChild(n)
 		else:
@@ -417,7 +420,12 @@ class View:
 	def add_node(self, where, data):
 		cur = self.current
 		if where[1] == 'e':
-			new = self.model.doc.createElement(data)
+			if ':' in data:
+				(prefix, localName) = string.split(data, ':', 1)
+			else:
+				(prefix, localName) = ('', data)
+			namespaceURI = self.model.prefix_to_namespace(self.current, prefix)
+			new = self.model.doc.createElementNS(namespaceURI, data)
 		else:
 			new = self.model.doc.createTextNode(data)
 		
@@ -533,11 +541,20 @@ class View:
 			
 		print attribs
 		for a in attribs:
-			n = self.model.doc.createElement('attribute')
-			n.setAttributeNS(DOME_NS, 'namespaceURI', a.namespaceURI)
-			n.setAttributeNS(DOME_NS, 'name', a.nodeName)
-			n.setAttributeNS(DOME_NS, 'value', a.value)
+			n = self.model.doc.createElementNS(DOME_NS, 'dome:attribute')
+			ns = self.model.doc.createElementNS(DOME_NS, 'dome:namespaceURI')
+			name = self.model.doc.createElementNS(DOME_NS, 'dome:name')
+			val = self.model.doc.createElementNS(DOME_NS, 'dome:value')
+			
+			n.appendChild(ns)
+			n.appendChild(name)
+			n.appendChild(val)
+
 			self.clipboard.appendChild(n)
+
+			ns.appendChild(self.model.doc.createTextNode(a.namespaceURI))
+			name.appendChild(self.model.doc.createTextNode(a.nodeName))
+			val.appendChild(self.model.doc.createTextNode(a.value))
 		print "Clip now", self.clipboard
 	
 	def paste_attribs(self):
@@ -546,12 +563,14 @@ class View:
 		else:
 			attribs = [self.clipboard]
 		new = []
+		def get(a, name):
+			return a.getElementsByTagNameNS(DOME_NS, name)[0].childNodes[0].data
 		for a in attribs:
 			try:
-				namespaceURI = a.getElementsbyTagNameNS(DOME_NS, 'namespaceURI')[0]
-				nodename = a.getElementsbyTagNameNS(DOME_NS, 'name')[0]
-				value = a.getElementsbyTagNameNS(DOME_NS, 'value')[0]
-				new.append((ns, nodename, value))
+				namespaceURI = get(a, 'namespaceURI')
+				nodename = get(a, 'name')
+				value = get(a, 'value')
+				new.append((namespaceURI, nodename, value))
 			except IndexError:
 				raise Beep
 		for node in self.current_nodes:
@@ -571,7 +590,7 @@ class View:
 		raise Beep(may_record = 1)
 	
 	def attribute(self, namespace = None, attrib = None):
-		if not attrib:
+		if attrib is None:
 			self.move_to(self.current)
 			return
 
@@ -583,7 +602,6 @@ class View:
 		else:
 			raise Beep()
 	
-	def set_attrib(self, new):
-		name, value = string.split(new, '=', 1)
-		ns = self.current_attrib.namespaceURI
-		self.model.set_attrib(self.current, ns, name, value)
+	def set_attrib(self, namespaceURI, name, value):
+		# 'name' must include the prefix if namespaceURI is not ''
+		self.model.set_attrib(self.current, namespaceURI, name, value)
