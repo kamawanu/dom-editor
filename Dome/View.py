@@ -2,7 +2,8 @@ from gtk import *
 import GDK
 from support import *
 from xml.dom import Node, ext
-from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
+from xml import xpath
+from xml.xpath import FT_EXT_NAMESPACE, Context
 from xml.dom.ext.reader import PyExpat
 import os, re, string, types
 import urlparse
@@ -448,9 +449,6 @@ class View:
 	# Actions...
 
 	def do_global(self, pattern):
-		p = XPathParser.XPathParser()	
-		path = p.parseExpression(pattern)
-
 		if len(self.current_nodes) != 1:
 			self.move_to(self.root)
 		ns = {}
@@ -458,13 +456,9 @@ class View:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(self.current, [self.current], processorNss = ns)
-		self.global_set = path.select(c)
-		self.move_to(self.global_set)
+		self.move_to(xpath.Evaluate(pattern, context = c))
 		
 	def do_search(self, pattern, ns = None, toggle = FALSE):
-		p = XPathParser.XPathParser()	
-		path = p.parseExpression(pattern)
-
 		if len(self.current_nodes) == 0:
 			src = self.root
 		else:
@@ -473,7 +467,7 @@ class View:
 			ns = ext.GetAllNs(src)
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
-		rt = path.select(c)
+		rt = xpath.Evaluate(pattern, context = c)
 		node = None
 		for x in rt:
 			if not self.has_ancestor(x, self.root):
@@ -1081,7 +1075,7 @@ class View:
 		conn = httplib.HTTP(addr)
 		conn.putrequest("POST", path)
 		conn.putheader('Content-Type', 'text/xml; charset="utf-8"')
-		conn.putheader('Content-Length', len(message))
+		conn.putheader('Content-Length', str(len(message)))
 		conn.putheader('SOAPAction', '')
 		conn.endheaders()
 		conn.send(message)
