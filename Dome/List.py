@@ -343,6 +343,11 @@ class ChainDisplay(GnomeCanvas):
 		group.fail_line.connect('event', self.line_event, op, 'fail')
 
 		self.op_to_group[op] = group
+
+		if self.view.breakpoints.has_key((op, 'next')):
+			group.next_line.set(line_style = LINE_ON_OFF_DASH)
+		if self.view.breakpoints.has_key((op, 'fail')):
+			group.fail_line.set(line_style = LINE_ON_OFF_DASH)
 	
 	def op_event(self, item, event, op):
 		if event.type == BUTTON_PRESS:
@@ -387,6 +392,13 @@ class ChainDisplay(GnomeCanvas):
 				doc = reader.fromStream(StringIO(self.clipboard))
 				new = load(doc.documentElement)
 				op.link_to(new, exit)
+			elif event.button == 3:
+				bp = self.view.breakpoints
+				if bp.has_key((op, exit)):
+					del bp[(op, exit)]
+				else:
+					bp[(op, exit)] = 1
+				self.update_all()
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')
 		elif event.type == LEAVE_NOTIFY:

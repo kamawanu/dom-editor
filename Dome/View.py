@@ -95,6 +95,8 @@ class View:
 		self.innermost_failure = None
 		self.call_on_done = None	# Called when there is nowhere to return to
 		self.exec_stack = []		# Ops we are inside (display use only)
+
+		self.breakpoints = {}		# (op, exit) keys, values don't matter
 	
 	def __getattr__(self, attr):
 		if attr == 'current':
@@ -376,6 +378,12 @@ class View:
 			report_error("No current playback point.")
 			return
 		(op, exit) = self.exec_point
+
+		if self.single_step == 0 and self.breakpoints.has_key(self.exec_point):
+			print "Hit a breakpoint!"
+			self.single_step = 1
+			return
+		
 		next = getattr(op, exit)
 		if next:
 			self.set_oip(next)
@@ -730,11 +738,14 @@ class View:
 		if node.nodeType == Node.TEXT_NODE:
 			uri = node.nodeValue
 		else:
-			uri = None
-			for attr in node.attributes:
-				uri = attr.value
-				if uri.find('//') != -1 or uri.find('.htm') != -1:
-					break
+			if self.current_attrib:
+				uri = self.current_attrib.value
+			else:
+				uri = None
+				for attr in node.attributes:
+					uri = attr.value
+					if uri.find('//') != -1 or uri.find('.htm') != -1:
+						break
 		if not uri:
 			print "Can't suck", node
 			raise Beep

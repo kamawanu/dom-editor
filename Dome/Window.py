@@ -20,6 +20,8 @@ from View import View
 from List import List
 from GUIView import GUIView
 
+from View import InProgress, Done
+
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
@@ -170,6 +172,12 @@ class Window(GtkWindow):
 	def tool_Play(self):
 		if not self.view.callback_on_return:
 			self.view.run_new(self.list.run_return)
+		# Step first, in case we're on a breakpoint
+		self.view.single_step = 1
+		try:
+			self.view.do_one_step()
+		except InProgress, Done:
+			pass
 		self.view.single_step = 0
 		self.view.sched()
 	
@@ -177,13 +185,19 @@ class Window(GtkWindow):
 		if not self.view.callback_on_return:
 			self.view.run_new(self.list.run_return)
 		self.view.single_step = 2
-		self.view.do_one_step()
+		try:
+			self.view.do_one_step()
+		except InProgress, Done:
+			pass
 	
 	def tool_Step(self):
 		if not self.view.callback_on_return:
 			self.view.run_new(self.list.run_return)
 		self.view.single_step = 1
-		self.view.do_one_step()
+		try:
+			self.view.do_one_step()
+		except InProgress, Done:
+			pass
 	
 	def tool_Record(self):
 		if self.view.rec_point:
