@@ -98,6 +98,7 @@ def run_nogui():
 	print "Done!"
 
 if show_leaks:
+	`[]`	# Load repr stuff
 	gc.collect()
 	old = {}
 	for x in gc.get_objects():
