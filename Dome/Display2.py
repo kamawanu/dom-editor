@@ -4,7 +4,7 @@ import rox
 from rox import g
 from xml.dom import Node
 
-def draw_node(display, node, pos):
+def calc_node(display, node, pos):
 	if node.nodeType == Node.TEXT_NODE:
 		text = node.nodeValue.strip()
 	elif node.nodeType == Node.ELEMENT_NODE:
@@ -20,24 +20,27 @@ def draw_node(display, node, pos):
 
 	layout = display.create_pango_layout(text)
 	width, height = layout.get_pixel_size()
-	surface = display.pm
-	fg = display.style.fg_gc
-	bg = display.style.bg_gc
 	x, y = pos
 
-	surface.draw_rectangle(fg[g.STATE_NORMAL], True,
-				x, y, 8, height - 1)
-	surface.draw_rectangle(display.style.white_gc, True,
-				x + 1, y + 1, 6, height - 3)
-	
-	if node in display.selection:
-		surface.draw_rectangle(bg[g.STATE_SELECTED], True,
-			x + 12, y, width - 1, height - 1)
-		surface.draw_layout(fg[g.STATE_SELECTED], x + 12, y, layout)
-	else:
-		surface.draw_layout(fg[g.STATE_NORMAL], x + 12, y, layout)
-	
-	return (x, y, x + 12 + width, y + height)
+	def draw_fn():
+		surface = display.pm
+		fg = display.style.fg_gc
+		bg = display.style.bg_gc
+
+		surface.draw_rectangle(fg[g.STATE_NORMAL], True,
+					x, y, 8, height - 1)
+		surface.draw_rectangle(display.style.white_gc, True,
+					x + 1, y + 1, 6, height - 3)
+		
+		if node in display.selection:
+			surface.draw_rectangle(bg[g.STATE_SELECTED], True,
+				x + 12, y, width - 1, height - 1)
+			surface.draw_layout(fg[g.STATE_SELECTED], x + 12, y, layout)
+		else:
+			surface.draw_layout(fg[g.STATE_NORMAL], x + 12, y, layout)
+
+	bbox = (x, y, x + 12 + width, y + height)
+	return bbox, draw_fn
 
 class Display(g.EventBox):
 	def __init__(self, window, view):
@@ -56,6 +59,7 @@ class Display(g.EventBox):
 
 		#self.connect('destroy', self.destroyed)
 		self.connect('button-press-event', self.bg_event)
+		self.connect('button-release-event', self.bg_event)
 
 		#self.set_view(view)
 
@@ -71,6 +75,7 @@ class Display(g.EventBox):
 		self.connect('size-request', lambda w, r: self.size_request(r))
 		self.connect('expose-event', lambda w, e: 1)
 
+		self.pan_timeout = None
 		self.set_view(view)
 	
 	def size_allocate(self, alloc):
@@ -87,9 +92,7 @@ class Display(g.EventBox):
 
 	def update(self):
 		if not self.pm: return
-		print "update"
-		#if self.view.current_nodes:
-		#	self.ref_node = self.view.current_nodes[0] # XXX
+		#print "update"
 
 		self.update_timeout = 0
 
@@ -104,9 +107,25 @@ class Display(g.EventBox):
 
 		pos = list(self.ref_pos)
 		node = self.ref_node
-		while pos[1] <= self.last_alloc[1]:
-			bbox = draw_node(self, node, pos)
+		for node, bbox, draw_fn in self.walk_tree(self.ref_node, self.ref_pos):
+			if bbox[1] > self.last_alloc[1]: break	# Off-screen
+			
+			draw_fn()
 			self.drawn[node] = bbox
+			if bbox[1] < 0:
+				self.ref_node = node
+				self.ref_pos = bbox[:2]
+
+		self.window.clear()
+
+		return 0
+	
+	def walk_tree(self, node, pos):
+		"""Yield this (node, bbox), and all following ones in document order."""
+		pos = list(pos)
+		while node:
+			bbox, draw_fn = calc_node(self, node, pos)
+			yield (node, bbox, draw_fn)
 			pos[1] = bbox[3] + 2
 			if node.childNodes:
 				node = node.childNodes[0]
@@ -117,25 +136,11 @@ class Display(g.EventBox):
 					if not node: return
 					pos[0] -= 16
 				node = node.nextSibling
-				if not node:
-					return	# End of document
-
-		self.window.clear()
-
-		return 0
 	
 	def size_request(self, req):
 		req.width = 4
 		req.height = 4
 
-	def add_fwd(self, last):
-		"""Draw all the nodes following this one (child nodes already done)."""
-		while 1:
-			node = last.node
-			while not node.nextSibling:
-				node = node.parentNode
-				#XXX
-	
 	def do_update_now(self):
 		# Update now, if we need to
 		if self.update_timeout:
@@ -171,6 +176,36 @@ class Display(g.EventBox):
 		for (n, (x1, y1, x2, y2)) in self.drawn.iteritems():
 			if x >= x1 and x <= x2 and y >= y1 and y <= y2:
 				return n
+	
+	def pan(self):
+		x, y, mask = self.window.get_pointer()
+		sx, sy = self.pan_start
+		new = [self.ref_pos[0] + (x - sx) / 8, self.ref_pos[1] + (y - sy)]
+		if new == self.ref_pos:
+			return 1
+
+		self.ref_pos = new
+
+		# Walk up the parents until we get a ref node above the start of the screen
+		# (redraw will come back down)
+		while self.ref_pos[1] > 0 and self.ref_node.parentNode:
+			src = self.ref_node
+			self.ref_node = self.ref_node.parentNode
+
+			# Walk from the parent node to find how far it is to this node...
+			for node, bbox, draw_fn in self.walk_tree(self.ref_node, (0, 0)):
+				if node is src: break
+			else:
+				assert 0
+
+			self.ref_pos[0] -= bbox[0]
+			self.ref_pos[1] -= bbox[1]
+
+			print "(start from %s at (%d,%d))" % (self.ref_node, self.ref_pos[0], self.ref_pos[1])
+
+		self.update()
+		
+		return 1
 
 	def bg_event(self, widget, event):
 		if event.type == g.gdk.BUTTON_PRESS and event.button == 3:
@@ -182,13 +217,13 @@ class Display(g.EventBox):
 				if node:
 					self.node_clicked(node, event)
 			elif event.button == 2:
-				if node and node.parentNode:
-					self.ref_node = node.parentNode
-					try:
-						self.ref_pos = self.drawn[self.ref_node][:2]
-					except:
-						self.ref_pos = (0, 0)
-					self.update()
+				assert self.pan_timeout is None
+				self.pan_start = (event.x, event.y)
+				self.pan_timeout = g.timeout_add(100, self.pan)
+		elif event.type == g.gdk.BUTTON_RELEASE and event.button == 2:
+			assert self.pan_timeout is not None
+			g.timeout_remove(self.pan_timeout)
+			self.pan_timeout = None
 		else:
 			return 0
 		return 1
