@@ -1071,6 +1071,7 @@ class View:
 		self.move_to([])
 		if nodes[0].nodeType == Node.ELEMENT_NODE:
 			# Slow, so do this here, even if vaguely incorrect...
+			assert ' ' not in new_data
 			if ':' in new_data:
 				(prefix, localName) = string.split(new_data, ':', 1)
 			else:
