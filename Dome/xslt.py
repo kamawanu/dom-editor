@@ -57,7 +57,7 @@ def import_sheet(doc):
 	# sheet.matchTemplates is { mode -> { type -> { (ns, name) -> [match]     for elements
 	#                         		      { 	      [match]     otherwise
 	#
-	# Each match is (pattern, axis_type, TemplateElement)
+	# Each match is ((precedence,?), pattern, axis_type, TemplateElement)
 	#
 	# The list of matches is sorted; use the first that matches. Multiple lookups
 	# may be required (eg, lookup 'html' then None (for 'node()' and '*')).
@@ -74,19 +74,25 @@ def import_sheet(doc):
 		tests = prog.code.start
 		print "Mode", mode
 		types = sheet.matchTemplates[mode]
+
 		loose_ends = []
 		for type in types.keys():
 			if type == Node.ELEMENT_NODE:
 				templates = types[type].values()
 			else:
 				templates = [types[type]]
+
+			# templates is a list of templates for items of this type when in this mode
+
 			for tl in templates:
 				for t in tl:
-					pattern = `t[0]`
+					sort_key, (used_pattern, axis_type, template) = t
+					pattern = `template._match`
+					#print sort_key, pattern, axis_type, template
 					name = pattern.replace('/', '%')
 					temp = Program(`i` + '-' + name)
 					op = add(temp.code.start, 'mark_switch')
-					make_template(op, t[2])
+					make_template(op, template)
 					i += 1
 					prog.add_sub(temp)
 					

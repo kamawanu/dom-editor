@@ -74,7 +74,7 @@ class Model:
 			x = implementation.createDocument(None, 'xslt', None)
 			data_to_load = x.documentElement
 			src = doc.createElementNS(None, 'Source')
-			if file:
+			if dome_data:
 				# TODO: import_with_ns?
 				src.appendChild(self.import_with_ns(doc,
 								dome_data.documentElement))

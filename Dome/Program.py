@@ -8,7 +8,11 @@ def el_named(node, name):
 		if n.localName == name:
 			return n
 	return None
-	
+
+def bool_attr(node, attr):
+	return {"0": False, "1": True,
+		"False": False, "True": True}[node.getAttributeNS(None, attr)]
+
 # Converts a DOM <block> node to a Block object.
 def load(node, parent, ns):
 	#assert node.localName == 'block'
@@ -16,12 +20,12 @@ def load(node, parent, ns):
 	block = Block(parent)
 	prev = block.start
 	try:
-		if int(node.getAttributeNS(None, 'foreach')):
+		if bool_attr(node, 'foreach'):
 			block.toggle_foreach()
-		if int(node.getAttributeNS(None, 'enter')):
+		if bool_attr(node, 'enter'):
 			block.toggle_enter()
 		if node.hasAttributeNS(None, 'restore'):
-			if int(node.getAttributeNS(None, 'restore')):
+			if bool_attr(node, 'restore'):
 				block.toggle_restore()
 		comment = node.getAttributeNS(None, 'comment')
 		block.set_comment(comment)
