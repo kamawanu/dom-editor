@@ -161,10 +161,6 @@ class Window(GtkWindow):
 
 	def tool_Play(self):
 		from View import InProgress, Done
-		if not self.view.callback_on_return:
-			self.view.run_new(self.list.run_return)
-		else:
-			print "Continue with current stack frame"
 		# Step first, in case we're on a breakpoint
 		self.view.single_step = 1
 		try:
