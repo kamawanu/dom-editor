@@ -65,7 +65,7 @@ class Window(GtkWindow):
 				self.uri = path
 			self.load_file(path)
 
-		self.gui_view = GUIView(self.model)
+		self.gui_view = GUIView(self, self.model)
 		self.swin.add_with_viewport(self.gui_view)
 
 		vbox.show_all()
