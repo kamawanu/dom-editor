@@ -17,6 +17,7 @@ import support
 from Beep import Beep
 
 def get_xslt_source(doc, dome_data):
+	print "get_xslt_source", dome_data
 	src = doc.createElementNS(None, 'Source')
 	if file:
 		src.appendChild(support.import_with_ns(doc, dome_data.documentElement))

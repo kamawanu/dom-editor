@@ -21,6 +21,14 @@ prog_menu = Menu('programs', [
 		('/Delete', 'menu_delete', '', ''),
 ])
 
+line_menu = Menu('line', [
+	('/Set\/clear breakpoint', 'line_toggle_breakpoint', '', ''),
+	('/Yank chain', 'line_yank_chain', '', ''),
+	('/Remove link', 'line_del_chain', '', ''),
+	('/Paste chain', 'line_paste_chain', '', ''),
+	('/Add block', 'line_add_block', '', '')
+])
+
 #from GetArg import GetArg
 from Program import Program, load, Block
 
@@ -569,9 +577,9 @@ class ChainDisplay(canvas.Canvas):
 		self.join_nodes(op, 'fail')
 
 		if self.view.breakpoints.has_key((op, 'next')):
-			group.next_line.set(line_style = LINE_ON_OFF_DASH)
+			group.next_line.set(line_style = g.gdk.LINE_ON_OFF_DASH)
 		if self.view.breakpoints.has_key((op, 'fail')):
-			group.fail_line.set(line_style = LINE_ON_OFF_DASH)
+			group.fail_line.set(line_style = g.gdk.LINE_ON_OFF_DASH)
 	
 	def edit_op(self, op):
 		def modify(widget):
@@ -773,6 +781,41 @@ class ChainDisplay(canvas.Canvas):
 			src_op.link_to(node, exit)
 		finally:
 			self.update_all()
+	
+	def line_paste_chain(self):
+		op, exit = self.line_menu_line
+		self.paste_chain(op, exit)
+
+	def line_add_block(self):
+		op, exit = self.line_menu_line
+		op.link_to(Block(op.parent), exit)
+		
+	def line_toggle_breakpoint(self):
+		op, exit = self.line_menu_line
+		bp = self.view.breakpoints
+		if bp.has_key((op, exit)):
+			del bp[(op, exit)]
+		else:
+			bp[(op, exit)] = 1
+		self.prog.changed()
+		
+	def line_yank_chain(self):
+		op, exit = self.line_menu_line
+		next = getattr(op, exit)
+		if not next:
+			rox.alert('Nothing to yank!')
+			return
+		self.clipboard = op.to_doc()
+		print self.clipboard
+	
+	def line_del_chain(self):
+		op, exit = self.line_menu_line
+		next = getattr(op, exit)
+		if not next:
+			rox.alert('Nothing to delete!')
+			return
+		self.clipboard = next.to_doc()
+		op.unlink(exit)
 
 	def line_event(self, item, event, op, exit):
 		# Item may be rec_point or exec_point...
@@ -786,37 +829,8 @@ class ChainDisplay(canvas.Canvas):
 			elif event.button == 2:
 				self.paste_chain(op, exit)
 			elif event.button == 3:
-				def paste_chain():
-					self.paste_chain(op, exit)
-				def add_block():
-					op.link_to(Block(op.parent), exit)
-				def toggle_breakpoint(self = self, op = op, exit = exit):
-					bp = self.view.breakpoints
-					if bp.has_key((op, exit)):
-						del bp[(op, exit)]
-					else:
-						bp[(op, exit)] = 1
-					self.prog.changed()
-
-				next = getattr(op, exit)
-				if next:
-					def yank_chain(self = self, op = next):
-						self.clipboard = op.to_doc()
-						print self.clipboard
-					def del_chain():
-						self.clipboard = next.to_doc()
-						op.unlink(exit)
-				else:
-					del_chain = None
-					yank_chain = None
-
-				items = [
-					('Set/clear breakpoint', toggle_breakpoint),
-					('Yank chain', yank_chain),
-					('Remove link', del_chain),
-					('Paste chain', paste_chain),
-					('Add block', add_block)]
-				Menu(items).popup(event.button, event.time)
+				self.line_menu_line = (op, exit)
+				line_menu.popup(self, event)
 		elif event.type == g.gdk.BUTTON_RELEASE:
 			if event.button == 1:
 				print "Clicked exit %s of %s" % (exit, op)
