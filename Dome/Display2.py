@@ -61,33 +61,31 @@ def calc_node(display, node, pos):
 		fg = style.fg_gc
 		bg = style.bg_gc
 
+		if node in display.selection:
+			state = g.STATE_SELECTED
+		else:
+			state = g.STATE_NORMAL
+
 		if node.nodeType != Node.ATTRIBUTE_NODE:
-			marker = True
 			if node.nodeType == Node.ELEMENT_NODE:
-				surface.draw_rectangle(fg[g.STATE_NORMAL], True,
-							x, y, 8, height - 1)
+				surface.draw_rectangle(style.fg_gc[state], False, x, y, 7, height - 2)
+				surface.draw_rectangle(style.bg_gc[state], True, x + 1, y + 1, 6, height - 3)
 			elif node.nodeType == Node.DOCUMENT_NODE:
-				surface.draw_rectangle(fg[g.STATE_NORMAL], False,
-							x + 2, y + height / 2 - 2, 4, 4)
-				marker = False
+				surface.draw_arc(style.fg_gc[state], False, x, y, 7, height - 2, 0, 64 * 360)
 			else:
-				surface.draw_rectangle(bg[g.STATE_NORMAL], True, x, y, 8, height - 1)
+				# Text, etc
+				surface.draw_rectangle(style.text_gc[state], False, x, y, 7, height - 2)
+				surface.draw_rectangle(style.base_gc[state], True, x + 1, y + 1, 6, height - 3)
+			
 			if node in display.view.model.hidden:
 				surface.draw_layout(fg[g.STATE_PRELIGHT], text_x + width + 2, y,
 					display.create_pango_layout('(%s)' % display.view.model.hidden[node]))
-		else:
-			marker = False
 		
 		if node in display.selection:
-			if marker:
-				surface.draw_rectangle(style.bg_gc[g.STATE_SELECTED], True,
-							x + 1, y + 1, 6, height - 3)
 			surface.draw_rectangle(bg[g.STATE_SELECTED], True,
 				text_x, y, width - 1, height - 1)
 			surface.draw_layout(fg[g.STATE_SELECTED], text_x, y, layout)
 		else:
-			if marker:
-				surface.draw_rectangle(style.white_gc, True, x + 1, y + 1, 6, height - 3)
 			if node.nodeType == Node.TEXT_NODE:
 				gc = style.text_gc[g.STATE_NORMAL]
 			elif node.nodeType == Node.ATTRIBUTE_NODE:
