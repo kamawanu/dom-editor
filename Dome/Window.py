@@ -18,6 +18,10 @@ class Window(rox.Window, saving.Saveable):
 	def __init__(self, path = None, data = None):
 		# 'data' is used when 'path' is a stylesheet...
 		rox.Window.__init__(self)
+
+		self.status = g.Statusbar()
+		self.status.push(0, 'Welcome to Dome. Click the right-hand mouse button for menus.')
+		self.showing_message = False
 		
 		# Make it square, to cope with Xinerama
 		size = min(g.gdk.screen_width(), g.gdk.screen_height())
@@ -81,6 +85,8 @@ class Window(rox.Window, saving.Saveable):
 		#swin.set_hadjustment(self.gui_view.get_hadjustment())
 		#swin.set_vadjustment(self.gui_view.get_vadjustment())
 
+		vbox.pack_start(self.status, False, True, 0)
+
 		vbox.show_all()
 	
 		self.gui_view.grab_focus()
@@ -92,6 +98,15 @@ class Window(rox.Window, saving.Saveable):
 				return 1
 			return 0
 		self.connect('delete-event', delete)
+	
+	def set_status(self, message = None):
+		if self.showing_message:
+			self.status.pop(0)
+		if message:
+			self.status.push(0, message)
+		self.showing_message = bool(message)
+		self.status.draw((0, 0, self.status.allocation.width, self.status.allocation.height))
+		g.gdk.flush()
 	
 	def discard(self):
 		self.destroy()
@@ -160,9 +175,13 @@ class Window(rox.Window, saving.Saveable):
 		self.output_data.write(text)
 
 	def save_to_stream(self, stream):
-		for radio, ext, mime, fn in self.save_radios:
-			if radio.get_active():
-				fn(stream)
+		self.set_status('Saving...')
+		try:
+			for radio, ext, mime, fn in self.save_radios:
+				if radio.get_active():
+					fn(stream)
+		finally:
+			self.set_status()
 
 	def save_as_dome(self, stream):
 		print "Saving", self.view.root

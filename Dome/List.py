@@ -131,7 +131,7 @@ class List(g.VBox):
 		g.VBox.__init__(self)
 
 		def destroyed(widget):
-			print "List destroy!!"
+			#print "List destroy!!"
 			sel.disconnect(self.sel_changed_signal)
 			self.view.lists.remove(self)
 			self.view.model.root_program.watchers.remove(self)
@@ -203,7 +203,7 @@ class List(g.VBox):
 		
 	def set_innermost_failure(self, op):
 		prog = op.get_program()
-		print "list: set_innermost_failure:", prog
+		#print "list: set_innermost_failure:", prog
 		self.show_prog(prog)
 	
 	def update_points(self):
@@ -237,15 +237,15 @@ class List(g.VBox):
 			self.build_tree(p, child_iter)
 	
 	def run_return(self, exit):
+		print "List execution finished:", exit
 		if exit != 'next':
-			print "run_return: failure!"
-			self.view.jump_to_innermost_failure()
-			def cb(choice, self = self):
-				if choice == 0:
+			#self.view.jump_to_innermost_failure()
+			def record():
+				if rox.confirm("Program failed - record a failure case?",
+						g.STOCK_NO, 'Record'):
 					self.view.record_at_point()
-			if rox.confirm("Program failed - record a failure case?", g.STOCK_NO, 'Record'):
-				self.view.record_at_point()
-		print "List: execution done!"
+				return False
+			g.idle_add(record)
 
 	def button_press(self, tree, event):
 		if event.button == 2 or event.button == 3:
@@ -253,7 +253,7 @@ class List(g.VBox):
 			if not ret:
 				return 1		# Click on blank area
 			path, col, cx, cy = ret
-			print "Event on", path
+			#print "Event on", path
 			iter = self.prog_model.get_iter(path)
 			path = self.prog_model.get_value(iter, 1)
 			if event.button == 3:
@@ -294,7 +294,6 @@ class List(g.VBox):
 		self.sub_windows.append(cw)
 		def lost_cw(win):
 			self.sub_windows.remove(cw)
-			print "closed"
 		cw.connect('destroy', lost_cw)
 	
 	def menu_map(self):
@@ -353,8 +352,7 @@ class ChainNode:
 	
 	def expose(self):
 		da = self.da
-		w = da.window
-		print "draw"
+		w = da.backing
 		w.draw_rectangle(da.style.black_gc, True, self.x, self.y, 10, 10)
 
 	def maybe_clicked(self, event):
@@ -389,7 +387,7 @@ class ChainOp(ChainNode):
 
 	def expose(self):
 		da = self.da
-		w = da.window
+		w = da.backing
 		op = self.op
 
 		w.draw_arc(da.style.white_gc, True, self.x, self.y, 10, 10, 0, 400 * 60)
@@ -406,7 +404,7 @@ class ChainOp(ChainNode):
 		da = self.da
 		pen = da.style.white_gc
 		pen.set_rgb_fg_color(g.gdk.color_parse(colour))
-		da.window.draw_line(pen, self.x + dx, self.y + dy, dest.x + 5, dest.y)
+		da.backing.draw_line(pen, self.x + dx, self.y + dy, dest.x + 5, dest.y)
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
 	def maybe_clicked(self, event):
@@ -473,7 +471,7 @@ class ChainBlock(ChainOp):
 	
 	def expose(self):
 		da = self.da
-		w = da.window
+		w = da.backing
 		w.draw_rectangle(da.style.black_gc, False, self.x, self.y, self.width, self.height)
 		pen = da.style.white_gc
 		width = self.width
@@ -518,11 +516,14 @@ class ChainBlock(ChainOp):
 	def maybe_clicked(self, event):
 		return False
 
-class ChainDisplay(g.DrawingArea):
+class ChainDisplay(g.EventBox):
 	"A graphical display of a chain of nodes."
 	def __init__(self, view, prog = None):
-		g.DrawingArea.__init__(self)
+		g.EventBox.__init__(self)
 		self.connect('destroy', self.destroyed)
+		self.set_app_paintable(True)
+		self.set_double_buffered(False)
+		self.connect('size-allocate', lambda w, a: self.size_allocate(a))
 
 		self.view = view
 		self.unset_flags(g.CAN_FOCUS)
@@ -602,21 +603,22 @@ class ChainDisplay(g.DrawingArea):
 		except:
 			print "Can't find %s!\n" % op
 			return
+		x = obj.x
 		if point is self.view.rec_point:
 			size = 11
 			colour = 'red'
 		else:
 			size = 6
+			x += 2
 			colour = 'yellow'
 		pen = self.style.white_gc
 		pen.set_rgb_fg_color(g.gdk.color_parse(colour))
-		w.draw_rectangle(self.style.black_gc, False, obj.x, obj.y + 5, size, size)
-		w.draw_rectangle(pen, True, obj.x + 1, obj.y + 5 + 1, size - 1, size - 1)
+		w.draw_rectangle(self.style.black_gc, False, x, obj.y + 5, size, size)
+		w.draw_rectangle(pen, True, x + 1, obj.y + 5 + 1, size - 1, size - 1)
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
 	def destroyed(self, widget):
 		self.view.model.root_program.watchers.remove(self)
-		print "(ChainDisplay destroyed)"
 	
 	def switch_to(self, prog):
 		if prog is self.prog:
@@ -645,12 +647,27 @@ class ChainDisplay(g.DrawingArea):
 		else:
 			self.root_object = None
 			self.set_size_request(-1, -1)
+		self.backing = None
 		self.queue_draw()
 		return 1
 	
-	def expose(self, da, event):
+	def size_allocate(self, alloc):
+		self.backing = None
+		self.window.clear()
+
+	def create_backing(self):
+		self.backing = g.gdk.Pixmap(self.window, self.allocation.width, self.allocation.height, -1)
+		self.window.set_back_pixmap(self.backing, False)
+		self.backing.draw_rectangle(self.style.bg_gc[g.STATE_NORMAL], True,
+				  0, 0, self.allocation.width, self.allocation.height)
 		if self.root_object:
 			self.root_object.expose()
+		self.window.clear()
+		return
+		
+	def expose(self, da, event):
+		if not self.backing: self.create_backing()
+
 		#self.update_links()
 		self.put_point(self.view.rec_point)
 		self.put_point(self.view.exec_point)
@@ -658,7 +675,6 @@ class ChainDisplay(g.DrawingArea):
 		#self.set_bounds()
 	
 	def button_press(self, da, event):
-		print "click"
 		for op in self.op_to_object.itervalues():
 			if op.maybe_clicked(event): break
 	

@@ -327,7 +327,7 @@ class Display(g.HBox):
 					shown = True
 					break	# A selected node is shown
 			if not shown:
-				print "(selected nodes not shown)"
+				#print "(selected nodes not shown)"
 				self.ref_node = self.view.current_nodes[0]
 				self.ref_pos = (40, self.last_alloc[1] / 2)
 				self.backup_ref_node()
