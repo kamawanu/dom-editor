@@ -4,6 +4,7 @@ from gtk import *
 from gnome.ui import *
 from GDK import *
 from GDK import _2BUTTON_PRESS
+from GTK import DESTROYED
 from _gtk import *
 from xml.dom import Node
 from constants import *
@@ -157,17 +158,18 @@ class Display(GnomeCanvas):
 					# The root is OK - the change is inside...
 					try:
 						group = self.node_to_group[node]
-					except:
+						if group.flags() & DESTROYED:
+							print "(group destroyed)"
+							raise Exception('Group destroyed')
+					except KeyError:
 						# Modified node not created yet.
 						# Don't worry, updating the parent later
 						# will fix it...
 						print "(node missing)"
 						pass
 					else:
-						ntg = self.node_to_group
 						for i in group.children():
 							i.destroy()
-							if i in ntg: del ntg[i]
 						self.create_tree(node, group, cramped = group.cramped)
 						self.auto_highlight(node, rec = 1)
 						self.child_group_resized(node)
@@ -320,6 +322,10 @@ class Display(GnomeCanvas):
 	def position_kids(self, group, kids):
 		if not kids:
 			return
+
+		assert not group.flags() & DESTROYED
+		for k in kids:
+			assert not k.flags() & DESTROYED
 
 		if group.cramped:
 			indent = cramped_indent
@@ -527,25 +533,3 @@ class Display(GnomeCanvas):
 			sy = hy
 		
 		self.scroll_to(sx, sy)
-	
-	def unused():
-		# Range of lines to show...
-		top_line = self.node_to_line[node]
-		bot_line = top_line + self.get_lines(node) - 1
-
-		h = self.row_height
-		adj = self.vadj
-
-		min_want = top_line * h - h
-		max_want = bot_line * h + 2 * h - adj.page_size
-		up = adj.upper - adj.page_size
-
-		if min_want < adj.lower:
-			min_want = adj.lower
-		if max_want > up:
-			max_want = up
-		
-		if min_want < adj.value:
-			adj.set_value(min_want)
-		elif max_want > adj.value:
-			adj.set_value(max_want)
