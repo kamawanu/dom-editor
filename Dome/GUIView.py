@@ -81,9 +81,10 @@ menu = Menu('main', [
 		('/Create/Open node at end', 'menu_open_element_end', '<StockItem>', 'E', g.STOCK_ADD),
 
 		('/Process', None, '<Branch>', ''),
-		('/Process/Substitute', 'menu_show_subst', '', 's'),
-		('/Process/Python expression', 'menu_show_pipe', '', '<Shift>exclam'),
-		('/Process/XPath expression', 'menu_show_xpath', '', ''),
+		('/Process/Substitute...', 'menu_show_subst', '', 's'),
+		('/Process/Split at...', 'menu_show_split', '', ''),
+		('/Process/Python expression...', 'menu_show_pipe', '', '<Shift>exclam'),
+		('/Process/XPath expression...', 'menu_show_xpath', '', ''),
 		('/Process/Normalise', 'do_normalise', '', ''),
 		('/Process/Remove default namespaces', 'do_remove_ns', '', 'r'),
 		('/Process/Convert to text', 'do_convert_to_text', '', ''),
@@ -329,6 +330,16 @@ class GUIView(Display, XDSLoader):
 			action = ["add_attrib", "UNUSED", name]
 			self.view.may_record(action)
 		GetArg('Create attribute:', do_it, ['Name:'])
+
+	def menu_show_split(self):
+		def do_split(expr):
+			action = ["split", expr]
+			self.view.may_record(action)
+		GetArg('Split at:', do_split, ['Separator:'], "Split text node at:",
+			hints = ((':', 'Split colon-separated items'),
+				 ('\\n', 'Split at line breaks'),
+				 ('', 'Split into words (empty pattern)')
+			 ))
 
 	def menu_show_pipe(self):
 		def do_pipe(expr):

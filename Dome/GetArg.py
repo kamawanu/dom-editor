@@ -26,7 +26,7 @@ class Examples(g.ScrolledWindow):
 			new = model.append()
 			model.set(new, 0, c, 1, m)
 
-		self.set_size_request(-1, 150)
+		self.set_size_request(-1, 100)
 
 		view.get_selection().set_mode(g.SELECTION_NONE)
 

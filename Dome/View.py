@@ -57,6 +57,7 @@ record_again = [
 	"select_children",
 	"subst",
 	"python",
+	"split",
 	"xpath",
 	"ask",
 	"yank",
@@ -783,6 +784,21 @@ class View:
 
 		self.clipboard = self.model.doc.createTextNode(rt)
 		print "Result is", self.clipboard
+
+	def split(self, sep):
+		if self.get_current().nodeType == Node.TEXT_NODE:
+			if sep:
+				sep = sep.replace('\\n', '\n')
+			else:
+				sep = None
+			result = self.get_current().data.split(sep)
+			new = self.python_to_node(result)
+			node = self.get_current()
+			self.move_to([])
+			self.model.replace_node(node, new)
+			self.move_to(new)
+		else:
+			raise Beep
 
 	def python(self, expr):
 		"Replace node with result of expr(old_value)"
