@@ -115,7 +115,7 @@ class Display(GnomeCanvas):
 					for i in group.children():
 						i.destroy()
 					self.create_tree(node, group, cramped = group.cramped)
-					self.auto_highlight_rec(node)
+					self.auto_highlight(node, rec = 1)
 					self.child_group_resized(node)
 				else:
 					# Need to rebuild everything...
@@ -128,7 +128,7 @@ class Display(GnomeCanvas):
 					group.connect('event', self.node_event, node)
 					self.create_tree(node, group)
 					print "Highlighting..."
-					self.auto_highlight_rec(node)
+					self.auto_highlight(node, rec = 1)
 					print "Done"
 			self.move_from()
 			self.set_bounds()
@@ -154,7 +154,7 @@ class Display(GnomeCanvas):
 		self.position_kids(self.node_to_group[node], kids)
 		self.child_group_resized(node)
 	
-	def auto_highlight_rec(self, node):
+	def auto_highlight(self, node, rec = 0):
 		a = {}
 		for x in self.view.current_nodes:
 			a[x] = None
@@ -162,12 +162,13 @@ class Display(GnomeCanvas):
 		def do(node):
 			"After creating the tree, everything is highlighted..."
 			try:
-				self.hightlight(self.node_to_group[node],
+				self.highlight(self.node_to_group[node],
 					cattr == None and a.has_key(node))
 			except KeyError:
 				return
-			for k in node.childNodes:
-				do(k)
+			if rec:
+				for k in node.childNodes:
+					do(k)
 		do(node)
 	
 	def destroyed(self, widget):
@@ -364,7 +365,7 @@ class Display(GnomeCanvas):
 		for n in old:
 			if self.view.current_attrib or n not in new:
 				try:
-					self.hightlight(self.node_to_group[n], FALSE)
+					self.highlight(self.node_to_group[n], FALSE)
 				except KeyError:
 					pass
 		if self.update_timeout:
@@ -377,7 +378,7 @@ class Display(GnomeCanvas):
 		else:
 			for n in new:
 				try:
-					self.hightlight(self.node_to_group[n], TRUE)
+					self.highlight(self.node_to_group[n], TRUE)
 				except KeyError:
 					print "Warning: Node %s not in node_to_group" % n
 
@@ -396,7 +397,7 @@ class Display(GnomeCanvas):
 			except KeyError:
 				pass
 
-	def hightlight(self, group, state):
+	def highlight(self, group, state):
 		node = group.node
 		if state:
 			group.rect.set(fill_color = 'blue')

@@ -214,7 +214,7 @@ class GUIView(Display):
 				self.cursor_hidden_text.set(text = '%s=%s' %
 					(self.cursor_attrib.name, self.cursor_attrib.value))
 			self.cursor_hidden_text.show()
-			self.auto_hightlight(self.cursor_node)
+			self.auto_highlight(self.cursor_node)
 			self.cursor_node = None
 			self.edit_box_item.destroy()
 
@@ -229,7 +229,7 @@ class GUIView(Display):
 		group = self.node_to_group[self.cursor_node]
 		self.cursor_attrib = self.view.current_attrib
 
-		self.hightlight(group, FALSE)
+		self.highlight(group, FALSE)
 
 		if self.cursor_attrib:
 			group = group.attrib_to_group[self.cursor_attrib]
