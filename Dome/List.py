@@ -996,9 +996,8 @@ class ChainDisplay(g.EventBox):
 		self.view.set_exec((op, exit))
 		try:
 			self.view.do_one_step()
-			assert 0
 		except View.InProgress:
-			pass
+			rox.bug()
 		print self.exec_point
 		self.view.record_at_point()
 		self.view.breakpoints[(b, 'next')] = True
