@@ -141,7 +141,7 @@ class List(GtkVBox):
 			op = self.view.innermost_failure
 			print "run_return: Innermost failed is", op
 			self.view.set_exec((op, 'fail'))
-			self.tree.select_child(self.prog_to_tree[op.program])
+			self.show_prog(op.program)
 			def cb(choice, self = self):
 				if choice == 0:
 					self.view.record_at_point()
@@ -227,7 +227,7 @@ class List(GtkVBox):
 			self.chains.update_all()
 	
 	def show_prog(self, prog):
-		self.chains.switch_to(prog)
+		self.tree.select_child(self.prog_to_tree[prog])
 	
 class ChainDisplay(GnomeCanvas):
 	"A graphical display of a chain of nodes."
