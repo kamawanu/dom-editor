@@ -29,20 +29,22 @@ class Window(GtkWindow):
 		self.add(swin)
 		swin.set_policy(POLICY_NEVER, POLICY_ALWAYS)
 
+		self.uri = "Document"
+
 		if path:
-			self.uri = path
+			if path != '-':
+				self.uri = path
 			root = load_xml(path)
 		else:
-			self.uri = "Document"
 			root = TagNode('Document')
 
 		self.update_title()
 		
-		tree = Tree(root, swin.get_vadjustment())
-		tree.show()
-		swin.add_with_viewport(tree)
+		self.tree = Tree(root, swin.get_vadjustment())
+		self.tree.show()
+		swin.add_with_viewport(self.tree)
 		swin.show()
-		tree.grab_focus()
+		self.tree.grab_focus()
 
 		self.connect('key-press-event', self.key)
 	
@@ -61,7 +63,7 @@ class Window(GtkWindow):
 		self.savebox.show()
 	
 	def get_xml(self):
-		return '<?xml version="1.0"?>\n'
+		return '<?xml version="1.0"?>\n' + self.tree.root.to_xml()
 
 	def save_as(self, path):
 		return send_to_file(self.get_xml(), path)

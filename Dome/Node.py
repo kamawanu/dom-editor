@@ -211,6 +211,26 @@ class TagNode(Node):
 				', %s="%s"' % (strip_ns(a), self.attribs[a])
 		return retval
 	
+	def to_xml(self):
+		d = '<' + self.type
+		for a in self.attribs.keys():
+			d = d + (' %s="%s"' % a, escape(self.attribs[a]))
+
+		if self.kids == []:
+			return d + '/>\n'
+			
+		d = d + '>'
+		if len(self.kids) == 1:
+			k = self.kids[0]
+			if isinstance(k, DataNode) and len(k.text) == 1:
+				return d + k.text[0] + ('</%s>' % self.type)
+
+		d = d + '\n'
+		for k in self.kids:
+			d = d + k.to_xml()
+
+		return d + ('</%s>\n' % self.type)
+	
 	def remove(self, child):
 		i = self.kids.index(child)
 		self.kids.remove(child)
@@ -260,3 +280,6 @@ class DataNode(Node):
 		new = DataNode(string.join(self.text[line:], '\n'))
 		self.parent.add(new, after = self)
 		self.set_raw(self.text[:line])
+	
+	def to_xml(self):
+		return string.join(self.text, '\n') + '\n'

@@ -1,23 +1,26 @@
 from xmllib import *
 import string
+import sys
 
 from support import *
 from Node import *
 
 def load_xml(file):
 	try:
-		l = Loader(file)
-		f = open(file, 'rb')
-		l.feed(f.read())
-		l.close()
+		l = Loader()
+		if file == '-':
+			l.feed(sys.stdin.read())
+		else:
+			f = open(file, 'rb')
+			l.feed(f.read())
+			l.close()
 		return l.root
 	except:
 		report_exception()
 
 class Loader(XMLParser):
-	def __init__(self, path):
+	def __init__(self):
 		XMLParser.__init__(self)
-		f = open(path, 'rb')
 		self.root = None
 		self.current = None
 		self.buffer = ""
