@@ -212,7 +212,7 @@ class Model:
 					print "Removing xmlns attrib on", node
 					continue
 				new.setAttributeNS(a.namespaceURI, a.name, a.value)
-			print "Now", new
+			#print "Now", new
 			for k in node.childNodes:
 				new.appendChild(ns_clone(k))
 			return new

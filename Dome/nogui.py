@@ -35,8 +35,14 @@ if len(sys.argv) > 1 and sys.argv[1] == '--profile':
 else:
 	profiling = 0
 
+if len(sys.argv) > 1 and sys.argv[1] == '--xmlonly':
+	xmlonly = 1
+	del sys.argv[1]
+else:
+	xmlonly = 0
+
 if len(sys.argv) < 2:
-	print "Usage: python nogui.py [--profile] <document>"
+	print "Usage: python nogui.py [--profile] [--xmlonly] <document>"
 	sys.exit(0)
 
 idle_list = []
@@ -57,7 +63,11 @@ def idle_remove(tag):
 		pass
 
 source = sys.argv[1]
-model = Model(source)
+if len(sys.argv) > 2:
+	xml_data = sys.argv[2]
+else:
+	xml_data = None
+model = Model(source, dome_data = xml_data)
 
 view = View(model, callback_handlers = (idle_add, idle_remove))
 
@@ -93,13 +103,19 @@ if view.chroots:
 
 import shutil
 
-shutil.copyfile(source, source + '.bak')
+if not xmlonly:
+	shutil.copyfile(source, source + '.bak')
+	doc = view.export_all()
+	PrettyPrint(doc, stream = open(source, 'w'))
 
-doc = view.export_all()
-PrettyPrint(doc, stream = open(source, 'w'))
-
-if source[-5:] == '.dome':
-	xml = source[:-5] + '.xml'
+if xml_data:
+	output = xml_data
 else:
-	xml = source + '.xml'
-PrettyPrint(view.model.doc, stream = open(xml, 'w'))
+	if source[-5:] == '.dome':
+		output = source[:-5] + '.xml'
+	else:
+		output = source + '.xml'
+PrettyPrint(view.model.doc, stream = open(output + '.new', 'w'))
+
+import os
+os.rename(output + '.new', output)

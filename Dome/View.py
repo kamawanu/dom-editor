@@ -369,8 +369,8 @@ class View:
 				if n not in map:
 					map[n] = None
 					nodes.append(n)
-			if len(old) != len(nodes):
-				print "(move_to: attempt to set duplicate nodes)"
+			#if len(old) != len(nodes):
+			#	print "(move_to: attempt to set duplicate nodes)"
 
 		old_nodes = self.current_nodes
 		self.current_nodes = nodes
