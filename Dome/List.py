@@ -52,7 +52,6 @@ class List(GnomeCanvas):
 
 		self.exec_point = None		# CanvasItem, or None
 		self.rec_point = None
-		self.oip = None
 
 		s = self.get_style().copy()
 		s.bg[STATE_NORMAL] = self.get_color('light green')
@@ -78,17 +77,6 @@ class List(GnomeCanvas):
 		self.put_point('rec_point')
 		self.put_point('exec_point')
 	
-	def set_oip(self):
-		"Set the operation-in-progress marker."
-		if self.oip:
-			self.oip.ellipse.set(fill_color = 'blue')
-			self.oip = None
-		try:
-			self.oip = self.op_to_group[self.view.op_in_progress]
-		except KeyError:
-			return
-		self.oip.ellipse.set(fill_color = 'yellow')
-	
 	def put_point(self, point):
 		item = getattr(self, point)
 		if item:
@@ -96,6 +84,8 @@ class List(GnomeCanvas):
 			setattr(self, point, None)
 		
 		opexit = getattr(self.view, point)
+		if point == 'exec_point' and self.view.op_in_progress:
+			opexit = (self.view.op_in_progress, None)
 		if opexit:
 			(op, exit) = opexit
 			if point == 'rec_point':
@@ -168,9 +158,6 @@ class List(GnomeCanvas):
 		if self.nodes:
 			self.nodes.destroy()
 
-		if self.oip:
-			self.oip = None
-
 		y = 0
 		self.prog_to_group = {}
 		for p in [self.prog.parent, self.prog] + self.prog.subprograms:
@@ -192,7 +179,6 @@ class List(GnomeCanvas):
 		self.nodes = self.root().add('group', x = 0, y = y + 32)
 		self.create_node(self.prog.start, self.nodes)
 		self.update_points()
-		self.set_oip()
 
 		self.set_bounds()
 	

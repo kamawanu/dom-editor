@@ -11,8 +11,6 @@ from Beep import Beep
 from Menu import Menu
 from GetArg import GetArg
 from Path import make_relative_path
-from Editor import edit_node
-import Exec
 
 class GUIView(Display):
 	def __init__(self, window, view):

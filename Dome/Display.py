@@ -5,7 +5,6 @@ from _gtk import *
 from xml.dom import Node
 
 import string
-import Exec
 
 watch_cursor = cursor_new(WATCH)
 no_cursor = cursor_new(TCROSS)
@@ -89,7 +88,7 @@ class Display(GnomeCanvas):
 		if self.update_timeout:
 			return		# Going to update anyway...
 
-		if Exec.exec_state.running():
+		if self.view.running():
 			self.update_timeout = timeout_add(1000, self.update_callback)
 		else:
 			self.update_timeout = timeout_add(10, self.update_callback)

@@ -10,7 +10,6 @@ import Html
 from Program import Op
 from Beep import Beep
 from GetArg import GetArg
-import Exec
 
 DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
 
@@ -44,6 +43,7 @@ class View:
 	def __init__(self, model):
 		self.displays = []
 		self.lists = []
+		self.single_step = 1
 		self.model = model
 		self.chroots = []
 		self.root = self.model.get_root()
@@ -55,6 +55,8 @@ class View:
 		self.exec_point = None		# None, or (Op, Exit)
 		self.rec_point = None		# None, or (Op, Exit)
 		self.op_in_progress = None
+		self.idle_cb = 0
+		self.callback_on_return = None	# Called when there are no more Ops...
 	
 	def __getattr__(self, attr):
 		if attr == 'current':
@@ -62,11 +64,14 @@ class View:
 				return self.current_nodes[0]
 			raise Exception('This operation required exactly one selected node!')
 		raise Exception('Bad View attribute "%s"' % attr)
+	
+	def running(self):
+		#TODO: Return 1 iff a macro is running
+		return 0
 
 	def set_exec(self, pos):
 		if self.op_in_progress:
-			report_error("Operation in progress...")
-			return
+			raise Exception("Operation in progress...")
 		self.exec_point = pos
 		for l in self.lists:
 			l.update_points()
@@ -286,18 +291,22 @@ class View:
 			return
 		(op, exit) = self.exec_point
 		next = getattr(op, exit)
-		if not next:
-			report_error("Nothing more to do.")
-			return
-		self.set_oip(next)
-		self.do_action(next.action)
+		if next:
+			self.set_oip(next)
+			self.do_action(next.action)
+		elif self.callback_on_return:
+			cb = self.callback_on_return
+			self.callback_on_return = None
+			cb()
+		else:
+			raise Exception("Nothing more to do.")
 
 	def set_oip(self, op):
 		if op:
 			self.set_exec(None)
 		self.op_in_progress = op
 		for l in self.lists:
-			l.set_oip()
+			l.update_points()
 
 	# Actions...
 
@@ -376,15 +385,20 @@ class View:
 			raise Beep
 
 	def ask(self, q):
-		# XXX
 		def ask_cb(result, self = self):
-			self.clipboard = self.model.doc.createTextNode(result)
-			if self.exec_state.where and not self.recording_where:
-				self.exec_state.unfreeze('next')
-		self.exec_state = Exec.exec_state	# XXX
-		if self.exec_state.where and not self.recording_where:
-			self.exec_state.freeze()
-		GetArg('Input:', ask_cb, [q])
+			if result is None:
+				exit = 'fail'
+			else:
+				self.clipboard = self.model.doc.createTextNode(result)
+				exit = 'next'
+			if self.op_in_progress:
+				op = self.op_in_progress
+				self.set_oip(None)
+				self.set_exec((op, exit))
+				if not self.single_step:
+					self.sched()
+		box = GetArg('Input:', ask_cb, [q], destroy_return = 1)
+		raise InProgress
 
 	def python_to_node(self, data):
 		"Convert a python data structure into a tree and return the root."
@@ -449,8 +463,36 @@ class View:
 
 	def play(self, prog):
 		print "Play", prog.name
-		#self.exec_state = Exec.exec_state	# XXX
-		#self.exec_state.play(macro_name)
+		self.single_step = 0
+		self.set_exec((prog.start, 'next'))
+		self.sched()
+		raise InProgress
+	
+	def sched(self):
+		if self.op_in_progress:
+			raise Exception("Operation in progress")
+		if self.idle_cb:
+			raise Exception("Already playing!")
+		self.idle_cb = idle_add(self.play_callback)
+
+	def play_callback(self):
+		print "Callback"
+		idle_remove(self.idle_cb)
+		self.idle_cb = 0
+		try:
+			self.do_one_step()
+		except:
+			type, val, tb = sys.exc_info()
+			list = traceback.extract_tb(tb)
+			stack = traceback.format_list(list[-2:])
+			ex = traceback.format_exception_only(type, val) + ['\n\n'] + stack
+			traceback.print_exception(type, val, tb)
+			print "Error in do_one_step(): stopping playback"
+			return 0
+		if self.op_in_progress or self.single_step:
+			return 0
+		self.sched()
+		return 0
 
 	def map(self, prog):
 		print "Map", prog.name

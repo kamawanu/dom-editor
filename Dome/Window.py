@@ -20,8 +20,6 @@ from View import View
 from List import List
 from GUIView import GUIView
 
-import Exec
-
 def strip_space(doc):
 	def cb(node, cb):
 		if node.nodeType == Node.TEXT_NODE:
@@ -53,7 +51,7 @@ class Window(GtkWindow):
 		hbox = GtkHBox(FALSE, 0)
 		vbox.pack_start(hbox)
 
-		code = choices.load('Dome', 'RootProgram')
+		code = choices.load('Dome', 'RootProgram.xml')
 		if code:
 			self.model.load_program(code)
 		view = View(self.model)
@@ -66,7 +64,6 @@ class Window(GtkWindow):
 		swin = GtkScrolledWindow()
 		hbox.pack_start(swin, TRUE, TRUE, 0)
 
-		Exec.exec_state = Exec.Exec(view)
 		self.view = view
 		self.gui_view = GUIView(self, view)
 		swin.add(self.gui_view)
@@ -89,7 +86,7 @@ class Window(GtkWindow):
 			self.gui_view.load_file(path)
 	
 	def destroyed(self, widget):
-		path = choices.save('Dome', 'RootProgram')
+		path = choices.save('Dome', 'RootProgram.xml')
 		if not path:
 			print "Not saving macros..."
 			return
@@ -182,14 +179,15 @@ class Window(GtkWindow):
 		Exec.exec_state.stop()
 
 	def tool_Play(self):
-		Exec.exec_state.set_step_mode(-1)
-		Exec.exec_state.sched()
+		self.view.single_step = 0
+		self.view.sched()
 	
 	def tool_Next(self):
 		Exec.exec_state.set_step_mode(1)
 		Exec.exec_state.do_one_step()
 	
 	def tool_Step(self):
+		self.view.single_step = 1
 		self.view.do_one_step()
 	
 	def tool_Record(self):

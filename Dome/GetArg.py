@@ -8,9 +8,10 @@ history = {}
 # A window which allows the user to enter a string.
 # When this is done, callback(string) or callback(strings) is called.
 # args is a list like ('Replace:', 'With:')
+# If 'destroy_return' is true then closing the window does callback(None).
 
 class GetArg(GtkWindow):
-	def __init__(self, text, callback, args, message = None):
+	def __init__(self, text, callback, args, message = None, destroy_return = 0):
 		GtkWindow.__init__(self, WINDOW_DIALOG)
 
 		self.callback = callback
@@ -61,7 +62,11 @@ class GetArg(GtkWindow):
 		button.add(label)
 		button.set_flags(CAN_DEFAULT)
 		actions.pack_start(button, TRUE, FALSE, 0)
-		button.connect_object('clicked', self.destroy, self)
+
+		button.connect('clicked', self.destroy)
+
+		if destroy_return:
+			self.connect('destroy', lambda widget, cb = callback: cb(None))
 
 		self.connect('key-press-event', self.key)
 
