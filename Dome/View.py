@@ -55,9 +55,9 @@ def to_html(data):
 			os.dup2(w, 1)
 			os.close(w)
 			if fixed:
-				tin = os.popen('tidy --force-output yes -q -utf8 -asxml', 'w')
+				tin = os.popen('tidy --force-output yes -q -utf8 -asxml 2>/dev/null', 'w')
 			else:
-				tin = os.popen('tidy --force-output yes -q -asxml', 'w')
+				tin = os.popen('tidy --force-output yes -q -asxml 2>/dev/null', 'w')
 			tin.write(fixed or data)
 			tin.close()
 		finally:
