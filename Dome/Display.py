@@ -32,6 +32,31 @@ def wrap(str, width):
 		str = str[i + 1:]
 	return ret + str
 
+import _gnomeui, gtk
+fast_set = _gnomeui.gnome_canvas_item_set
+rect_type = _gnomeui.gnome_canvas_rect_get_type()
+group_type = _gnomeui.gnome_canvas_group_get_type()
+text_type = _gnomeui.gnome_canvas_text_get_type()
+ellipse_type = _gnomeui.gnome_canvas_ellipse_get_type()
+line_type = _gnomeui.gnome_canvas_line_get_type()
+_obj2inst = gtk._obj2inst
+gci_new = _gnomeui.gnome_canvas_item_new
+
+def add_rect(item, **args):
+	return _obj2inst(gci_new(item._o, rect_type, args))
+
+def add_group(item, **args):
+	return _obj2inst(gci_new(item._o, group_type, args))
+
+def add_text(item, **args):
+	return _obj2inst(gci_new(item._o, text_type, args))
+
+def add_ellipse(item, **args):
+	return _obj2inst(gci_new(item._o, ellipse_type, args))
+
+def add_line(item, **args):
+	return _obj2inst(gci_new(item._o, line_type, args))
+
 cramped_indent = 16
 normal_indent = 24
 
@@ -149,7 +174,7 @@ class Display(GnomeCanvas):
 					if self.root_group:
 						self.root_group.destroy()
 					self.node_to_group = {}
-					self.root_group = self.root().add('group', x = 0, y = 0)
+					self.root_group = add_group(self.root(), x = 0, y = 0)
 					group = self.root_group
 					node = self.view.root
 					group.connect('event', self.node_event, node)
@@ -196,21 +221,20 @@ class Display(GnomeCanvas):
 			except KeyError:
 				return
 			if rec:
-				for k in node.childNodes:
-					do(k)
+				map(do, node.childNodes)
 		do(node)
 	
 	def destroyed(self, widget):
 		self.view.remove_display(self)
 	
 	def create_attribs(self, attrib, group, cramped, parent):
-		group.text = group.add('text', x = 0, y = -6, anchor = ANCHOR_NW,
+		group.text = add_text(group, x = 0, y = -6, anchor = ANCHOR_NW,
 					font = 'fixed', fill_color = 'grey40',
 					text = "%s=%s" % (str(attrib.name), str(attrib.value)))
 		group.connect('event', self.attrib_event, parent, attrib)
 
 		(lx, ly, hx, hy) = group.text.get_bounds()
-		group.rect = group.add('rect',
+		group.rect = add_rect(group,
 					x1 = lx - 1, y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
 					fill_color = '')
 		group.rect.lower_to_bottom()
@@ -229,7 +253,7 @@ class Display(GnomeCanvas):
 			c = 'lightblue'
 		else:
 			c = 'yellow'
-		group.add('ellipse', x1 = -4, y1 = -4, x2 = 4, y2 = 4,
+		add_ellipse(group, x1 = -4, y1 = -4, x2 = 4, y2 = 4,
 					fill_color = c, outline_color = 'black')
 		text = self.get_text(node)
 		try:
@@ -240,13 +264,13 @@ class Display(GnomeCanvas):
 		hbox = node.nodeName == 'tr'
 		if cramped:
 			text = wrap(text, 32)
-		group.text = group.add('text', x = 10 , y = -6, anchor = ANCHOR_NW,
+		group.text = add_text(group, x = 10 , y = -6, anchor = ANCHOR_NW,
 					font = 'fixed', fill_color = 'black',
 					text = text)
 		self.node_to_group[node] = group
 
 		(lx, ly, hx, hy) = group.text.get_bounds()
-		group.rect = group.add('rect',
+		group.rect = add_rect(group,
 					x1 = -8 , y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
 					fill_color = 'blue')
 		#group.rect.hide()
@@ -270,7 +294,7 @@ class Display(GnomeCanvas):
 					acramped = cramped
 				for key in node.attributes.keys():
 					a = node.attributes[key]
-					g = group.add('group', x = ax, y = ay)
+					g = add_group(group, x = ax, y = ay)
 					self.create_attribs(a, g, cramped, node)
 					(alx, aly, ahx, ahy) = g.get_bounds()
 					if acramped:
@@ -284,7 +308,7 @@ class Display(GnomeCanvas):
 		kids = []
 		if not hidden:
 			for n in node.childNodes:
-				g = group.add('group', x = 0, y = 0)
+				g = add_group(group, x = 0, y = 0)
 				g.connect('event', self.node_event, n)
 				self.create_tree(n, g, cramped)
 				kids.append(g)
@@ -309,34 +333,15 @@ class Display(GnomeCanvas):
 				l.destroy()
 		group.lines = []
 
-		if node.nodeName == 'tr':
-			y = hy + 8
-			x = indent
-			for g in kids:
-				g.set(x = 0, y = 0)
-				(lx, ly, hx, hy) = g.get_bounds()
-				x -= lx
-				g.set(x = x, y = y - ly)
-				group.lines.append(group.add('line',
-						points = (x, y - 4, x, y - ly - 4),
-						fill_color = 'black',
-						width_pixels = 1))
-				right_child = x
-				x += hx - lx + 8
-			group.lines.append(group.add('line',
-					points = (0, 4, 0, y - 4, right_child, y - 4),
-					fill_color = 'black',
-					width_pixels = 1))
-			group.lines[-1].lower_to_bottom()
-		else:
+		if node.nodeName != 'tr':
 			y = hy + 4
 			top = None
 			for g in kids:
-				g.set(x = 0, y = 0)
+				fast_set(g._o, {'x': 0, 'y': 0})
 				(lx, ly, hx, hy) = g.get_bounds()
 				y -= ly
 				lowest_child = y
-				g.set(x = indent, y = y)
+				fast_set(g._o, {'x': indent, 'y': y})
 				if not top:
 					top = y
 				y = y + hy + 4
@@ -345,17 +350,35 @@ class Display(GnomeCanvas):
 			max_segment = 16000
 			points = (4, 4, diag, diag, indent, top, indent,
 					min(lowest_child, top + max_segment))
-			group.lines.append(group.add('line',
+			group.lines.append(add_line(group,
 					points = points, fill_color = 'black', width_pixels = 1))
 			group.lines[-1].lower_to_bottom()
 			while points[-1] < lowest_child:
 				old_y = points[-1]
 				points = (indent, old_y, indent,
 					  min(old_y + max_segment, lowest_child))
-				group.lines.append(group.add('line',
+				group.lines.append(add_line(group,
 					points = points, fill_color = 'black', width_pixels = 1))
 				group.lines[-1].lower_to_bottom()
-
+		else:
+			y = hy + 8
+			x = indent
+			for g in kids:
+				fast_set(g._o, {'x': 0, 'y': 0})
+				(lx, ly, hx, hy) = g.get_bounds()
+				x -= lx
+				fast_set(g._o, {'x': x, 'y': y - ly})
+				group.lines.append(add_line(group,
+						points = (x, y - 4, x, y - ly - 4),
+						fill_color = 'black',
+						width_pixels = 1))
+				right_child = x
+				x += hx - lx + 8
+			group.lines.append(add_line(group,
+					points = (0, 4, 0, y - 4, right_child, y - 4),
+					fill_color = 'black',
+					width_pixels = 1))
+			group.lines[-1].lower_to_bottom()
 
 	def get_text(self, node):
 		if node.nodeType == Node.TEXT_NODE:
@@ -452,22 +475,22 @@ class Display(GnomeCanvas):
 	def highlight(self, group, state):
 		node = group.node
 		if state:
-			group.rect.set(fill_color = 'blue')
-			group.text.set(fill_color = 'white')
+			fast_set(group.rect._o, {'fill_color': 'blue'})
+			fast_set(group.text._o, {'fill_color': 'white'})
 		else:
-			group.rect.set(fill_color = '')
+			fast_set(group.rect._o, {'fill_color': ''})
 			if node.nodeType == Node.ELEMENT_NODE:
-				group.text.set(fill_color = 'black')
+				fast_set(group.text._o, {'fill_color': 'black'})
 			elif node.nodeType == Node.TEXT_NODE:
-				group.text.set(fill_color = 'blue')
+				fast_set(group.text._o, {'fill_color': 'blue'})
 			elif node.nodeType == Node.COMMENT_NODE:
-				group.text.set(fill_color = 'darkgreen')
+				fast_set(group.text._o, {'fill_color': 'darkgreen'})
 			else:
-				group.text.set(fill_color = 'red')
+				fast_set(group.text._o, {'fill_color': 'red'})
 		if self.view.marked.has_key(node):
-			group.rect.set(outline_color = 'orange')
+			fast_set(group.rect._o, {'outline_color': 'orange'})
 		else:
-			group.rect.set(outline_color = None)
+			fast_set(group.rect._o, {'outline_color': None})
 
 	def world_to_canvas(self, (x, y)):
 		"Canvas routine seems to be broken..."
