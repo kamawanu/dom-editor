@@ -307,13 +307,17 @@ class Op:
 			exit = 'fail'
 		else:
 			exit = None
-			
+
 		if exit:
 			if len(self.prev) != 1:
 				raise Exception("Deleted node-chain must have a single link in")
 			prev = self.prev[0]
 			preserve = getattr(self, exit)
 			self.unlink(exit, may_delete = 0)
+			if prev.next == self:
+				exit = 'next'
+			else:
+				exit = 'fail'
 
 		# Remove all links to us
 		for p in self.prev:
@@ -322,6 +326,7 @@ class Op:
 			if p.fail == self:
 				p.unlink('fail')
 
+		# Exit is now our parent's exit that leads to us...
 		if exit:
 			# Relink following nodes to our (single) parent
 			prev.link_to(preserve, exit)
