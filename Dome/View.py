@@ -944,10 +944,12 @@ class View:
 			if node == self.root:
 				self.model.unlock(self.root)
 				self.model.replace_node(self.root, new)
+				#self.model.strip_space(new)  (not sure we need this)
 				self.model.lock(new)
 				self.root = new
 			else:
 				self.model.replace_node(node, new)
+				#self.model.strip_space(new)
 			self.move_to(new)
 			print "Loaded."
 			self.resume('next')

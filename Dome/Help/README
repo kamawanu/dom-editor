@@ -170,3 +170,30 @@ This runs the root program in project.dome. When it finishes, the result
 is saved back over project.dome and the data is exported as project.xml.
 
 Tip: get your cron job to make backups too!
+
+
+Replaying:
+
+Rechecking a whole site is slow. The solution is to use the output from the
+first scan in future scans. Each page you sucked should have gained an
+md5_sum attribute (and maybe a 'last-modified' too).
+
+Eg, you should have output a bit like this:
+
+<Artists uri='index.html' md5_sum='...' last-modified='...'>
+	<Artist uri='a001.html' md5_sum='...' last-modified='...'>...
+	<Artist uri='a002.html' md5_sum='...' last-modified='...'>...
+	...
+</Artists>
+
+If you now do a suck on any of these nodes, Dome will check whether the page's
+contents have changed. If so, it pulls it in as normal. Otherwise, nothing
+happens.
+
+The 'modified' attribute will be added or removed to indicate which happened.
+So, you can get your program to first try sucking the Artists node and then
+suck each of the 'Artist' ones. If nothing has changed, it will all go very
+quickly. To force a re-suck, delete the md5_sum and last-modified attributes.
+
+
+Problems? Comments? Email <tal00r@ecs.soton.ac.uk>
