@@ -642,7 +642,6 @@ class ChainDisplay(GnomeCanvas):
 					def yank_chain(self = self, op = next):
 						self.clipboard = op.to_doc()
 						print self.clipboard
-						ext.PrettyPrint(self.clipboard)
 					def del_chain():
 						self.clipboard = next.to_doc()
 						op.unlink(exit)
