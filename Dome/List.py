@@ -404,8 +404,8 @@ class ChainDisplay(GnomeCanvas):
 		if not (op.next and op.fail):
 			def del_node(self = self, op = op):
 				self.clipboard = op.del_node()
-		items = [('Remove node', del_node),
-			 ('Swap next/fail', swap_nf)]
+		items = [('Swap next/fail', swap_nf),
+			 ('Remove node', del_node)]
 		Menu(items).popup(event.button, event.time)
 
 	def paste_chain(self, op, exit):
@@ -443,10 +443,11 @@ class ChainDisplay(GnomeCanvas):
 					del_chain = None
 					yank_chain = None
 
-				items = [('Delete chain', del_chain),
+				items = [
+					('Set/clear breakpoint', toggle_breakpoint),
 					('Yank chain', yank_chain),
-					('Paste chain', paste_chain),
-					('Set/clear breakpoint', toggle_breakpoint)]
+					('Delete chain', del_chain),
+					('Paste chain', paste_chain)]
 				Menu(items).popup(event.button, event.time)
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')

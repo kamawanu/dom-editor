@@ -318,8 +318,9 @@ class View:
 		for n in self.current_nodes:
 			if n == self.root:
 				raise Beep
-			if n not in new:
-				new.append(n.parentNode)
+			p = n.parentNode
+			if p not in new:
+				new.append(p)
 		self.move_to(new)
 	
 	def move_right(self):
@@ -390,6 +391,12 @@ class View:
 				raise
 			exit = 'fail'
 			new = None
+		except:
+			if not self.op_in_progress:
+				raise
+			exit = 'fail'
+			new = None
+
 		if self.op_in_progress:
 			op = self.op_in_progress
 			self.set_oip(None)
