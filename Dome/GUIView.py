@@ -99,7 +99,7 @@ menu = Menu('main', [
 
 		('/View', None, '<Branch>', ''),
 		('/View/Toggle hidden', 'do_toggle_hidden', '', '<Ctrl>H'),
-		('/View/Hide with expr', 'menu_hide_with_expr', '', ''),
+		('/View/Hide with label', 'menu_hide_with_expr', '', ''),
 		('/View/Show as HTML', 'do_show_html', '', ''),
 		('/View/Show as canvas', 'do_show_canvas', '', ''),
 		('/View/Show namespaces', 'show_namespaces', '', '<Ctrl>;'),
@@ -346,7 +346,12 @@ class GUIView(Display, XDSLoader):
 		def go(expr):
 			action = ["toggle_hidden", expr]
 			self.view.may_record(action)
-		GetArg('XPath expression:', go, ['Eval:'], "Expr is used for the 'hidden' message.\nEg: @title")
+		GetArg('Hide with label:', go, ['Pattern:'], "Generate each label from:",
+			hints = (('title', 'the <title> child element'),
+				 ('@title', "the 'title' attribute"),
+				 ('count(.//*)', 'the number of elements in the subtree'),
+				 ('substring(para[1], 1, 40)', 'the start of the first paragraph'),
+				 ))
 
 	def menu_show_global(self):
 		def do_global(pattern):
