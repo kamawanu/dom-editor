@@ -422,6 +422,8 @@ class View:
 
 		if self.single_step == 0 and self.breakpoints.has_key(self.exec_point):
 			print "Hit a breakpoint! At " + time.ctime(time.time())
+			if self.rec_point:
+				self.set_rec(None)
 			self.single_step = 1
 			for l in self.lists:
 				l.show_prog(op.program)

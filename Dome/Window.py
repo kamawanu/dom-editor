@@ -57,7 +57,7 @@ class Window(GtkWindow):
 		for (name, tip) in [
 			('Save', 'Save this document'),
 			('Record', 'Start recording here'),
-			('Stop', 'Stop a running program'),
+			('Stop', 'Stop recording or running program'),
 			('Play', 'Run this program from here'),
 			('Next', 'Run until the next step in this program'),
 			('Step', 'Run one step, stopping in any program'),
@@ -189,6 +189,8 @@ class Window(GtkWindow):
 		self.save('xml')
 	
 	def tool_Stop(self):
+		if self.view.rec_point:
+			self.view.stop_recording()
 		self.view.run_new()
 
 	def tool_Play(self):
