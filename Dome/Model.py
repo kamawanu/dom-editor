@@ -169,22 +169,29 @@ class Model:
 		if self.get_locks(node):
 			raise Exception('Attempt to set name on locked node %s' % node)
 
-		old_name = node.nodeName
-		old_ns = node.namespaceURI
-
-		kids = node.childNodes[:]
-		attrs = node.attributes.values()
-		parent = node.parentNode
-		[ node.removeChild(k) for k in kids ]
 		new = node.ownerDocument.createElementNS(namespace, name)
-		parent.replaceChild(new, node)
+		self.replace_shallow(node, new)
+		return new
+	
+	def replace_shallow(self, old, new):
+		"""Replace old with new, keeping the old children."""
+		assert not new.childNodes
+		assert not new.parentNode
+
+		old_name = old.nodeName
+		old_ns = old.namespaceURI
+
+		kids = old.childNodes[:]
+		attrs = old.attributes.values()
+		parent = old.parentNode
+		[ old.removeChild(k) for k in kids ]
+		parent.replaceChild(new, old)
 		[ new.appendChild(k) for k in kids ]
 		[ new.setAttributeNS(a.namespaceURI, a.name, a.value) for a in attrs ]
 
-		self.add_undo(lambda: self.set_name(new, old_ns, old_name))
+		self.add_undo(lambda: self.replace_shallow(new, old))
 	
-		self.update_replace(node, new)
-		return new
+		self.update_replace(old, new)
 
 	def add_undo(self, fn):
 		self.undo_stack.append((self.user_op, fn))
