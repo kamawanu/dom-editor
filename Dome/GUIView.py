@@ -348,11 +348,13 @@ class GUIView(Display, XDSLoader):
 		self.size_eb()
 	
 	def size_eb(self):
-		req = self.edit_box_text.size_request()
-		print "Wants", req
-		width = max(req[0], 10)
-		height = max(req[1], 10)
-		self.edit_box_item.set(width = width + 12, height = height + 4)
+		def cb():
+			req = self.edit_box_text.size_request()
+			print "Wants", req
+			width = max(req[0], 10)
+			height = max(req[1], 10)
+			self.edit_box_item.set(width = width + 12, height = height + 4)
+		g.idle_add(cb)
 
 	def toggle_edit(self):
 		if self.cursor_node:
