@@ -376,15 +376,18 @@ class ChainOp(ChainNode):
 
 		if op.next and op.next.prev[0] == op:
 			self.next = da.create_op(op.next, x, y + self.height + 4)
+			self.total_width = max(self.width, self.next.total_width)
 		else:
 			self.next = None
+			self.total_width = self.width
 
 		if op.fail and op.fail.prev[0] == op:
 			if op.next:
-				indent = self.next.width + 20
+				indent = self.total_width + 20
 			else:
 				indent = 100
 			self.fail = da.create_op(op.fail, x + indent, y + self.height + 4)
+			self.total_width = indent + self.fail.total_width
 		else:
 			self.fail = None
 

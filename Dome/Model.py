@@ -71,15 +71,15 @@ class Model:
 		      root.hasAttributeNS(constants.XSLT_NS, 'version'):
 			import xslt
 			self.root_program = xslt.import_sheet(doc)
-			x = implementation.createDocument(None, 'xslt', None)
-			data_to_load = x.documentElement
-			src = doc.createElementNS(None, 'Source')
+			self.doc = implementation.createDocument(None, 'xslt', None)
+			data_to_load = None
+			src = self.doc.createElementNS(None, 'Source')
 			if dome_data:
-				# TODO: import_with_ns?
-				src.appendChild(self.import_with_ns(doc,
-								dome_data.documentElement))
-			data_to_load.appendChild(x.createElementNS(None, 'Result'))
-			data_to_load.appendChild(src)
+				src.appendChild(self.import_with_ns(dome_data.documentElement))
+			self.doc.documentElement.appendChild(src)
+			self.doc.documentElement.appendChild(self.doc.createElementNS(None, 'Result'))
+			self.strip_space()
+			data_to_load = None
 			dome_data = None
 		else:
 			data_to_load = root
