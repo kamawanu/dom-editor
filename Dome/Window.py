@@ -3,6 +3,7 @@ from GDK import *
 from _gtk import *
 import string
 import os.path
+from Ft.Xml.Domlette import PrettyPrint
 
 import __main__
 
@@ -112,9 +113,8 @@ class Window(GtkWindow):
 		else:
 			doc = self.view.export_all()
 		self.output_data = ''
-		from xml.dom import ext
 		print "Getting data..."
-		ext.PrettyPrint(doc, stream = self)
+		PrettyPrint(doc, stream = self)
 		d = self.output_data
 		self.output_data = ''
 		print "Got data... saving..."

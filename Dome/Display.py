@@ -118,7 +118,8 @@ class Display(GnomeCanvas):
 		# Update now, if we need to
 		if self.update_timeout:
 			timeout_remove(self.update_timeout)
-			self.update_callback()
+			# Don't do the timeout stuff now... pygtk dies :-(
+			self.update_timeout = timeout_add(10, self.update_callback)
 	
 	def update_callback(self):
 		self.update_timeout = 0
@@ -177,6 +178,8 @@ class Display(GnomeCanvas):
 		if node == self.view.root or not self.node_to_group.has_key(node):
 			return
 		node = node.parentNode
+		if not self.node_to_group.has_key(node):
+			return
 		for n in node.childNodes:
 			try:
 				kids.append(self.node_to_group[n])

@@ -17,10 +17,14 @@ from Window import Window
 
 tl_windows = 0
 
-import signal
+#import signal
 
-import debug
-signal.signal(signal.SIGINT, debug.debug_prompt)
+#import debug
+#signal.signal(signal.SIGINT, debug.debug_prompt)
+
+sys.argv.append('--disable-crash-dialog')
+import gnome.ui
+sys.argv.pop()
 
 def tl_ref(w = None):
 	global tl_windows

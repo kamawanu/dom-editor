@@ -166,7 +166,7 @@ class Model:
 
 	# Changes
 	
-	def set_name(self, node, namespace, name, example = None):
+	def set_name(self, node, namespace, name):
 		if self.get_locks(node):
 			raise Exception('Attempt to set name on locked node %s' % node)
 
@@ -298,9 +298,7 @@ class Model:
 			self.insert_before_interal(node, new, parent)
 		self.update_all(parent)
 	
-	def set_attrib(self, node, name, value, with_update = 1):
-		"""Set an attribute's value. If value is None, remove the attribute.
-		Returns the new attribute node, or None if removing."""
+	def split_qname(self, node, name):
 		if name == 'xmlns':
 			namespaceURI = XMLNS_NAMESPACE
 			localName = name
@@ -310,6 +308,12 @@ class Model:
 		else:
 			namespaceURI = None
 			localName = name
+		return namespaceURI, localName
+	
+	def set_attrib(self, node, name, value, with_update = 1):
+		"""Set an attribute's value. If value is None, remove the attribute.
+		Returns the new attribute node, or None if removing."""
+		namespaceURI, localName = self.split_qname(node, name)
 
 		if node.hasAttributeNS(namespaceURI, localName):
 			old = node.getAttributeNS(namespaceURI, localName)

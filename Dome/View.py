@@ -637,22 +637,36 @@ class View:
 
 	def subst(self, replace, with):
 		"re search and replace on the current node"
-		check = len(self.current_nodes) == 1
+		nodes = self.current_nodes[:]
+		check = len(nodes) == 1
 		a = self.current_attrib
 		if a:
 			new = re.sub(replace, with, a.value)
 			self.model.set_attrib(self.get_current(), a.name, new)
 		else:
-			for n in self.current_nodes:
+			self.move_to([])
+			final = []
+			for n in nodes:
 				if n.nodeType == Node.TEXT_NODE:
 					old = str(n.data).replace('\n', ' ')
 					new, num = re.subn(replace, with, old)
 					if check and not num:
+						self.move_to(n)
 						raise Beep
 					self.model.set_data(n, new)
+					final.append(n)
+				elif n.nodeType == Node.ELEMENT_NODE:
+					old = str(n.nodeName)
+					new, num = re.subn(replace, with, old)
+					if check and not num:
+						self.move_to(n)
+						raise Beep
+					new_ns, x = self.model.split_qname(n, new)
+					final.append(self.model.set_name(n, new_ns, new))
 				else:
 					self.move_to(n)
 					raise Beep
+			self.move_to(final)
 
 	def python(self, expr):
 		"Replace node with result of expr(old_value)"
@@ -1522,7 +1536,10 @@ class View:
 		node = doc.createElementNS(DOME_NS, 'dome-data')
 		doc.documentElement.appendChild(node)
 
-		data = doc.importNode(self.model.doc.documentElement, 1)
+		if self.chroots:
+			print "*** WARNING: Saving from a chroot!"
+		model = self.model
+		data = doc.importNode(model.doc.documentElement, 1)
 		node.appendChild(data)
 
 		return doc
