@@ -11,6 +11,9 @@ import math
 
 from rox.Menu import Menu
 
+import __main__
+mono = __main__.mono
+
 prog_menu = Menu('programs', [
 		('/Play', 'menu_play', '', ''),
 		('/Map', 'menu_map', '', ''),
@@ -333,7 +336,10 @@ class ChainDisplay(canvas.Canvas):
 		self.rec_point = None
 
 		s = self.get_style().copy()
-		s.bg[g.STATE_NORMAL] = g.gdk.color_parse('light green')
+		if mono:
+			s.bg[g.STATE_NORMAL] = g.gdk.color_parse('white')
+		else:
+			s.bg[g.STATE_NORMAL] = g.gdk.color_parse('light green')
 		self.set_style(s)
 
 		self.nodes = None

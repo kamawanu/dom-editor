@@ -60,11 +60,11 @@ class Display(canvas.Canvas):
 	def size_allocate(self, canvas, size):
 		x, y, width, height = self.get_allocation()
 		if self.visible:
-			if width < 4:
+			if width < 40:
 				self.visible = 0
 				print "hide"
 		else:
-			if width > 4:
+			if width > 40:
 				self.visible = 1
 				self.update_all()
 				print "show"
@@ -122,6 +122,7 @@ class Display(canvas.Canvas):
 			#self.update_timeout = g.timeout_add(10, self.update_callback)
 	
 	def update_callback(self):
+		print "update_callback"
 		self.update_timeout = 0
 		#print "Update...", self.update_nodes
 		set_busy(self)
@@ -149,6 +150,8 @@ class Display(canvas.Canvas):
 						y = group.get_property('y')
 						gr = parent.add(canvas.CanvasGroup, x = x, y = y)
 						group.destroy()
+						print group.attrib_to_group
+						group.attrib_to_group = None
 						self.node_to_group[node] = gr
 						gr.connect('event', self.node_event, node)
 						
@@ -168,6 +171,7 @@ class Display(canvas.Canvas):
 					self.create_tree(node, group)
 					print "highlighting..."
 					self.auto_highlight(node, rec = 1)
+					print "done"
 			self.move_from()
 			self.set_bounds()
 			if self.view.current_nodes:
@@ -175,6 +179,7 @@ class Display(canvas.Canvas):
 		finally:
 			set_busy(self, FALSE)
 			self.update_nodes = {}
+		#print "<update_callback"
 		return 0
 	
 	def child_group_resized(self, node):
@@ -307,7 +312,7 @@ class Display(canvas.Canvas):
 		
 		self.position_kids(group, kids)
 		group.rect.lower_to_bottom()
-
+	
 	def position_kids(self, group, kids):
 		if not kids:
 			return
@@ -448,17 +453,19 @@ class Display(canvas.Canvas):
 	def set_current_attrib(self, attrib):
 		"Select 'attrib' attribute node of the current node. None to unselect."
 		if self.current_attrib:
-			self.current_attrib.rect.set(fill_color = None)
-			self.current_attrib.text.set(fill_color = 'grey40')
-			self.current_attrib = None
+			if self.current_attrib.get_property('parent'):
+				self.current_attrib.rect.set(fill_color = None)
+				self.current_attrib.text.set(fill_color = 'grey40')
 		if attrib:
 			try:
 				group = self.node_to_group[self.view.get_current()].attrib_to_group[attrib]
-				group.rect.set(fill_color = 'blue')
-				group.text.set(fill_color = 'white')
+				group.rect.set(fill_color = 'light blue')
+				group.text.set(fill_color = 'grey40')
 				self.current_attrib = group
 			except KeyError:
 				pass
+		else:
+			self.current_attrib = None
 	
 	def marked_changed(self, nodes):
 		"nodes is a list of nodes to be rechecked."
@@ -473,19 +480,21 @@ class Display(canvas.Canvas):
 	def highlight(self, group, state):
 		node = group.node
 		if state:
-			group.text.set(fill_color = 'white')
-			rfill = 'blue'
+			#group.text.set(fill_color = 'white')
+			rfill = 'light blue'
 		else:
 			rfill = None
-			nt = node.nodeType
-			if nt == 1: #Node.ELEMENT_NODE:
-				group.text.set(fill_color = 'black')
-			elif nt == 3: #Node.TEXT_NODE:
-				group.text.set(fill_color = 'blue')
-			elif nt == 8: #Node.COMMENT_NODE:
-				group.text.set(fill_color = 'darkgreen')
-			else:
-				group.text.set(fill_color = 'red')
+
+		nt = node.nodeType
+		if nt == 1: #Node.ELEMENT_NODE:
+			group.text.set(fill_color = 'black')
+		elif nt == 3: #Node.TEXT_NODE:
+			group.text.set(fill_color = 'blue')
+		elif nt == 8: #Node.COMMENT_NODE:
+			group.text.set(fill_color = 'darkgreen')
+		else:
+			group.text.set(fill_color = 'red')
+
 		if node in self.view.marked:
 			oc = 'orange'
 		else:

@@ -36,16 +36,29 @@ from Window import Window
 
 mime.install_mime_info('Dome')
 
-if len(sys.argv) > 1:
-	files = sys.argv[1:]
-	del sys.argv[1:]		# GnomeCanvas can't cope with -
-	win = apply(Window, files)
-else:
-	win = Window()
+mono = 0
+while len(sys.argv) > 1 and sys.argv[1].startswith('--'):
+	option = sys.argv[1][2:]
+	del sys.argv[1]
+	if option == 'mono':
+		mono = 1		# Black & White
+	elif option == '':
+		break
+	else:
+		raise Exception("Unknown option", option)
 
-win.show()
+def go():
+	if len(sys.argv) > 1:
+		files = sys.argv[1:]
+		del sys.argv[1:]		# GnomeCanvas can't cope with -
+		win = apply(Window, files)
+	else:
+		win = Window()
+
+	win.show()
 
 #import profile
-#profile.run('rox.mainloop()')
+#profile.run('go()')
+go()
 
 rox.mainloop()
