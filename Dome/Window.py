@@ -162,9 +162,11 @@ class Window(rox.Window, saving.Saveable):
 		for radio, ext, mime, fn in self.save_radios:
 			if path.endswith('.' + ext):
 				radio.set_active(True)
+				self.savebox.set_type(mime)
 				break
 		else:
 			self.save_radios[1][0].set_active(True)
+			self.savebox.set_type(self.save_radios[1][2])
 
 		for radio, ext, mime, fn in self.save_radios:
 			self.savebox.vbox.pack_start(radio, False, True, 0)
