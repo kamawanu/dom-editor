@@ -201,7 +201,7 @@ class Display(GnomeCanvas):
 		except UnicodeError:
 			text = '!' + `text`
 
-		hbox = node.nodeName == 'TR'
+		hbox = node.nodeName == 'tr'
 		if cramped:
 			text = wrap(text, 32)
 		group.text = group.add('text', x = 10 , y = -6, anchor = ANCHOR_NW,
@@ -270,7 +270,7 @@ class Display(GnomeCanvas):
 				l.destroy()
 		group.lines = []
 
-		if node.nodeName == 'TR':
+		if node.nodeName == 'tr':
 			y = hy + 8
 			x = indent
 			for g in kids:
