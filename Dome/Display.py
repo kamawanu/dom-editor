@@ -127,12 +127,17 @@ class Display(GnomeCanvas):
 
 		if node.nodeType == Node.ELEMENT_NODE:
 			ax = hx + 8
+			ay = 0
 			group.attrib_to_group = {}
 			for a in node.attributes:
-				g = group.add('group', x = ax, y = 0)
+				g = group.add('group', x = ax, y = ay)
 				self.create_attribs(a, g, cramped, node)
-				(alx, xly, ahx, ahy) = g.get_bounds()
-				ax = ahx + 8
+				(alx, aly, ahx, ahy) = g.get_bounds()
+				if cramped:
+					ay = ahy + 8
+					hy = ahy
+				else:
+					ax = ahx + 8
 				group.attrib_to_group[a.name] = g
 		
 		kids = []
