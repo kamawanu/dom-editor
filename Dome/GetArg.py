@@ -34,6 +34,8 @@ class GetArg(GtkWindow):
 			arg = GtkEntry()
 			hbox.pack_start(arg, TRUE, TRUE, 0)
 			self.vbox.pack_start(hbox, FALSE, TRUE, 0)
+			if history.has_key(a):
+				arg.set_text(history[a])
 			if not self.args:
 				arg.grab_focus()
 				arg.select_region(0, -1)
@@ -42,8 +44,6 @@ class GetArg(GtkWindow):
 				arg.connect('activate', self.to_next)
 			else:
 				arg.connect('activate', self.do_it)
-			if history.has_key(a):
-				arg.set_text(history[a])
 
 		actions = GtkHBox(TRUE, 32)
 		self.vbox.pack_end(actions, FALSE, TRUE, 0)
@@ -78,6 +78,7 @@ class GetArg(GtkWindow):
 		for (a, entry) in self.args:
 			if next:
 				entry.grab_focus()
+				entry.select_region(0, -1)
 				return
 			if entry == widget:
 				next = 1
