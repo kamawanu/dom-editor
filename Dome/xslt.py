@@ -143,13 +143,13 @@ def make_template(op, temp):
 			sub = block.start
 
 			if child._select:
-				match = child._select.pprint()
+				match = `child._select`
 			else:
 				match = '*|text()'
 
 			print "MATCH:", match
 			sub = add(sub, 'mark_switch')
-			sub = add(sub, 'do_global', '*|text()')	# XXX
+			sub = add(sub, 'do_global', match)
 			sub = add(sub, 'map', 'XSLT/Default mode')
 			sub = add(sub, 'mark_switch')
 
