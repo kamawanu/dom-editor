@@ -228,11 +228,11 @@ class View:
 	def add_display(self, display):
 		"Calls move_from(old_node) when we move and update_all() on updates."
 		self.displays.append(display)
-		print "Added:", self.displays
+		#print "Added:", self.displays
 	
 	def remove_display(self, display):
 		self.displays.remove(display)
-		print "Removed, now:", self.displays
+		#print "Removed, now:", self.displays
 		if not self.displays:
 			self.delete()
 	
@@ -272,14 +272,14 @@ class View:
 				raise Exception('Internal locking error on %s!' % n)
 
 		if not (self.has_ancestor(node, self.root) or self.has_ancestor(self.root, node)):
-			print "[ change to %s doesn't affect us (root %s) ]" % (node, self.root)
+			#print "[ change to %s doesn't affect us (root %s) ]" % (node, self.root)
 			return
 
 		for display in self.displays:
 			display.update_all(node)
 	
 	def delete(self):
-		print "View deleted"
+		#print "View deleted"
 		self.model.root_program.watchers.remove(self)
 		self.move_to([])
 		for l in self.lists:
@@ -499,8 +499,8 @@ class View:
 				#node = x
 				#break
 		if not node:
-			print "*** Search for '%s' failed" % pattern
-			print "    (namespaces were '%s')" % ns
+			#print "*** Search for '%s' failed" % pattern
+			#print "    (namespaces were '%s')" % ns
 			raise Beep
 		if toggle:
 			new = self.current_nodes[:]
@@ -581,10 +581,10 @@ class View:
 			self.clipboard = self.model.doc.createDocumentFragment()
 			for n in self.current_nodes:
 				c = n.cloneNode(deep = deep)
-				print n, "->", c
+				#print n, "->", c
 				self.clipboard.appendChild(c)
 		
-		print "Clip now", self.clipboard
+		#print "Clip now", self.clipboard
 	
 	def shallow_yank(self):
 		self.yank(deep = 0)
@@ -603,7 +603,7 @@ class View:
 		new = []
 		for x in nodes:
 			p = x.parentNode
-			print "Delete %s, parent %s" % (x, p)
+			#print "Delete %s, parent %s" % (x, p)
 			if p not in new:
 				new.append(p)
 		self.move_to(new)
@@ -649,7 +649,7 @@ class View:
 				old_ss = self.single_step):
 			"We're in do_one_step..."
 
-			print "Return from '%s'..." % name
+			#print "Return from '%s'..." % name
 
 			if old_ss == 2 and self.single_step == 0:
 				self.single_step = old_ss
@@ -657,7 +657,7 @@ class View:
 
 			o, exit = self.exec_point
 			if op:
-				print "Resume op '%s' (%s)" % (op.program.name, op)
+				#print "Resume op '%s' (%s)" % (op.program.name, op)
 				self.pop_stack()
 				self.set_oip(op)
 			return done(exit)
@@ -696,7 +696,7 @@ class View:
 			self.run_new()
 			return 0
 		except InProgress:
-			print "InProgress"
+			#print "InProgress"
 			return 0
 		except:
 			type, val, tb = sys.exc_info()
@@ -737,11 +737,11 @@ class View:
 				print "Map: nodes remaining, but an error occurred..."
 				return self.default_done(exit)
 			self.move_to(nodes[0])
-			print "Next:", self.get_current()
+			#print "Next:", self.get_current()
 			del nodes[0]
 			if not nodes:
 				next = None
-			print "Map: calling play (%d after this)" % len(nodes)
+			#print "Map: calling play (%d after this)" % len(nodes)
 			self.play(name, done = next)		# Should raise InProgress
 		if nodes is self.current_nodes:
 			raise Exception("Slice failed!")
@@ -815,12 +815,12 @@ class View:
 			raise Beep
 		if uri.find('//') == -1:
 			base = self.model.get_base_uri(node)
-			print "Relative URI..."
+			#print "Relative URI..."
 			if base:
-				print "Base URI is:", base
+				#print "Base URI is:", base
 				uri = urlparse.urljoin(base, uri)
 			else:
-				print "Warning: Can't find 'uri' attribute!"
+				#print "Warning: Can't find 'uri' attribute!"
 
 		stream = urllib.urlopen(uri)
 		headers = stream.info().headers
@@ -878,7 +878,7 @@ class View:
 		If old_md5 is given, compare the MD5 of the document with it,
 		and do callback(None, "Same") if they match.
 		"""
-		print command
+		#print command
 		cout = os.popen(command)
 	
 		all = ["", None]
@@ -990,7 +990,7 @@ class View:
 			raise Beep
 		value = self.current_attrib.value
 		self.clipboard = self.model.doc.createTextNode(value)
-		print "Clip now", self.clipboard
+		#print "Clip now", self.clipboard
 	
 	def yank_attribs(self, name):
 		self.clipboard = self.model.doc.createDocumentFragment()
@@ -1016,7 +1016,7 @@ class View:
 			n = self.model.doc.createElementNS(a.namespaceURI, a.nodeName)
 			n.appendChild(self.model.doc.createTextNode(a.value))
 			self.clipboard.appendChild(n)
-		print "Clip now", self.clipboard
+		#print "Clip now", self.clipboard
 	
 	def paste_attribs(self):
 		if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
@@ -1052,14 +1052,14 @@ class View:
 			self.move_to(self.get_current())
 			return
 
-		print "(ns, attrib)", `namespace`, attrib
+		#print "(ns, attrib)", `namespace`, attrib
 
 		if self.get_current().hasAttributeNS(namespace, attrib):
-			print "Moving to", self.get_current().getAttributeNodeNS(namespace, attrib)
+			#print "Moving to", self.get_current().getAttributeNodeNS(namespace, attrib)
 			self.move_to(self.get_current(),
 				self.get_current().getAttributeNodeNS(namespace, attrib))
 		else:
-			print "No such attribute"
+			#print "No such attribute"
 			raise Beep()
 	
 	def set_attrib(self, value):
@@ -1229,7 +1229,6 @@ class View:
 		self.status_changed()
 		
 	def prog_tree_changed(self, prog):
-		print "here"
 		pass
 	
 	def export_all(self):

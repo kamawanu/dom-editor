@@ -117,12 +117,12 @@ class Model:
 	def add_view(self, view):
 		"'view' provides:"
 		"'update_all(subtree) - called when a major change occurs."
-		print "New view:", view
+		#print "New view:", view
 		self.views.append(view)
 	
 	def remove_view(self, view):
-		print "Removing view", view
-		print "Now:", self.views
+		#print "Removing view", view
+		#print "Now:", self.views
 		self.views.remove(view)
 		self.may_free()
 	
@@ -132,9 +132,9 @@ class Model:
 		if self.get_locks(self.doc.documentElement) == 0:
 			from xml.dom.ext import ReleaseNode
 			ReleaseNode(self.doc.documentElement)
-			print "(releasing)"
+			#print "(releasing)"
 		else:
-			print "(still locked)"
+			#print "(still locked)"
 
 	def update_all(self, node):
 		"Called when 'node' has been updated."
@@ -176,7 +176,7 @@ class Model:
 		self.update_replace(old, new)
 	
 	def delete_nodes(self, nodes):
-		print "Deleting", nodes
+		#print "Deleting", nodes
 		for n in nodes:
 			if self.get_locks(n):
 				raise Exception('Attempt to delete locked node %s' % n)
@@ -192,7 +192,7 @@ class Model:
 			if result is None:
 				return
 			alt_node, uop = result
-			print "Undid with uop =", uop
+			#print "Undid with uop =", uop
 			self.update_all(alt_node)
 
 	def redo(self, node):
@@ -202,7 +202,7 @@ class Model:
 			if result is None:
 				return
 			alt_node, uop = result
-			print "Redid with uop =", uop
+			#print "Redid with uop =", uop
 			self.update_all(alt_node)
 	
 	def insert(self, node, new, index = 0):
