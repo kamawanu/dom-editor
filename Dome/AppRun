@@ -10,10 +10,10 @@ xml.dom.html.HTML_CHARACTER_ENTITIES = {}
 import sys
 from os.path import dirname
 
+app_dir = dirname(sys.argv[0])
+
 from gtk import *
 from Window import Window
-
-app_dir = dirname(sys.argv[0])
 
 tl_windows = 0
 

@@ -4,6 +4,8 @@ from _gtk import *
 import string
 import os.path
 
+import __main__
+
 from xml.dom import Node
 from xml.dom import ext
 from xml.dom import implementation
@@ -13,11 +15,21 @@ from rox import choices
 import Html
 from support import *
 from rox.SaveBox import SaveBox
-from Toolbar import Toolbar
+from rox.Toolbar import Toolbar
 
 from Model import Model
 from View import View
 from View import InProgress, Done
+
+tools = [
+	('Save', 'Save this document'),
+	('Record', 'Start recording here'),
+	('Stop', 'Stop a running program'),
+	('Play', 'Run this program from here'),
+	('Next', 'Run until the next step in this program'),
+	('Step', 'Run one step, stopping in any program'),
+	]
+toolbar = Toolbar(tools, __main__.app_dir + '/icons')
 
 class Window(GtkWindow):
 	def __init__(self, path = None):
@@ -40,7 +52,7 @@ class Window(GtkWindow):
 
 		vbox = GtkVBox(FALSE, 0)
 		self.add(vbox)
-		tb = Toolbar(self)
+		tb = toolbar.make_widget(self)
 		vbox.pack_start(tb, FALSE, TRUE, 0)
 
 		hbox = GtkHBox(FALSE, 0)
@@ -159,15 +171,6 @@ class Window(GtkWindow):
 
 	# Toolbar bits
 
-	tools = [
-		('Save', 'Save this document'),
-		('Record', 'Start recording here'),
-		('Stop', 'Stop a running program'),
-		('Play', 'Run this program from here'),
-		('Next', 'Run until the next step in this program'),
-		('Step', 'Run one step, stopping in any program'),
-		]
-	
 	def tool_Save(self):
 		self.save('xml')
 	
