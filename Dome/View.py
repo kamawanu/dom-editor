@@ -921,7 +921,6 @@ class View:
 		if not nodes:
 			return
 		self.move_to([])
-		print "Start"
 		if nodes[0].nodeType == Node.ELEMENT_NODE:
 			# Slow, so do this here, even if vaguely incorrect...
 			if ':' in new_data:
@@ -935,7 +934,6 @@ class View:
 		else:
 			for node in nodes:
 				self.model.set_data(node, new_data)
-		print "End"
 		self.move_to(nodes)
 
 	def add_node(self, where, data):
