@@ -131,9 +131,9 @@ class Model:
 		self.update_all(node)
 	
 	def replace_node(self, old, new):
-		Change.replace_node(old, new)
 		if self.get_locks(old):
 			raise Exception('Attempt to replace locked node %s' % old)
+		Change.replace_node(old, new)
 		self.update_replace(old, new)
 	
 	def delete_nodes(self, nodes):

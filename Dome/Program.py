@@ -87,8 +87,11 @@ class Program:
 			w.program_changed(self)
 	
 	def tree_changed(self):
-		for w in self.watchers:
-			w.prog_tree_changed(self)
+		if self.parent:
+			self.parent.tree_changed()
+		else:
+			for w in self.watchers:
+				w.prog_tree_changed(self)
 	
 	def add_sub(self, prog):
 		if prog.parent:
@@ -175,6 +178,8 @@ class Op:
 		self.changed()
 	
 	def set_program(self, program):
+		if self.program == program:
+			return
 		if self.program:
 			raise Exception('Already got a program!')
 		self.program = program

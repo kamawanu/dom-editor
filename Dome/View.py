@@ -866,7 +866,15 @@ class View:
 			new = self.clipboard.cloneNode(deep = 1)
 		self.move_to([])
 		try:
-			self.model.replace_node(node, new)
+			if node == self.root:
+				self.model.unlock(self.root)
+				try:
+					self.model.replace_node(self.root, new)
+					self.root = new
+				finally:
+					self.model.lock(self.root)
+			else:
+				self.model.replace_node(node, new)
 			self.move_to(new)
 		except:
 			raise Beep

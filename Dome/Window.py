@@ -68,17 +68,17 @@ class Window(GtkWindow):
 
 		vbox.pack_start(toolbar, FALSE, TRUE, 0)
 
-		hbox = GtkHBox(FALSE, 0)
-		vbox.pack_start(hbox)
+		paned = GtkHPaned()
+		vbox.pack_start(paned)
 
 		view = View(self.model, root_program)
 		self.list = List(view)
-		hbox.pack_start(self.list, FALSE, TRUE, 0)
+		paned.add1(self.list)
 		self.list.show()
 		
 		swin = GtkScrolledWindow()
 		swin.set_policy(POLICY_AUTOMATIC, POLICY_ALWAYS)
-		hbox.pack_start(swin, TRUE, TRUE, 0)
+		paned.add2(swin)
 
 		self.view = view
 
