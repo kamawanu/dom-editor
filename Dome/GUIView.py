@@ -96,7 +96,7 @@ menu = Menu('main', [
 		('/Program/Compare', 'do_compare', '', 'equal'),
 		('/Program/Pass', 'do_pass', '', ''),
 		('/Program/Fail', 'do_fail', '', ''),
-		('/Program/Fail if', 'menu_fail_if', '', ''),
+		('/Program/Assert', 'menu_assert', '', ''),
 		('/Program/Repeat last', 'do_again', '', 'dot'),
 
 		('/View', None, '<Branch>', ''),
@@ -354,11 +354,11 @@ class GUIView(Display, XDSLoader):
 			self.view.may_record(action)
 		GetArg('XPath expression:', go, ['Eval:'], "Result goes on the clipboard")
 
-	def menu_fail_if(self):
+	def menu_assert(self):
 		def go(expr):
-			action = ["fail_if", expr]
+			action = ["assert_xpath", expr]
 			self.view.may_record(action)
-		GetArg('Fail if:', go, ['Test:'], "Take fail arc if true:",
+		GetArg('Assert:', go, ['Test:'], "Check this is true:",
 			hints = (('. > 0', 'greater than zero'),
 				 ('. = "Green"', "value is 'Green'"),
 				 ('@href', "href attribute present"),

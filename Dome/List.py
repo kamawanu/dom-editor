@@ -998,6 +998,7 @@ class ChainDisplay(g.EventBox):
 			pass
 		print self.exec_point
 		self.view.record_at_point()
+		self.view.breakpoints[(b, 'next')] = True
 		
 	def line_toggle_breakpoint(self):
 		op, exit = self.line_menu_line
@@ -1005,7 +1006,7 @@ class ChainDisplay(g.EventBox):
 		if bp.has_key((op, exit)):
 			del bp[(op, exit)]
 		else:
-			bp[(op, exit)] = 1
+			bp[(op, exit)] = False
 		self.prog.changed()
 		
 	def line_yank_chain(self):

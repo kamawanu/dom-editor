@@ -57,8 +57,8 @@ class Window(rox.Window, saving.Saveable):
 
 		tools.insert_stock(g.STOCK_HELP, 'Help', None, self.tool_help, None, 0)
 		tools.insert_stock(g.STOCK_JUMP_TO, 'Step', None, self.tool_step, None, 0)
-		tools.insert_stock(g.STOCK_GO_FORWARD, 'Next', None, self.tool_next, None, 0)
-		tools.insert_stock(g.STOCK_GOTO_LAST, 'Play', None, self.tool_play, None, 0)
+		tools.insert_stock(g.STOCK_JUMP_TO, 'Next', None, self.tool_next, None, 0)
+		tools.insert_stock(g.STOCK_GO_FORWARD, 'Play', None, self.tool_play, None, 0)
 		tools.insert_stock(g.STOCK_STOP, 'Stop', None, self.tool_stop, None, 0)
 		tools.insert_stock(g.STOCK_NO, 'Record', None, self.tool_record, None, 0)
 		tools.insert_stock(g.STOCK_SAVE, 'Save', None, self.tool_save, None, 0)
@@ -225,6 +225,13 @@ class Window(rox.Window, saving.Saveable):
 
 	def tool_play(self, button = None):
 		from View import InProgress, Done
+		if not self.view.exec_point:
+			if self.view.rec_point:
+				self.view.set_exec(self.view.rec_point)
+				self.view.set_rec(None)
+			else:
+				rox.alert('No playback point!')
+				return
 		# Step first, in case we're on a breakpoint
 		self.view.single_step = 1
 		try:

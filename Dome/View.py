@@ -1,7 +1,8 @@
 from __future__ import nested_scopes
 
 try:
-	from rox import alert
+	import rox
+	from rox import alert, g
 except:
 	def alert(message):
 		print "***", message
@@ -82,7 +83,7 @@ record_again = [
 	"paste_attribs",
 	"compare",
 	"fail",
-	"fail_if",
+	"assert_xpath",
 	"do_pass",
 	"attribute",
 	"set_attrib",
@@ -146,7 +147,7 @@ class View:
 		self.call_on_done = None	# Called when there is nowhere to return to
 		self.exec_stack = []		# Ops we are inside (display use only)
 
-		self.breakpoints = {}		# (op, exit) keys, values don't matter
+		self.breakpoints = {}		# (op, exit) keys => start-recording?
 		self.current_nodes = []
 		self.set_model(model)
 
@@ -260,8 +261,6 @@ class View:
 				new_op = Op(action)
 			op.link_to(new_op, old_exit)
 			self.set_exec(rec)
-			self.breakpoints[(new_op, 'next')] = True
-			self.breakpoints[(new_op, 'fail')] = True
 			try:
 				self.do_one_step()
 			except InProgress:
@@ -513,12 +512,19 @@ class View:
 			self.move_to(new)
 	
 	def breakpoint(self):
-		if self.breakpoints.has_key(self.exec_point):
-			return 1
-		op = self.exec_point[0]
-		if op.parent.start == op and op.next == None:
-			return 1		# Empty program
-		return 0
+		"""Return the type of breakpoint at exec-point.
+		None - no breakpoint
+		False - non-recording
+		True - recording"""
+		bt = self.breakpoints.get(self.exec_point, None)
+		if bt is None:
+			op = self.exec_point[0]
+			if op.parent.start == op and op.next == None:
+				return True		# Empty program
+		else:
+			if bt is True:
+				del self.breakpoints[self.exec_point]
+		return bt
 	
 	def do_one_step(self):
 		"Execute the next op after exec_point, then:"
@@ -534,9 +540,12 @@ class View:
 			raise Done()
 		(op, exit) = self.exec_point
 
-		if self.single_step == 0 and self.breakpoint():
+		bp = self.breakpoint()
+		if bp == True or (self.single_step == 0 and bp is not None):
 			print "Hit a breakpoint! At " + time.ctime(time.time())
-			if self.rec_point:
+			if bp:
+				self.set_rec(self.exec_point)
+			else:
 				self.set_rec(None)
 			self.single_step = 1
 			for l in self.lists:
@@ -553,6 +562,29 @@ class View:
 			if exit == 'fail' and not self.innermost_failure:
 				#print "Setting innermost_failure on", op
 				self.innermost_failure = op
+
+			if exit == 'fail' and not op.propagate_fail:
+				self.single_step = 1
+				for l in self.lists:
+					l.show_prog(op.get_program())
+				box = g.MessageDialog(None, 0, g.MESSAGE_QUESTION, g.BUTTONS_CANCEL,
+						 'Operation failed. Do you want to record a failure case, '
+						 'or allow errors to propagate to the parent block?')
+				box.add_button('Propagate', 1)
+				box.add_button('Record', 2)
+				box.set_default_response(2)
+				box.set_position(g.WIN_POS_CENTER)
+				box.set_title(_('Operation failed'))
+				resp = box.run()
+				box.destroy()
+				if resp == 1:
+					op.set_propagate_fail(True)
+					self.single_step = 0
+					self.sched()
+				elif resp == 2:
+					self.set_rec((op, 'fail'))
+					self.set_exec(None)
+				return		# Stop
 
 			# If we're in a block, try exiting from it...
 			if isinstance(op.parent, Block):
@@ -1530,16 +1562,15 @@ class View:
 	def do_pass(self):
 		pass
 	
-	def fail_if(self, xpath):
-		"""Evaluate xpath as a boolean, and fail if true."""
+	def assert_xpath(self, xpath):
+		"""Evaluate xpath as a boolean, and fail if false."""
 		src = self.get_current()
 		ns = self.model.namespaces.uri
 		c = Context.Context(src, [src], processorNss = ns)
 		
 		rt = XPath.Evaluate(xpath, context = c)
 		#print "Got", rt
-		print rt
-		if rt:
+		if not rt:
 			raise Beep(may_record = 1)
 	
 	def xslt_fail_if(self, xpath):
