@@ -20,12 +20,22 @@ from rox.Toolbar import Toolbar
 from Model import Model
 from View import View
 from View import InProgress, Done
+from Program import Program, load_dome_program
+from xml.dom.ext.reader import PyExpat
 
+code = choices.load('Dome', 'RootProgram.xml')
+if code:
+	reader = PyExpat.Reader()
+	doc = reader.fromUri(code)
+	root_program = load_dome_program(doc.documentElement)
+else:
+	root_program = Program('Root')
+	
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
 		
-		self.model = Model()
+		self.model = Model(root_program)
 		self.gui_view = None
 		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
@@ -62,9 +72,6 @@ class Window(GtkWindow):
 		hbox = GtkHBox(FALSE, 0)
 		vbox.pack_start(hbox)
 
-		code = choices.load('Dome', 'RootProgram.xml')
-		if code:
-			self.model.load_program(code)
 		view = View(self.model)
 		self.list = List(view)
 		hbox.pack_start(self.list, FALSE, TRUE, 0)

@@ -87,6 +87,11 @@ class List(GtkVBox):
 		self.chains.show()
 		self.tree.show()
 		self.view.lists.append(self)
+		self.view.model.root_program.watchers.append(self)
+	
+	def destroy(self):
+		self.view.lists.remove(self)
+		self.view.model.root_program.watchers.remove(self)
 	
 	def update_points(self):
 		self.chains.update_points()
@@ -173,7 +178,7 @@ class List(GtkVBox):
 			GetArg('Rename program', rename, ['Program name:'])
 		def new_prog(model = self.view.model, prog = prog):
 			def create(name, model = model, prog = prog):
-				new = Program(model, name)
+				new = Program(name)
 				prog.add_sub(new)
 			GetArg('New program', create, ['Program name:'])
 			
@@ -277,6 +282,9 @@ class ChainDisplay(GnomeCanvas):
 		self.prog = prog
 		self.prog.watchers.append(self)
 		self.update_all()
+	
+	def prog_tree_changed(self, prog = None):
+		pass
 	
 	def program_changed(self, op):
 		self.update_all()

@@ -6,28 +6,21 @@
 # Notification to views of changes is done.
 
 from xml.dom import implementation, XMLNS_NAMESPACE
-from xml.dom.ext.reader import PyExpat
 from xml.dom import ext
 from xml.dom import Node
 import string
 import Html
 import Change
 from Beep import Beep
-from Program import Program, load_dome_program
 
 from support import html_to_xml
 
 class Model:
-	def __init__(self):
+	def __init__(self, program):
 		self.doc = implementation.createDocument('', 'root', None)
 		self.views = []		# Notified when something changes
-		self.root_program = Program(self, 'root')
-	
-	def load_program(self, path):
-		reader = PyExpat.Reader()
-		doc = reader.fromUri(path)
-		self.root_program = load_dome_program(self, doc.documentElement)
-	
+		self.root_program = program
+		
 	def mark(self):
 		"Increment the user_op counter. Undo will undo every operation between"
 		"two marks."
@@ -147,7 +140,3 @@ class Model:
 			raise Exception("No such namespace prefix '%s'" % prefix)
 		else:
 			return ''
-
-	def prog_tree_changed(self, prog):
-		for v in self.views:
-			v.prog_tree_changed(prog)

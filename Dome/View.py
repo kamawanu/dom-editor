@@ -245,6 +245,8 @@ class View:
 	
 	def delete(self):
 		print "View deleted"
+		for l in self.lists:
+			l.destroy()
 		self.model.remove_view(self)
 		self.model = None
 		self.current = None
@@ -971,10 +973,6 @@ class View:
 		
 		self.model.strip_space(new)
 		self.model.replace_node(self.root, new)
-	
-	def prog_tree_changed(self, prog):
-		for l in self.lists:
-			l.prog_tree_changed(prog)
 	
 	def show_canvas(self):
 		node = self.current

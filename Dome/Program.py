@@ -46,12 +46,12 @@ def load(chain):
 			op.link_to(fail, 'fail')
 	return start
 
-def load_dome_program(model, prog):
+def load_dome_program(prog):
 	"prog should be a DOM 'dome-program' node."
 	if prog.nodeName != 'dome-program':
 		raise Exception('Not a DOME program!')
 
-	new = Program(model, str(prog.getAttributeNS('', 'name')))
+	new = Program(str(prog.getAttributeNS('', 'name')))
 
 	start = load(prog)
 	if start:
@@ -61,17 +61,16 @@ def load_dome_program(model, prog):
 
 	for node in prog.childNodes:
 		if node.localName == 'dome-program':
-			new.add_sub(load_dome_program(model, node))
+			new.add_sub(load_dome_program(node))
 		
 	return new
 
 class Program:
 	"A program contains a Start Op and any number of sub-programs."
-	def __init__(self, model, name, start = None):
+	def __init__(self, name, start = None):
 		if not start:
 			start = Op()
 			start.program = self
-		self.model = model
 		self.start = start
 		self.name = name
 		self.subprograms = {}
@@ -87,24 +86,26 @@ class Program:
 		for w in self.watchers:
 			w.program_changed(self)
 	
+	def tree_changed(self):
+		for w in self.watchers:
+			w.prog_tree_changed(self)
+	
 	def add_sub(self, prog):
 		if prog.parent:
 			raise Exception('%s already has a parent program!' % prog.name)
 		if self.subprograms.has_key(prog.name):
 			raise Exception('%s already has a child called %s!' %
 							(self.name, prog.name))
-		if prog.model != self.model:
-			raise Exception('Subprogram is from a different model!')
 		prog.parent = self
 		self.subprograms[prog.name] = prog
-		self.model.prog_tree_changed(prog)
+		self.tree_changed()
 	
 	def remove_sub(self, prog):
 		if prog.parent != self:
 			raise Exception('%s is no child of mime!' % prog)
 		prog.parent = None
 		del self.subprograms[prog.name]
-		self.model.prog_tree_changed(self)
+		self.tree_changed()
 	
 	def rename(self, name):
 		p = self.parent
@@ -116,7 +117,7 @@ class Program:
 		if p:
 			p.add_sub(self)
 		else:
-			self.model.prog_tree_changed(self)
+			self.tree_changed()
 	
 	def to_xml(self):
 		data = "<dome-program name='%s'>\n" % escape_attval(self.name)
