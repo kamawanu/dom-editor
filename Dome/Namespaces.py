@@ -1,10 +1,12 @@
 from xml.dom import XMLNS_NAMESPACE, XML_NAMESPACE
 from constants import DOME_NS
+from Ft.Xml.XPath import FT_EXT_NAMESPACE
 
 import rox
 from rox import g
 
 fixed_ns = {'xml': XML_NAMESPACE, 'xmlns': XMLNS_NAMESPACE,
+	    'ext': FT_EXT_NAMESPACE,
 	    'dome': DOME_NS}
 
 common_ns = {'http://www.w3.org/1999/xhtml': 'xhtml',

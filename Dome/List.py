@@ -250,7 +250,7 @@ class List(g.VBox):
 
 	def button_press(self, tree, event):
 		if event.button == 2 or event.button == 3:
-			ret = tree.get_path_at_pos(event.x, event.y)
+			ret = tree.get_path_at_pos(int(event.x), int(event.y))
 			if not ret:
 				return 1		# Click on blank area
 			path, col, cx, cy = ret
