@@ -22,6 +22,8 @@ from View import View
 from View import InProgress, Done
 from Program import Program, load_dome_program
 
+code = None
+
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
@@ -65,14 +67,15 @@ class Window(GtkWindow):
 		paned = GtkHPaned()
 		vbox.pack_start(paned)
 
-		self.code = None
+		global root_program
+		code = choices.load('Dome', 'RootProgram.xml')
 		if code:
 			reader = PyExpat.Reader()
 			doc = reader.fromUri(code)
 			root_program = load_dome_program(doc.documentElement)
 		else:
 			root_program = Program('Root')
-			
+
 		view = View(self.model, root_program)
 		self.list = List(view)
 		paned.add1(self.list)
