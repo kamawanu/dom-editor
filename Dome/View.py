@@ -252,13 +252,11 @@ class View:
 		return self.model.doc.createTextNode(str(data))
 	
 	def yank(self):
-		nodes = self.current_nodes
-		if len(nodes) == 1:
-			# TODO: Grab fragment for multiple nodes?
-			self.clipboard = nodes[0].cloneNode(deep = 1)
-			print "Clip now", self.clipboard
-		else:
-			print "[ multiple nodes not yanked ]"
+		self.clipboard = self.model.doc.createDocumentFragment()
+		for n in self.current_nodes:
+			self.clipboard.appendChild(n.cloneNode(deep = 1))
+		
+		print "Clip now", self.clipboard
 	
 	def delete_node(self):
 		nodes = self.current_nodes[:]
@@ -363,6 +361,9 @@ class View:
 		if self.clipboard == None:
 			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
+		self.model.insert_after(node, new)
+	
+	def no(self):
 		try:
 			self.model.insert_after(node, new)
 		except:

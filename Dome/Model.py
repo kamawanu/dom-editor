@@ -118,7 +118,12 @@ class Model:
 		"of parent's children."
 		if not parent:
 			parent = node.parentNode
-		Change.insert_before(node, new, parent)
+		if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
+			for n in new.childNodes:
+				print "Insert", n
+				Change.insert_before(node, n, parent)
+		else:
+			Change.insert_before(node, new, parent)
 		self.update_all(parent)
 	
 	def set_attrib(self, node, name, value):

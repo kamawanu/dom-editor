@@ -1,6 +1,7 @@
 # All changes go through here so we can undo...
 
 from Beep import Beep
+from xml.dom.Node import Node
 
 # Which undo list operations will affect.
 # Normal ops add to the undo list.
@@ -19,10 +20,14 @@ def set_name(node, new):
 def insert_before(node, new, parent):
 	"Insert 'new' before 'node'. If 'node' is None then insert at the end"
 	"of parent's children."
+	if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
+		raise Exception("insert_before() can't take a fragment!")
+	print "Insert", new, "before", node, "inside", parent
 	parent.insertBefore(new, node)
 	add_undo(parent, lambda new = new: delete(new))
 	
 def delete(node):
+	print "Delete", node
 	next = node.nextSibling
 	parent = node.parentNode
 	parent.removeChild(node)

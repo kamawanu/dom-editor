@@ -6,12 +6,47 @@ from loader import make_xds_loader
 from xml.parsers.xmlproc.utils import escape_attval
 from xml.dom.ext.reader import PyExpat
 from StringIO import StringIO
+import string
 
 from support import *
 
 import Exec
 from SaveBox import SaveBox
 from Menu import Menu
+
+def action_to_text(action):
+	text = action[0]
+	if text[:3] == 'do_':
+		text = text[3:]
+	text = string.capitalize(string.replace(text, '_', ' '))
+	
+	if len(action) > 1:
+		if action[0] == 'do_search':
+			pat = str(action[1])
+			pat = string.replace(pat, 'following-sibling::', '>>')
+			pat = string.replace(pat, 'preceding-sibling::', '<<')
+			pat = string.replace(pat, 'child::', '')
+			pat = string.replace(pat, '[1]', '')
+			pat = string.replace(pat, 'text()[ext:match', '[')
+			details = ''
+			while len(pat) > 16:
+				i = string.rfind(pat[:16], '/')
+				if i == -1:
+					i = 16
+				details = details + pat[:i + 1] + '\n'
+				pat = pat[i + 1:]
+			details = details + pat
+		elif action[0] == 'add_node':
+			details = action[2]
+		else:
+			if len(action) > 2:
+				details = `action[1:]`
+			else:
+				details = str(action[1])
+			if len(details) > 12:
+				details = `details`[:11] + '...'
+		text = text + '\n' + details
+	return text
 
 class Macro(GtkWindow):
 	def __init__(self, uri, parent):
@@ -211,10 +246,15 @@ class Macro(GtkWindow):
 		self.root.move(0, 0) # Magic!
 
 		width = max_x - min_x + 50
+		height = max_y - min_y + 50
 		max_w = screen_width() * 2 / 3
+		max_h = screen_height() * 2 / 3
 		if width > max_w:
 			width = max_w
-		self.set_default_size(width, 200)
+		if height > max_h:
+			height = max_h
+		if not self.flags(REALIZED):
+			self.set_default_size(width, height)
 
 class MacroNode:
 	def __init__(self, parent, action, x = 50, y = 50, p_node = None):
@@ -223,20 +263,7 @@ class MacroNode:
 		self.next = None
 		self.fail = None
 
-		text = action[0]
-		if len(action) > 1:
-			if action[0] == 'do_search':
-				details = '...' + str(action[1])[-12:]
-			elif action[0] == 'add_node':
-				details = action[2]
-			else:
-				if len(action) > 2:
-					details = `action[1:]`
-				else:
-					details = str(action[1])
-				if len(details) > 12:
-					details = `details`[:11] + '...'
-			text = text + '\n' + details
+		text = action_to_text(action)
 		
 		if p_node:
 			p_group = p_node.group
@@ -246,6 +273,19 @@ class MacroNode:
 			self.prev = None
 
 		self.group = p_group.add('group', x = x, y = y)
+		
+		self.next_line = self.group.add('line',
+					fill_color = 'black',
+					points = (0, 6, 0, 20),
+					width_pixels = 4)
+		self.next_line.connect('event', self.line_event, self, 'next')
+
+		self.fail_line = self.group.add('line',
+					fill_color = '#ff6666',
+					points = (6, 6, 16, 16),
+					width_pixels = 4)
+		self.fail_line.connect('event', self.line_event, self, 'fail')
+		
 		self.circle = self.group.add('ellipse',
 					fill_color = 'blue',
 					outline_color = 'black',
@@ -253,26 +293,15 @@ class MacroNode:
 					y1 = -4, y2 = 4,
 					width_pixels = 1)
 		self.label = self.group.add('text',
-					x = 0, 
-					y = -8,
-					anchor = ANCHOR_SOUTH,
+					x = -8, 
+					y = 0,
+					anchor = ANCHOR_EAST,
+					justification = 'right',
 					font = 'fixed',
 					fill_color = 'black',
 					text = text)
 		self.group.connect('event', self.event)
 		self.marker = None
-
-		self.next_line = self.group.add('line',
-					fill_color = 'black',
-					points = (6, 0, 20, 0),
-					width_pixels = 4)
-		self.next_line.connect('event', self.line_event, self, 'next')
-
-		self.fail_line = self.group.add('line',
-					fill_color = 'red',
-					points = (6, 6, 16, 16),
-					width_pixels = 4)
-		self.fail_line.connect('event', self.line_event, self, 'fail')
 	
 	def reparent(self, new_parent, exit = 'next'):
 		self.prev = new_parent
@@ -294,7 +323,7 @@ class MacroNode:
 
 		if child == self.next:
 			exit = 'next'
-			points = (6, 0, 20, 0)
+			points = (0, 6, 0, 20)
 		else:
 			exit = 'fail'
 			points = (6, 6, 16, 16)
@@ -321,13 +350,11 @@ class MacroNode:
 		old = getattr(self, exit)
 	
 		if exit == 'next':
-			min_x, min_y, dx, max_y = self.label.get_bounds()
-			min_x, min_y, max_x, max_y = new.label.get_bounds()
-			dx += 20 - min_x
-			dy = 0
+			dx = 0
+			dy = 60
 		else:
-			dx = 50
-			dy = 50
+			dx = 120
+			dy = 40
 
 		new.group.move(dx, dy)
 
@@ -421,8 +448,8 @@ class MacroNode:
 			line = self.next_line
 		else:
 			line = self.fail_line
-		(x1, y1) = (6, 0)
-		(x2, y2) = child.group.i2w(-6, 0)
+		(x1, y1) = (0, 6)
+		(x2, y2) = child.group.i2w(0, -6)
 		(x2, y2) = self.group.w2i(x2, y2)
 		line.set(points = (x1, y1, x2, y2))
 
@@ -469,7 +496,7 @@ class MacroNode:
 						width_pixels = 1)
 
 			if where == 'next':
-				dx, dy = (6, 0)
+				dx, dy = (0, 6)
 			else:
 				dx, dy = (6, 6)
 
