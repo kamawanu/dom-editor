@@ -349,12 +349,15 @@ class MacroNode:
 		else:
 			del_node = self.del_node
 		del_chain = self.del_chain
+		yank_chain = self.yank_chain
 
 		if not self.prev:
 			del_node = None
 			del_chain = None
+			yank_chain = None
 
 		items = [('Delete chain', del_chain),
+			('Yank chain', yank_chain),
 			('Remove node', del_node),
 			('Swap next/fail', self.swap_nf)]
 		Menu(items).popup(event.button, event.time)
@@ -389,9 +392,12 @@ class MacroNode:
 		self.group.destroy()
 		#self.prev.kill_child(self)
 	
-	def del_chain(self):
+	def yank_chain(self):
 		global clipboard
 		clipboard = self.add()
+	
+	def del_chain(self):
+		self.yank_chain()
 		self.prev.kill_child(self)
 	
 	def event(self, group, event):

@@ -281,6 +281,9 @@ class View:
 			self.move_to(new)
 		else:
 			self.move_to(node)
+	
+	def do_text_search(self, pattern):
+		return self.do_search("//text()[ext:match('%s')]" % pattern)
 
 	def subst(self, replace, with):
 		"re search and replace on the current node"

@@ -83,6 +83,8 @@ class Display(GnomeCanvas):
 		self.node_to_group = {}
 		self.create_tree(self.view.root, self.root_group)
 		self.set_bounds()
+		if self.view.current_nodes:
+			self.scroll_to_show(self.view.current_nodes[0])
 		return 0
 	
 	def destroyed(self, widget):
@@ -231,7 +233,37 @@ class Display(GnomeCanvas):
 				group.text.set(fill_color = 'red')
 
 	def scroll_to_show(self, node):
-		pass
+		try:
+			group = self.node_to_group[node]
+		except KeyError:
+			return
+		(lx, ly, hx, hy) = group.rect.get_bounds()
+		x, y = group.i2w(0, 0)
+		mx, my, maxx, maxy = self.get_scroll_region()
+		x -= mx
+		y -= my
+		lx += x
+		ly += y
+		hx += x
+		hy += y
+		lx -= 16
+
+		sx, sy = self.get_scroll_offsets()
+		if lx < sx:
+			sx = lx
+		if ly < sy:
+			sy = ly
+
+		(x, y, w, h) = self.get_allocation()
+		hx -= w
+		hy -= h
+		
+		if hx > sx:
+			sx = hx
+		if hy > sy:
+			sy = hy
+		
+		self.scroll_to(sx, sy)
 	
 	def unused():
 		# Range of lines to show...

@@ -61,6 +61,7 @@ class GUIView(Display):
 	def show_menu(self, bev):
 		items = [
 			('Search', self.show_search),
+			('Text search', self.show_text_search),
 			('Global', self.show_global),
 			(None, None),
 			('Cut', lambda self = self: self.view.may_record(['delete_node'])),
@@ -136,11 +137,17 @@ class GUIView(Display):
 			self.view.may_record(action)
 		GetArg('Global:', do_global, ['Pattern:'], 'Perform next action on all nodes matching')
 
+	def show_text_search(self):
+		def do_text_search(pattern, self = self):
+			action = ["do_text_search", pattern]
+			self.view.may_record(action)
+		GetArg('Search for:', do_text_search, ['Text pattern:'])
+
 	def show_search(self):
 		def do_search(pattern, self = self):
 			action = ["do_search", pattern]
 			self.view.may_record(action)
-		GetArg('Search for:', do_search, ['Pattern:'])
+		GetArg('Search for:', do_search, ['XPath:'])
 
 	def new_element(self):
 		cur = self.view.current
@@ -196,6 +203,7 @@ class GUIView(Display):
 		#Prior	: ["move_prev_sib"],
 		#Next	: ["move_next_sib"],
 
+		t	: show_text_search,
 		slash	: show_search,
 		ord('#'): show_global,
 		#n	: ["search_next"],
