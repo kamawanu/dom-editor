@@ -46,6 +46,7 @@ stuff (eg, MS Word output). Returns None if data is OK"""
 def to_html(data):
 	(r, w) = os.pipe()
 	child = os.fork()
+	data = data.replace('&nbsp;', ' ')
 	fixed = fix_broken_html(data)
 	if child == 0:
 		# We are the child
