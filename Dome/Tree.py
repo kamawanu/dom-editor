@@ -2,6 +2,8 @@ from gtk import *
 from GDK import *
 from _gtk import *
 
+from support import *
+
 from Node import *
 from Editor import *
 
@@ -12,6 +14,7 @@ class Tree(GtkDrawingArea):
 
 	def __init__(self, root, vadj):
 		GtkDrawingArea.__init__(self)
+		TagNode('BaseRoot').add(root)
 		self.vadj = vadj
 		self.set_events(BUTTON_PRESS_MASK)
 		self.set_flags(CAN_FOCUS)
@@ -26,10 +29,22 @@ class Tree(GtkDrawingArea):
 		self.connect('realize', self.realize)
 
 	def key_press(self, widget, kev):
+		try:
+			stop = self.handle_key(kev)
+		except:
+			report_exception()
+		if stop:
+			widget.emit_stop_by_name('key-press-event')
+		return stop
+	
+	def handle_key(self, kev):
 		cur = self.line_to_node[self.current_line]
 		key = kev.keyval
 		new = None
 
+		if key == F3:
+			return 0
+		
 		if key == I or key == A or key == O:
 			if not isinstance(cur, DataNode):
 				new = TagNode(cur.type)
@@ -93,6 +108,15 @@ class Tree(GtkDrawingArea):
 		elif key == J:
 			cur.join()
 			new = cur
+		elif key == S and cur != self.display_root:
+			cur.split(self.current_line - self.node_to_line[cur])
+			new = cur.next_sibling()
+		elif key == D and cur != self.display_root:
+			new = cur.kids[0]
+			if new:
+				cur.parent.flatten(cur)
+			else:
+				key = x
 
 		if new and (key == o or key == O):
 			cur.add(new, index = 0)
@@ -126,8 +150,6 @@ class Tree(GtkDrawingArea):
 			self.force_redraw()
 			if edit:
 				edit_node(self, new)
-					
-		widget.emit_stop_by_name('key-press-event')
 		return 1
 	
 	def tree_changed(self):
@@ -245,12 +267,10 @@ class Tree(GtkDrawingArea):
 			gc = self.st.fg_gc[STATE_SELECTED]
 
 		parents = []
-		p = node.parent
-		while p:
-			parents.append(p)
-			if p == self.display_root:
-				break
+		p = node
+		while p != self.display_root:
 			p = p.parent
+			parents.append(p)
 
 		x = len(parents) * 32 + 8
 		if isinstance(node, DataNode):

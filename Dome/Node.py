@@ -21,6 +21,10 @@ class Loop(Exception):
 	def __str__(self):
 		return "Adding node would create a loop"
 
+class CantJoin(Exception):
+	def __str__(self):
+		return "Can only join a DataNode to another DataNode"
+
 # Remove the namespace part
 def strip_ns(name):
 	i = string.find(name, ' ')
@@ -51,6 +55,13 @@ class Node:
 			return sibs[i + 1]
 		return None
 	
+	# Remove 'node' and inherit its children
+	def flatten(self, node):
+		for k in node.kids[:]:
+			node.remove(k)
+			self.add(k, before = node)
+		self.remove(node)
+	
 	# Number of lines without children
 	def get_lines(self):
 		return 1
@@ -58,7 +69,10 @@ class Node:
 	# Returns the lines of lines needed to display this node and
 	# all its children.
 	def count_lines(self):
-		return self.get_lines()
+		n = self.get_lines()
+		for k in self.kids:
+			n = n + k.count_lines()
+		return n
 
 	def can_undo(self):
 		return self.latest_undo().undo_time() > 0
@@ -135,7 +149,9 @@ class Node:
 			self.undo.append((op_time, callback))
 			if not self.redoing:
 				self.redo = []
-	
+
+# A normal node which can contain subnodes, has a tag type, and may
+# also be given attributes.
 class TagNode(Node):
 	def __init__(self, type, attribs = None):
 		Node.__init__(self)
@@ -158,12 +174,6 @@ class TagNode(Node):
 	def set_type(self, type):
 		self.add_undo(lambda self, t = self.type: self.set_type(t))
 		self.type = type
-	
-	def count_lines(self):
-		n = self.get_lines()
-		for k in self.kids:
-			n = n + k.count_lines()
-		return n
 	
 	# Set at most one of before, after and index.
 	def add(self, subnode, before = None, after = None, index = None,
@@ -208,14 +218,14 @@ class TagNode(Node):
 		self.add_undo(lambda self, c = child, i = i:
 					self.add(c, index = i))
 
-# Cannot have children.
+# Contains several lines of text. Cannot have children.
 # In:
-# 	<note>Text<p/>More Text</note>
+# 	<note>Text<br/>More Text</note>
 # the tree is:
-# Node(note)
-#   |--DataNode
-#   |--Node(p/)
-#   \--DataNode
+# TagNode(note)
+#   |--DataNode(Text)
+#   |--TagNode(p/)
+#   \--DataNode(More Text)
 class DataNode(Node):
 	def __init__(self, text):
 		Node.__init__(self)
@@ -238,3 +248,15 @@ class DataNode(Node):
 	def set_raw(self, lines):
 		self.add_undo(lambda self, t = self.text: self.set_raw(t))
 		self.text = lines
+	
+	def join(self):
+		next = self.next_sibling()
+		if next == None or not isinstance(next, DataNode):
+			raise CantJoin, self
+		self.set_raw(self.text + next.text)
+		self.parent.remove(next)
+	
+	def split(self, line):
+		new = DataNode(string.join(self.text[line:], '\n'))
+		self.parent.add(new, after = self)
+		self.set_raw(self.text[:line])
