@@ -3,8 +3,6 @@ from gnome2 import canvas
 from xml.dom import Node
 from constants import *
 
-import string
-
 watch_cursor = g.gdk.Cursor(g.gdk.WATCH)
 no_cursor = g.gdk.Cursor(g.gdk.TCROSS)
 
@@ -20,7 +18,7 @@ def set_busy(widget, busy = TRUE):
 def wrap(str, width):
 	ret = ''
 	while len(str) > width:
-		i = string.rfind(str[:width], ' ')
+		i = str[:width].rfind(' ')
 		if i == -1:
 			i = width
 		ret = ret + str[:i + 1] + '\n'
@@ -237,10 +235,6 @@ class Display(canvas.Canvas):
 		group.add(canvas.CanvasEllipse, x1 = -4, y1 = -4, x2 = 4, y2 = 4,
 					fill_color = c, outline_color = 'black')
 		text = self.get_text(node)
-		try:
-			text = str(text)
-		except UnicodeError:
-			text = '!' + `text`
 
 		hbox = node.nodeName == 'tr'
 		if cramped:
@@ -372,11 +366,11 @@ class Display(canvas.Canvas):
 
 	def get_text(self, node):
 		if node.nodeType == Node.TEXT_NODE:
-			return string.strip(node.nodeValue)
+			return node.nodeValue.strip()
 		elif node.nodeType == Node.ELEMENT_NODE:
 			return node.nodeName
 		elif node.nodeType == Node.COMMENT_NODE:
-			return string.strip(node.nodeValue)
+			return node.nodeValue.strip()
 		elif node.nodeName:
 			return node.nodeName
 		elif node.nodeValue:
@@ -465,22 +459,24 @@ class Display(canvas.Canvas):
 	def highlight(self, group, state):
 		node = group.node
 		if state:
-			group.rect.set(fill_color = 'blue')
 			group.text.set(fill_color = 'white')
+			rfill = 'blue'
 		else:
-			group.rect.set(fill_color = None)
-			if node.nodeType == Node.ELEMENT_NODE:
+			rfill = None
+			nt = node.nodeType
+			if nt == 1: #Node.ELEMENT_NODE:
 				group.text.set(fill_color = 'black')
-			elif node.nodeType == Node.TEXT_NODE:
+			elif nt == 3: #Node.TEXT_NODE:
 				group.text.set(fill_color = 'blue')
-			elif node.nodeType == Node.COMMENT_NODE:
+			elif nt == 8: #Node.COMMENT_NODE:
 				group.text.set(fill_color = 'darkgreen')
 			else:
 				group.text.set(fill_color = 'red')
 		if node in self.view.marked:
-			group.rect.set(outline_color = 'orange')
+			oc = 'orange'
 		else:
-			group.rect.set(outline_color = None)
+			oc = None
+		group.rect.set(fill_color = rfill, outline_color = oc)
 
 	def world_to_canvas(self, (x, y)):
 		"Canvas routine seems to be broken..."
