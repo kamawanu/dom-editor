@@ -62,6 +62,7 @@ class Window(rox.Window, saving.Saveable):
 		tools.insert_stock(g.STOCK_STOP, 'Stop', None, self.tool_stop, None, 0)
 		tools.insert_stock(g.STOCK_NO, 'Record', None, self.tool_record, None, 0)
 		tools.insert_stock(g.STOCK_SAVE, 'Save', None, self.tool_save, None, 0)
+		tools.insert_stock(g.STOCK_GO_UP, 'Up', None, self.tool_parent, None, 0)
 
 		paned = g.HPaned()
 		vbox.pack_start(paned)
@@ -205,6 +206,12 @@ class Window(rox.Window, saving.Saveable):
 
 	# Toolbar bits
 
+	def tool_parent(self, button = None):
+                if '/' in self.model.uri:
+                        rox.filer.show_file(self.model.uri)
+                else:
+                        rox.alert("File is not saved to disk yet")
+		
 	def tool_save(self, button = None):
 		self.save()
 	
