@@ -718,6 +718,8 @@ class ChainDisplay(GnomeCanvas):
 			self.join_nodes(src_op, exit)
 			return
 		try:
+			while node.action[0] == 'Start':
+				node = node.parent
 			src_op.link_to(node, exit)
 		finally:
 			self.update_all()
