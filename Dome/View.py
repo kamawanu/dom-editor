@@ -480,7 +480,7 @@ class View:
 		if self.breakpoints.has_key(self.exec_point):
 			return 1
 		op = self.exec_point[0]
-		if op.program.start == op and op.next == None:
+		if op.program.code.start == op and op.next == None:
 			return 1		# Empty program
 		return 0
 	
@@ -886,7 +886,7 @@ class View:
 		if self.op_in_progress:
 			self.push_stack(self.op_in_progress)
 			self.set_oip(None)
-		self.set_exec((prog.start, 'next'))
+		self.set_exec((prog.code, 'next'))
 		self.sched()
 		self.status_changed()
 		raise InProgress

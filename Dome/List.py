@@ -13,7 +13,7 @@ import rox.choices
 from rox.MultipleChoice import MultipleChoice
 from Menu import Menu
 from GetArg import GetArg
-from Program import Program, load
+from Program import Program, load, Block
 
 def trunc(text):
 	if len(text) < 18:
@@ -366,7 +366,8 @@ class ChainDisplay(GnomeCanvas):
 						(x2, y2) = g.i2w(20, 20)
 				else:
 					(x2, y2) = (x1, y1)
-				item.move((x1 + x2) / 2, (y1 + y2) / 2)
+				sx, sy = self.get_arrow_start(op, exit)
+				item.move(sx + (x1 + x2) / 2, sy + (y1 + y2) / 2)
 	
 	def destroyed(self, widget):
 		p = self.prog
@@ -392,7 +393,7 @@ class ChainDisplay(GnomeCanvas):
 
 		self.op_to_group = {}
 		self.nodes = self.root().add('group', x = 0, y = 0)
-		self.create_node(self.prog.start, self.nodes)
+		self.create_node(self.prog.code, self.nodes)
 		self.update_links()
 		self.update_points()
 
@@ -410,7 +411,7 @@ class ChainDisplay(GnomeCanvas):
 		making all the links (which already exist as stubs) point to
 		the right place."""
 		if not op:
-			op = self.prog.start
+			op = self.prog.code
 		if op.next:
 			if op.next.prev[0] == op:
 				self.update_links(op.next)
@@ -421,40 +422,57 @@ class ChainDisplay(GnomeCanvas):
 				self.update_links(op.fail)
 			else:
 				self.join_nodes(op, 'fail')
+		if isinstance(op, Block):
+			self.update_links(op.start)
 	
 	def create_node(self, op, group):
-		text = str(action_to_text(op.action))
-		
-		group.ellipse = group.add('ellipse',
-					fill_color = self.op_colour(op),
-					outline_color = 'black',
-					x1 = -4, x2 = 4,
-					y1 = -4, y2 = 4,
-					width_pixels = 1)
-		group.ellipse.connect('event', self.op_event, op)
-		label = group.add('text',
-					x = -8, 
-					y = -8,
-					anchor = ANCHOR_NE,
-					justification = 'right',
-					font = 'fixed',
-					fill_color = 'black',
-					text = text)
-		(x, y) = DEFAULT_NEXT
+		self.op_to_group[op] = group
+
+		if isinstance(op, Block):
+			g = group.add('group', x = 0, y = 0)
+			self.create_node(op.start, g)
+			(lx, ly, hx, hy) = g.get_bounds()
+			g.add('rect', x1 = lx - 4, x2 = hx + 4, y1 = ly - 4, y2 = hy + 4,
+				outline_color = 'black', width_pixels = 1)
+			next_off_y = 0
+			group.width, group.height = hx, hy
+			if op.is_toplevel():
+				return
+		else:
+			text = str(action_to_text(op.action))
+			
+			group.ellipse = group.add('ellipse',
+						fill_color = self.op_colour(op),
+						outline_color = 'black',
+						x1 = -4, x2 = 4,
+						y1 = -4, y2 = 4,
+						width_pixels = 1)
+			group.ellipse.connect('event', self.op_event, op)
+			label = group.add('text',
+						x = -8, 
+						y = -8,
+						anchor = ANCHOR_NE,
+						justification = 'right',
+						font = 'fixed',
+						fill_color = 'black',
+						text = text)
+
+			(lx, ly, hx, hy) = label.get_bounds()
+			next_off_y = hy
+			group.width, group.height = 0, 0
+
 		if op.next and op.next.prev[0] == op:
-			(lx, ly, hx, label_bottom) = label.get_bounds()
 			g = group.add('group', x = 0, y = 0)
 			self.create_node(op.next, g)
 			(lx, ly, hx, hy) = g.get_bounds()
-			drop = max(20, label_bottom + 10)
+			drop = max(20, next_off_y + 10)
 			y = drop - ly
-			x += op.next.dx
 			y += op.next.dy
-			g.move(x, y)
+			g.move(0, y)
 		
 		group.next_line = group.add('line',
 					fill_color = 'black',
-					points = connect(0, 0, x, y),
+					points = connect(0, 0, 1, 1),
 					width_pixels = 4,
 					last_arrowhead = 1,
 					arrow_shape_a = 5,
@@ -474,7 +492,7 @@ class ChainDisplay(GnomeCanvas):
 			g.move(x, y)
 		group.fail_line = group.add('line',
 					fill_color = '#ff6666',
-					points = connect(0, 0, x, y),
+					points = connect(0, 0, 1, 1),
 					width_pixels = 4,
 					last_arrowhead = 1,
 					arrow_shape_a = 5,
@@ -483,7 +501,8 @@ class ChainDisplay(GnomeCanvas):
 		group.fail_line.lower_to_bottom()
 		group.fail_line.connect('event', self.line_event, op, 'fail')
 
-		self.op_to_group[op] = group
+		self.join_nodes(op, 'next')
+		self.join_nodes(op, 'fail')
 
 		if self.view.breakpoints.has_key((op, 'next')):
 			group.next_line.set(line_style = LINE_ON_OFF_DASH)
@@ -519,11 +538,19 @@ class ChainDisplay(GnomeCanvas):
 			prev_group = self.op_to_group[op]
 			line = getattr(prev_group, exit + '_line')
 
-			group = self.op_to_group[op2]
+			if op2:
+				group = self.op_to_group[op2]
+				x, y = group.i2w(0, 0)
+				x, y = prev_group.w2i(x, y)
+			elif exit == 'next':
+				x, y = DEFAULT_NEXT
+			else:
+				x, y = DEFAULT_FAIL
 
-			x, y = group.i2w(0, 0)
-			x, y = prev_group.w2i(x, y)
-			line.set(points = connect(0, 0, x, y))
+			sx, sy = self.get_arrow_start(op, exit)
+			x += sx
+			y += sy
+			line.set(points = connect(sx, sy, x, y))
 		except:
 			print "*** ERROR setting arc from %s:%s" % (op, exit)
 	
@@ -531,7 +558,7 @@ class ChainDisplay(GnomeCanvas):
 		if event.type == BUTTON_PRESS:
 			print "Prev %s = %s" % (op, map(str, op.prev))
 			if event.button == 1:
-				if op != op.program.start:
+				if op != op.program.code.start:
 					self.drag_last_pos = (event.x, event.y)
 			else:
 				self.show_op_menu(event, op)
@@ -604,20 +631,20 @@ class ChainDisplay(GnomeCanvas):
 				fail = closest_node(op.fail)
 				if fail and (best is None or fail[1] < best[1]):
 					best = fail
+			if isinstance(op, Block):
+				sub = closest_node(op.start)
+				if sub and (best is None or sub[1] < best[1]):
+					best = sub
 			return best
 		
-		result = closest_node(self.prog.start)
+		result = closest_node(self.prog.code)
 		if result:
 			node, dist = result
 		else:
 			dist = 1000
 		if dist > 12:
 			# Too far... put the line back to the disconnected state...
-			if exit == 'next':
-				x, y = DEFAULT_NEXT
-			else:
-				x, y = DEFAULT_FAIL
-			item.set(points = connect(0, 0, x, y))
+			self.join_nodes(src_op, exit)
 			return
 		src_op.link_to(node, exit)
 
@@ -672,8 +699,14 @@ class ChainDisplay(GnomeCanvas):
 			dx, dy = x - self.drag_last_pos[0], y - self.drag_last_pos[1]
 
 			if abs(dx) > 4 or abs(dy) > 4:
+				sx, sy = self.get_arrow_start(op, exit)
 				x, y = item.w2i(event.x, event.y)
-				item.set(points = connect(0, 0, x, y))
+				g = self.op_to_group[op]
+				if exit == 'fail':
+					width = g.width
+				else:
+					width = 0
+				item.set(points = connect(sx, sy, x, y))
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')
 		elif event.type == LEAVE_NOTIFY:
@@ -682,6 +715,10 @@ class ChainDisplay(GnomeCanvas):
 			else:
 				item.set(fill_color = '#ff6666')
 		return 1
+	
+	def get_arrow_start(self, op, exit):
+		g = self.op_to_group[op]
+		return ((exit == 'fail' and g.width) or 0, g.height)
 	
 	def set_bounds(self):
 		min_x, min_y, max_x, max_y = self.root().get_bounds()

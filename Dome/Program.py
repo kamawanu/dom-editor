@@ -89,7 +89,7 @@ def load_dome_program(prog):
 
 	start = load(prog)
 	if start:
-		new.set_start(start)
+		new.code.set_start(start)
 
 	#print "Loading '%s'..." % new.name
 
@@ -105,7 +105,6 @@ class Program:
 		assert '/' not in name
 
 		self.code = Block(self)
-		self.start = self.code.start
 		
 		self.name = name
 		self.subprograms = {}
@@ -120,11 +119,6 @@ class Program:
 			p = p.parent
 		return path[:-1]
 	
-	def set_start(self, start):
-		start.set_program(self)
-		self.start = start
-		self.changed(None)
-
 	def changed(self, op = None):
 		if self.parent:
 			self.parent.changed(op)
@@ -172,7 +166,8 @@ class Program:
 		node = doc.createElementNS(DOME_NS, 'dome-program')
 		node.setAttributeNS(None, 'name', self.name)
 		
-		self.start.to_xml_int(node)
+		# XXX: Use Block
+		self.code.start.to_xml_int(node)
 
 		for p in self.subprograms.values():
 			node.appendChild(p.to_xml(doc))
@@ -350,5 +345,18 @@ class Block(Op):
 
 	def __init__(self, program):
 		Op.__init__(self, action = ['Block'])
+		self.program = program
 		self.start = Op()
 		self.start.program = program
+
+	def set_start(self, start):
+		start.set_program(self.program)
+		self.start = start
+		self.program.changed(None)
+
+	def is_toplevel(self):
+		return self.program.code == self
+
+	def link_to(self, child, exit):
+		assert not self.is_toplevel()
+		Op.link_to(self, child, exit)

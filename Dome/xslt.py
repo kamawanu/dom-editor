@@ -26,7 +26,7 @@ def import_sheet(doc):
 	#    Mark = result parent (append here)
 	# <= Cursor is undefined
 	#    Mark is unchanged
-	op = add(root.start, 'do_search', '/xslt/Result')
+	op = add(root.code.start, 'do_search', '/xslt/Result')
 	op = add(op, 'mark_selection')
 	op = add(op, 'do_search', '/xslt/Source')
 	op = add(op, 'play', 'XSLT/Default mode')
@@ -58,7 +58,7 @@ def import_sheet(doc):
 			mode_name = 'Default mode'
 		prog = Program(mode_name)
 		root.add_sub(prog)
-		tests = prog.start
+		tests = prog.code.start
 		print "Mode", mode
 		types = sheet.matchTemplates[mode]
 		loose_ends = []
@@ -72,7 +72,7 @@ def import_sheet(doc):
 					pattern = `t[0]`
 					name = pattern.replace('/', '%')
 					temp = Program(`i` + '-' + name)
-					op = add(temp.start, 'mark_switch')
+					op = add(temp.code.start, 'mark_switch')
 					make_template(op, t[2])
 					i += 1
 					prog.add_sub(temp)
