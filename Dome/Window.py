@@ -35,7 +35,7 @@ class Window(rox.Window, saving.Saveable):
 			path = os.path.abspath(path)
 			
 		import Model
-		if path.endswith('.html'):
+		if path and path.endswith('.html'):
 			html_path = path
 			path = None
 		else:
@@ -185,7 +185,7 @@ class Window(rox.Window, saving.Saveable):
 		print >>stream, to_html.to_html(self.view.root.ownerDocument)
 
 	def set_uri(self, uri):
-		if self.savebox.save_radios[0].get_active():
+		if self.save_radios[0].get_active():
 			self.model.uri = uri
 			self.model.root_program.modified = 0
 			self.update_title()
