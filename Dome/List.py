@@ -271,7 +271,7 @@ class ChainDisplay(GnomeCanvas):
 		self.put_point('rec_point')
 		self.put_point('exec_point')
 
-		if self.view.rec_point:
+		if self.rec_point:
 			self.scroll_to_show(self.rec_point)
 
 	def scroll_to_show(self, item):
