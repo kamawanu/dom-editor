@@ -266,6 +266,36 @@ class ChainDisplay(GnomeCanvas):
 	def update_points(self):
 		self.put_point('rec_point')
 		self.put_point('exec_point')
+
+		if self.view.rec_point:
+			self.scroll_to_show(self.rec_point)
+
+	def scroll_to_show(self, item):
+		(lx, ly, hx, hy) = item.get_bounds()
+		x, y = item.i2w(0, 0)
+		x, y = self.w2c(x, y)
+		lx += x
+		ly += y
+		hx += x
+		hy += y
+		lx -= 16
+
+		sx, sy = self.get_scroll_offsets()
+		if lx < sx:
+			sx = lx
+		if ly < sy:
+			sy = ly
+
+		(x, y, w, h) = self.get_allocation()
+		hx -= w
+		hy -= h
+		
+		if hx > sx:
+			sx = hx
+		if hy > sy:
+			sy = hy
+		
+		self.scroll_to(sx, sy)
 	
 	def put_point(self, point):
 		item = getattr(self, point)
