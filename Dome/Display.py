@@ -267,6 +267,8 @@ class Display(GnomeCanvas):
 		hbox = node.nodeName == 'tr'
 		if cramped:
 			text = wrap(text, 32)
+		else:
+			text = wrap(text, 1000)
 		group.text = add_text(group, x = 10 , y = -6, anchor = ANCHOR_NW,
 					font = 'fixed', fill_color = 'black',
 					text = text)
