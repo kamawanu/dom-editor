@@ -192,7 +192,7 @@ class Model:
 	
 	def convert_to_text(self, node):
 		assert node.nodeType == Node.COMMENT_NODE
-		new = self.doc.createCommentNode(node.data)
+		new = self.doc.createTextNode(node.data)
 		self.replace_node(node, new)
 		return new
 	
