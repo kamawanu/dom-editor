@@ -19,12 +19,35 @@ class Model:
 	def __init__(self, uri):
 		self.doc = implementation.createDocument('', 'root', None)
 		self.views = []		# Notified when something changes
+		self.locks = {}		# Node -> number of locks
 		self.uri = 'Document'
+	
+	def lock(self, node):
+		"""Prevent removal of this node (or any ancestor)."""
+		print "Locking", node.nodeName
+		self.locks[node] = self.get_locks(node) + 1
+		if node.parentNode:
+			self.lock(node.parentNode)
+	
+	def unlock(self, node):
+		"""Reverse the effect of lock(). Must call unlock the same number
+		of times as lock to fully unlock the node."""
+		l = self.get_locks(node)
+		if l > 0:
+			self.locks[node] = l - 1
+		else:
+			raise Exception('unlock(%s): Node not locked!' % node)
+	
+	def get_locks(self, node):
+		try:
+			return self.locks[node]
+		except KeyError:
+			return 0
 	
 	def lock_and_copy(self, node):
 		"""Locks 'node' in the current model and returns a new model
 		with a copy of the subtree."""
-		print "TODO: lock!"
+		self.lock(node)
 		m = Model(self.get_base_uri(node))
 		copy = m.doc.importNode(node, deep = 1)
 		root = m.get_root()

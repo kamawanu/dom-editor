@@ -344,6 +344,7 @@ class View:
 		(old_model, old_node) = self.chroots.pop()
 		
 		copy = old_model.doc.importNode(self.model.get_root(), deep = 1)
+		old_model.unlock(old_node)
 		old_model.replace_node(old_node, copy)
 		self.set_model(old_model)
 
