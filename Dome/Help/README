@@ -45,7 +45,8 @@ Most of the menu items are fairly obvious. Here are a few notes though:
 - HTTP GET replaces an anchor node with the HTML document it points to.
   Select the attribute with the URI before using this.
   HTTP POST is similar, but tries to send all non-namespaced attributes
-  as POST data.
+  as POST data, except those with names starting 'header-', which are used
+  as extra HTTP headers.
 
 - Don't worry about SOAP messages.
 

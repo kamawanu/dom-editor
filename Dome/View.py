@@ -17,7 +17,7 @@ from Program import Op, Block
 from Beep import Beep
 
 import time
-import urllib
+import urllib, urllib2
 import traceback
 
 from constants import *
@@ -1156,35 +1156,10 @@ class View:
 
 		self.move_to(new)
 
-	def http_post(self):
-		node = self.get_current()
-		attrs = node.attributes
-		post = []
-		for (ns,name) in attrs.keys():
-			if ns is None:
-				post.append((str(name),
-					     str(attrs[(ns, name)].value)))
-		node = self.suck_node(node, post_data = urllib.urlencode(post))
-		if node:
-			self.move_to(node)
-	
-	def suck(self, md5_only = 0):
-		nodes = self.current_nodes[:]
-		attrib = self.current_attrib
-		self.move_to([])
-		final = []
-		for x in nodes:
-			try:
-				new = self.suck_node(x, attrib = attrib, md5_only = md5_only)
-			finally:
-				self.move_to(x)
-			final.append(new)
-		self.move_to(final)
-	
-	def suck_md5(self):
-		self.suck(md5_only = 1)
-		
-	def suck_node(self, node, post_data = None, attrib = None, md5_only = 0):
+	def request_from_node(self, node, attrib):
+		"""Return a urllib2.Request object. If attrib is set then the URI is
+		taken from that, otherwise search for a good attribute. Other attributes
+		are used for POST data and extra headers."""
 		uri = None
 		if node.nodeType == Node.TEXT_NODE:
 			uri = node.nodeValue
@@ -1199,7 +1174,7 @@ class View:
 					if uri.find('//') != -1 or uri.find('.htm') != -1:
 						break
 		if not uri:
-			print "Can't suck", node
+			print "Can't suck", node, "(no uri attribute found)"
 			raise Beep
 		if uri.find('//') == -1:
 			base = self.model.get_base_uri(node)
@@ -1210,20 +1185,62 @@ class View:
 			else:
 				pass
 				#print "Warning: Can't find 'uri' attribute!"
+		request = urllib2.Request(uri)
 
+		return request
+	
+	def http_post(self):
+		node = self.get_current()
+		attrs = node.attributes
+		post = []
+		request = self.request_from_node(node, self.current_attrib)
+		for (ns,name) in attrs.keys():
+			if ns is not None: continue
+			value = str(attrs[(ns, name)].value)
+			if name.startswith('header-'):
+				request.add_header(str(name)[7:], value)
+			else:
+				post.append((str(name), value))
+				
+		request.add_data(urllib.urlencode(post))
+		node = self.suck_node(node, request)
+		if node:
+			self.move_to(node)
+	
+	def suck(self, md5_only = 0):
+		nodes = self.current_nodes[:]
+		attrib = self.current_attrib
+		self.move_to([])
+		final = []
+		for x in nodes:
+			request = self.request_from_node(x, attrib)
+			try:
+				new = self.suck_node(x, request, md5_only = md5_only)
+			finally:
+				self.move_to(x)
+			final.append(new)
+		self.move_to(final)
+	
+	def suck_md5(self):
+		self.suck(md5_only = 1)
+		
+	def suck_node(self, node, request, md5_only = 0):
+		"""Load the resource specified by request and replace 'node' with the
+		sucked data."""
+		uri = request.get_full_url()
 		if uri.startswith('file:///'):
 			print "Loading", uri
 
-			assert not post_data
+			assert not request.has_data()
 			stream = open(uri[7:])
 			# (could read the mod time here...)
 			last_mod = None
 		else:
 			print "Sucking", uri
 
-			if post_data is not None:
-				print "POSTING", post_data
-			stream = urllib.urlopen(uri, post_data)
+			if request.has_data():
+				print "POSTING", request.get_data()
+			stream = urllib2.urlopen(request)
 			headers = stream.info().headers
 			last_mod = None
 			for x in headers:
