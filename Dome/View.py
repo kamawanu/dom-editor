@@ -1,4 +1,3 @@
-from gtk import idle_add, idle_remove, input_add, input_remove
 import GDK
 from support import *
 from xml.dom import Node, ext, XMLNS_NAMESPACE
@@ -9,14 +8,15 @@ import os, re, string, types
 import urlparse
 import Html
 from StringIO import StringIO
-from Canvas import Canvas
 
 from Program import Op
 from Beep import Beep
-from GetArg import GetArg
 
 import time
 import urllib
+
+FALSE=0
+TRUE=1
 
 DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
 
@@ -87,7 +87,8 @@ class Done(Exception):
 	"Thrown when the chain is completed successfully"
 
 class View:
-	def __init__(self, model, program):
+	def __init__(self, model, program, callback_handlers = None):
+		"""callback_handlers is an (idle_add, idle_remove) tuple"""
 		self.root_program = program
 		program.watchers.append(self)
 		self.root = None
@@ -99,6 +100,12 @@ class View:
 		self.current_nodes = []
 		self.clipboard = None
 		self.current_attrib = None
+		
+		if not callback_handlers:
+			import gtk
+			self.idle_add, self.idle_remove = gtk.idle_add, gtk.idle_remove
+		else:
+			self.idle_add, self.idle_remove = callback_handlers
 
 		self.exec_point = None		# None, or (Op, Exit)
 		self.rec_point = None		# None, or (Op, Exit)
@@ -138,7 +145,7 @@ class View:
 		"Reset the playback system (stack, step-mode and point)."
 		"Call callback(exit) when execution finishes."
 		if self.idle_cb:
-			idle_remove(self.idle_cb)
+			self.idle_remove(self.idle_cb)
 			self.idle_cb = 0
 		self.single_step = 0
 		self.innermost_failure = None
@@ -551,6 +558,7 @@ class View:
 				self.clipboard = self.model.doc.createTextNode(result)
 				exit = 'next'
 			self.resume(exit)
+		from GetArg import GetArg
 		box = GetArg('Input:', ask_cb, [q], destroy_return = 1)
 		raise InProgress
 
@@ -672,10 +680,10 @@ class View:
 			raise Exception("Operation in progress")
 		if self.idle_cb:
 			raise Exception("Already playing!")
-		self.idle_cb = idle_add(self.play_callback)
+		self.idle_cb = self.idle_add(self.play_callback)
 
 	def play_callback(self):
-		idle_remove(self.idle_cb)
+		self.idle_remove(self.idle_cb)
 		self.idle_cb = 0
 		try:
 			self.in_callback = 1
@@ -875,16 +883,9 @@ class View:
 		cout = os.popen(command)
 	
 		all = ["", None]
-		def got_html(src, cond, all = all, self = self, cb = callback, m5 = old_md5):
-			data = src.read(100)
-			if data:
-				all[0] += data
-				return
-			input_remove(all[1])
-			src.close()
-
+		def got_all(data, cb = callback, m5 = old_md5):
 			import md5
-			new_md5 = md5.new(all[0]).hexdigest()
+			new_md5 = md5.new(data).hexdigest()
 			
 			if m5 and new_md5 == m5:
 				cb(None, "Same")
@@ -892,15 +893,35 @@ class View:
 			
 			reader = PyExpat.Reader()
 			print "Parsing..."
+
+			print data, "---"
 			
 			try:
-				root = reader.fromStream(StringIO(all[0]))
+				root = reader.fromStream(StringIO(data))
 				ext.StripHtml(root)
 			except:
 				print "dom_from_command: parsing failed"
-				#report_exception()
+				report_exception()
 				root = None
 			cb(root, new_md5)
+
+		# XXX: only for nogui...
+		try:
+			got_all(cout.read())
+		except:
+			report_exception()
+			import gtk
+			mainloop()
+		return
+
+		def got_html(src, cond, all = all, got_all = got_all):
+			data = src.read(100)
+			if data:
+				all[0] += data
+				return
+			input_remove(all[1])
+			src.close()
+			got_all(all[0])
 			
 		all[1] = input_add(cout, GDK.INPUT_READ, got_html)
 	
@@ -1102,6 +1123,7 @@ class View:
 		HTML(self.model, self.get_current()).show()
 	
 	def show_canvas(self):
+		from Canvas import Canvas
 		Canvas(self, self.get_current()).show()
 	
 	def toggle_hidden(self):

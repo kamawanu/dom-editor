@@ -5,10 +5,6 @@ from xml.dom import ext, Node, implementation
 from string import find, lower, join
 from socket import gethostbyaddr, gethostname
 
-from gtk import *
-
-from rox.support import *
-
 def node_to_xml(node):
 	"Takes an XML node and returns an XML documentElement suitable for saving."
 	root = implementation.createDocument(None, 'root', None)
@@ -40,7 +36,9 @@ def send_to_file(data, path):
 		finally:
 			file.close()
 	except:
-		report_exception()
+		from rox import support
+
+		support.report_exception()
 		return 0
 
 	return 1

@@ -1,6 +1,12 @@
 #!/usr/bin/env python
 
 import findrox
+
+try:
+	import rox
+except:
+	print "(no GUI, but that's OK)"
+
 from rox import choices
 
 import sys
@@ -8,7 +14,7 @@ from xml.dom import ext
 from xml.dom.ext.reader import PyExpat
 
 from Model import Model
-from View import View, Done
+from View import View, Done, InProgress
 from Program import Program, load_dome_program
 
 if len(sys.argv) < 2:
@@ -23,26 +29,50 @@ if code:
 else:
 	root_program = Program('Root')
 
+idle_list = []
+
+class Callback:
+	def __init__(self, fn):
+		self.fn = fn
+
+def idle_add(function):
+	new = Callback(function)
+	idle_list.append(new)
+	return new
+
+def idle_remove(tag):
+	try:
+		idle_list.remove(tag)
+	except ValueError:
+		print "(not in list; skipping)"
+
 model = Model('Document')
-view = View(model, root_program)
+view = View(model, root_program, callback_handlers = (idle_add, idle_remove))
 
 code = sys.argv[1]
 
 if len(sys.argv) > 2:
-	view.load_xml(sys.argv[2])
+	source = sys.argv[2]
+	view.load_xml(source)
 
 print "Starting program", sys.argv[1]
 
-idle_cb = []
+view.run_new(None)
+
 try:
 	view.may_record(['play', sys.argv[1]])
 except InProgress:
 	pass
 
-while idle_cb:
-	for i in idle_cb:
-		i()
+while idle_list:
+	for i in idle_list[:]:
+		if not i.fn():
+			idle_remove(i)
 
 print "Done!"
 
-#ext.PrettyPrint(model.doc)
+import shutil
+
+shutil.copyfile(source, source + '.bak')
+
+ext.PrettyPrint(model.doc, stream = open(source, 'w'))
