@@ -1,6 +1,7 @@
 from __future__ import nested_scopes
 import string
 from constants import DOME_NS
+from xml.dom import Node
 
 def el_named(node, name):
 	for n in node.childNodes:
@@ -8,35 +9,43 @@ def el_named(node, name):
 			return n
 	return None
 	
-# Node is a DOM <dome-program> or <node> node.
-# Returns the start Op.
-def load(chain):
+# Converts a DOM <block> node to a Block object.
+def load(node, program):
+	#assert node.localName == 'block'
+
+	block = Block(program)
+	prev = block.start
+
 	id_hash = {}		# id from file -> Op
 	to_link = []
-	def _load(chain):
-		start = None
-		prev = None
+	def _load(chain, prev, exit):
 		for op_node in chain.childNodes:
-			if str(op_node.localName) != 'node':
+			if str(op_node.localName) == 'node':
+				attr = op_node.getAttributeNS(None, 'action')
+				action = eval(str(attr))
+				if action[0] == 'Start':
+					print "Skipping Start"
+					continue
+				if action[0] == 'chroot':
+					action[0] = 'enter'
+				elif action[0] == 'unchroot':
+					action[0] = 'leave'
+				#elif action[0] == 'set_attrib':
+				#	if action[3] == '':
+				#		action = ('add_attrib', action[1], action[2])
+				#	else:
+				#		action = ('set_attrib', action[3])
+				elif action[0] == 'playback':
+					action[0] = 'map'
+				elif action[0] == 'add_attrib':
+					action[1] = "UNUSED"
+				op = Op(action)
+			elif op_node.localName == 'block':
+				op = load(op_node, program)
+			else:
+				if op_node.nodeType == Node.ELEMENT_NODE:
+					print "** WARNING ** Unknown op:", op_node
 				continue
-			
-			attr = op_node.getAttributeNS(None, 'action')
-			action = eval(str(attr))
-			if action[0] == 'chroot':
-				action[0] = 'enter'
-			elif action[0] == 'unchroot':
-				action[0] = 'leave'
-			#elif action[0] == 'set_attrib':
-			#	if action[3] == '':
-			#		action = ('add_attrib', action[1], action[2])
-			#	else:
-			#		action = ('set_attrib', action[3])
-			elif action[0] == 'playback':
-				action[0] = 'map'
-			elif action[0] == 'add_attrib':
-				action[1] = "UNUSED"
-
-			op = Op(action)
 
 			try:
 				dx = int(float(op_node.getAttributeNS(None, 'dx')))
@@ -52,15 +61,11 @@ def load(chain):
 			if node_id:
 				id_hash[node_id] = op
 
-			if not start:
-				start = op
-			if prev:
-				prev.link_to(op, 'next')
+			prev.link_to(op, exit)
+			exit = 'next'
 			prev = op
 			
-			fail = _load(op_node)
-			if fail:
-				op.link_to(fail, 'fail')
+			_load(op_node, op, 'fail')
 
 			link = op_node.getAttributeNS(None, 'target_fail')
 			if link:
@@ -68,8 +73,7 @@ def load(chain):
 			link = op_node.getAttributeNS(None, 'target_next')
 			if link:
 				to_link.append((op, 'next', link))
-		return start
-	tree = _load(chain)
+	_load(node, block.start, 'next')
 	for (op, exit, child) in to_link:
 		try:
 			to = id_hash[child]
@@ -77,7 +81,7 @@ def load(chain):
 			print "**** Not adding link to unknown ID ****"
 		else:
 			op.link_to(to, exit)
-	return tree
+	return block
 
 def load_dome_program(prog):
 	"prog should be a DOM 'dome-program' node."
@@ -87,13 +91,17 @@ def load_dome_program(prog):
 
 	new = Program(str(prog.getAttributeNS(None, 'name')))
 
-	start = load(prog)
-	if start:
-		new.code.set_start(start)
-
 	#print "Loading '%s'..." % new.name
+	done_update = 0
 
 	for node in prog.childNodes:
+		if node.localName == 'node' and not done_update:
+			print "*** Converting from old format ***"
+			new.code = load(prog, new)
+			done_update = 1
+		if node.localName == 'block':
+			assert not done_update
+			new.code = load(node, new)
 		if node.localName == 'dome-program':
 			new.add_sub(load_dome_program(node))
 		
@@ -166,10 +174,14 @@ class Program:
 		node = doc.createElementNS(DOME_NS, 'dome-program')
 		node.setAttributeNS(None, 'name', self.name)
 		
-		# XXX: Use Block
-		self.code.start.to_xml_int(node)
+		node.appendChild(self.code.to_xml(doc))
 
-		for p in self.subprograms.values():
+		# Keep them in the same order to help with diffs...
+		progs = self.subprograms.keys()
+		progs.sort()
+
+		for name in progs:
+			p = self.subprograms[name]
 			node.appendChild(p.to_xml(doc))
 
 		return node
@@ -360,3 +372,13 @@ class Block(Op):
 	def link_to(self, child, exit):
 		assert not self.is_toplevel()
 		Op.link_to(self, child, exit)
+	
+	def to_xml_int(self, parent):
+		parent.appendChild(self.to_xml(parent.ownerDocument))
+	
+	def to_xml(self, doc):
+		node = doc.createElementNS(DOME_NS, 'block')
+		assert not self.start.fail
+		if self.start.next:
+			self.start.next.to_xml_int(node)
+		return node
