@@ -610,7 +610,7 @@ class View:
 
 		ns = {}
 		if not ns:
-			ns = GetAllNs(self.current_nodes[0])
+			ns = GetAllNs(self.current_nodes[0])	 # XXX
 		ns['ext'] = FT_EXT_NAMESPACE
 		#print "ns is", ns
 		c = Context.Context(self.get_current(), processorNss = ns)
@@ -637,7 +637,7 @@ class View:
 			raise Beep
 		src = self.current_nodes[-1]
 		if not ns:
-			ns = GetAllNs(src)
+			ns = GetAllNs(src)	# XXX
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
 		rt = XPath.Evaluate(path, context = c)
@@ -698,7 +698,7 @@ class View:
 				self.op_in_progress.cached_code = code
 
 		if not ns:
-			ns = GetAllNs(src)
+			ns = GetAllNs(src)	 # XXX
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
 		
@@ -783,7 +783,7 @@ class View:
 			if self.op_in_progress and expr.find('@CURRENT@') == -1:
 				self.op_in_progress.cached_code = code
 
-		ns = GetAllNs(src)
+		ns = GetAllNs(src)	# XXX
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
 		
@@ -1532,7 +1532,7 @@ class View:
 	def fail_if(self, xpath):
 		"""Evaluate xpath as a boolean, and fail if true."""
 		src = self.get_current()
-		ns = GetAllNs(src)
+		ns = GetAllNs(src)	# XXX
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src.parentNode, [src.parentNode], processorNss = ns)
 		

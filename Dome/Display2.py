@@ -4,6 +4,7 @@ import rox
 from rox import g
 from xml.dom import Node
 import pango
+from constants import XMLNS_NAMESPACE
 
 import __main__
 default_font = __main__.default_font
@@ -13,7 +14,11 @@ def calc_node(display, node, pos):
 	if node.nodeType == Node.TEXT_NODE:
 		text = node.nodeValue.strip()
 	elif node.nodeType == Node.ELEMENT_NODE:
-		text = node.nodeName
+		if node.namespaceURI:
+			text = display.view.model.namespaces.prefix.get(node.namespaceURI, 'ERROR') + \
+				':' + node.localName
+		else:
+			text = node.localName
 	elif node.nodeType == Node.ATTRIBUTE_NODE:
 		text = ' %s=%s' % (unicode(node.name), unicode(node.value))
 	elif node.nodeType == Node.COMMENT_NODE:
@@ -265,6 +270,8 @@ class Display(g.HBox):
 					apos = [bbox[2] + 4, bbox[1]]
 					for key in node.attributes:
 						a = node.attributes[key]
+						if a.namespaceURI == XMLNS_NAMESPACE:
+							continue
 						abbox, draw_fn = calc_node(self, a, apos)
 						apos[0] = abbox[2] + 4
 						yield (a, abbox, draw_fn)

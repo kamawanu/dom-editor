@@ -89,12 +89,35 @@ class Model:
 		if data_to_load:
 			self.doc = implementation.createDocument(None, 'root', None)
 			if not root_program:
-				node = support.import_with_ns(self.doc, data_to_load)
+				node = self.import_with_ns(data_to_load)
 				self.doc.replaceChild(node, self.doc.documentElement)
 				self.strip_space()
 		
 		self.views = []		# Notified when something changes
 		self.locks = {}		# Node -> number of locks
+	
+	def import_with_ns(self, node):
+		"""Return a copy of node for this model. All namespaces used in the subtree
+		will have been added to the global namespaces list. Prefixes will have been changed
+		as required to avoid conflicts."""
+		doc = self.doc
+		def ns_clone(node, clone):
+			if node.nodeType != Node.ELEMENT_NODE:
+				return doc.importNode(node, 1)
+			if node.namespaceURI:
+				prefix = self.namespaces.ensure_ns(node.prefix, node.namespaceURI)
+				new = doc.createElementNS(node.namespaceURI,
+							  prefix + ':' + node.localName)
+			else:
+				new = doc.createElementNS(None, node.localName)
+			for a in node.attributes.values():
+				if a.namespaceURI == XMLNS_NAMESPACE: continue
+				new.setAttributeNS(a.namespaceURI, a.name, a.value)
+			for k in node.childNodes:
+				new.appendChild(clone(k, clone))
+			return new
+		new = ns_clone(node, ns_clone)
+		return new
 	
 	def clear_undo(self):
 		# Pop an (op_number, function) off one of these and call the function to
@@ -437,6 +460,13 @@ class Model:
 			return node.attributes[(namespaceURI, localName)]
 	
 	def prefix_to_namespace(self, node, prefix):
+		"Using attributes for namespaces was too confusing. Keep a global list instead."
+		try:
+			return self.namespaces.uri[prefix]
+		except KeyError:
+			raise Exception("Namespace '%s' is not defined. Choose "
+				"View->Show namespaces from the popup menu to set it." % prefix)
+		
 		"Use the xmlns attributes to workout the namespace."
 		nss = GetAllNs(node)
 		if nss.has_key(prefix):

@@ -8,12 +8,15 @@ fixed_ns = {'xml': XML_NAMESPACE, 'xmlns': XMLNS_NAMESPACE}
 class Namespaces(g.GenericTreeModel):
 	def __init__(self):
 		g.GenericTreeModel.__init__(self)
-		self.dict = dict(fixed_ns)
+		self.uri = dict(fixed_ns)
 		self.update_list()
 	
 	def update_list(self):
-		self.list = self.dict.keys()
+		self.list = self.uri.keys()
 		self.list.sort()
+		pre = self.prefix = {}
+		for p, u in self.uri.iteritems():
+			pre[u] = p
 	
 	def on_get_n_columns(self):
 		return 2
@@ -25,7 +28,7 @@ class Namespaces(g.GenericTreeModel):
 	def on_get_value(self, iter, column):
 		if column == 0:
 			return self.list[iter]
-		return self.dict[self.list[iter]]
+		return self.uri[self.list[iter]]
 	
 	def on_iter_nth_child(self, iter, n):
 		if iter == None:
@@ -43,16 +46,16 @@ class Namespaces(g.GenericTreeModel):
 			return iter + 1
 	
 	def __setitem__(self, prefix, uri):
-		if prefix in self.dict and self.dict[prefix] == uri:
+		if prefix in self.uri and self.uri[prefix] == uri:
 			return
 
 		assert prefix
 		if prefix in fixed_ns:
 			raise Exception('That namespace prefix cannot be changed')
 
-		modifed = prefix in self.dict
+		modifed = prefix in self.uri
 
-		self.dict[prefix] = uri
+		self.uri[prefix] = uri
 		self.update_list()
 		path = (self.list.index(prefix),)
 
@@ -66,9 +69,25 @@ class Namespaces(g.GenericTreeModel):
 		if prefix in fixed_ns:
 			raise Exception('This is a built-in namespace and cannot be deleted')
 		path = (self.list.index(prefix),)
-		del self.dict[prefix]
+		del self.uri[prefix]
 		self.update_list()
 		self.emit('row-deleted', path)
+	
+	def ensure_ns(self, suggested_prefix, uri):
+		"""Return the prefix for this URI. If none is set choose one (using suggested_prefix
+		if possible)."""
+		try:
+			return self.prefix[uri]
+		except KeyError:
+			if not suggested_prefix:
+				suggested_prefix = 'ns'
+			if suggested_prefix in self.uri:
+				x = 1
+				while suggested_prefix + `x` in self.uri: x += 1
+				suggested_prefix += `x`
+			self[suggested_prefix] = uri
+			print "Added", suggested_prefix, uri
+			return suggested_prefix
 
 class GUI(rox.Dialog):
 	def __init__(self, model):
@@ -83,11 +102,11 @@ class GUI(rox.Dialog):
 
 		def response(dialog, resp):
 			if resp == 1:
-				self.add_new(model.namespaces)
+				dialog.add_new(model.namespaces)
 			elif resp == 2:
-				self.delete_selected(tree.get_selection())
+				dialog.delete_selected(tree.get_selection())
 			else:
-				self.destroy()
+				dialog.destroy()
 		self.connect('response', response)
 		self.set_position(g.WIN_POS_MOUSE)
 		self.set_title('Namespaces for ' + `model.uri`)
