@@ -99,6 +99,7 @@ class Window(GtkWindow):
 		if self.savebox:
 			self.savebox.destroy()
 		path = self.model.uri
+
 		self.savebox = SaveBox(self, path, 'application/x-dome')
 		toggle = GtkCheckButton("Export XML")
 		toggle.show()
@@ -112,15 +113,18 @@ class Window(GtkWindow):
 			doc = self.view.model.doc
 		else:
 			doc = self.view.export_all()
-		self.output_data = ''
+		self.output_data = u''
 		print "Getting data..."
+
 		PrettyPrint(doc, stream = self)
 		d = self.output_data
-		self.output_data = ''
+		del self.output_data
 		print "Got data... saving..."
 		return d
 	
 	def write(self, text):
+		if type(text) == str:
+			text = unicode(text, encoding = 'UTF-8')
 		self.output_data = self.output_data + text
 
 	def save_get_data(self):
