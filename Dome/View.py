@@ -709,7 +709,7 @@ class View:
 			final = []
 			for n in nodes:
 				if n.nodeType == Node.TEXT_NODE:
-					old = str(n.data).replace('\n', ' ')
+					old = n.data.replace('\n', ' ')
 					new, num = re.subn(replace, with, old)
 					if check and not num:
 						self.move_to(n)
