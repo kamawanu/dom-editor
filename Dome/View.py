@@ -768,11 +768,25 @@ class View:
 				print "Warning: Can't find 'uri' attribute!"
 
 		command = "w3m -dump_source '%s' | tidy -asxml 2>/dev/null" % uri
+
+		def done(root, self = self, uri = uri):
+			node = self.current
+			new = node.ownerDocument.importNode(root.documentElement, deep = 1)
+			new.setAttributeNS('', 'uri', uri)
+			self.model.replace_node(node, new)
+			print "Loaded."
+			self.resume('next')
+		self.dom_from_command(command, done)
+		raise InProgress
+	
+	def dom_from_command(self, command, callback = None):
+		"""Execute shell command 'command' in the background.
+		Parse the output as XML. When done, call callback(doc_root)."""
 		print command
 		cout = os.popen(command)
 	
 		all = ["", None]
-		def got_html(src, cond, all = all, self = self, uri = uri):
+		def got_html(src, cond, all = all, self = self, cb = callback):
 			data = src.read(100)
 			if data:
 				all[0] += data
@@ -787,19 +801,10 @@ class View:
 			except:
 				report_exception()
 				raise
-			# print "Converting..."
-			node = self.current
-			# new = html_to_xml(node.ownerDocument, root)
-			new = node.ownerDocument.importNode(
-					root.documentElement, deep = 1)
-			ext.StripHtml(new)
-			new.setAttributeNS('', 'uri', uri)
-			self.model.replace_node(node, new)
-			print "Loaded."
-			self.resume('next')
+			ext.StripHtml(root)
+			cb(root)
 			
 		all[1] = input_add(cout, GDK.INPUT_READ, got_html)
-		raise InProgress
 	
 	def put_before(self):
 		node = self.current
@@ -946,12 +951,15 @@ class View:
 	
 	def load_html(self, path):
 		"Replace root with contents of this HTML file."
-		# XXX: Broken!
 		print "Reading HTML..."
-		reader = Html.Reader()
-		root = reader.fromUri(path)
-		new = html_to_xml(self.model.doc, root)
-		self.model.replace_node(self.root, new)
+		command = "tidy -asxml '%s' 2>/dev/null" % path
+
+		def done(root, self = self):
+			print "Loaded!"
+			new = self.root.ownerDocument.importNode(root.documentElement, deep = 1)
+			self.model.replace_node(self.root, new)
+
+		self.dom_from_command(command, done)
 
 	def load_xml(self, path):
 		"Replace root with contents of this XML file."
