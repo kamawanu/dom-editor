@@ -14,28 +14,8 @@ import Exec
 
 class GUIView(Display):
 	def __init__(self, window, view):
-		Display.__init__(self, view)
-		self.window = window
+		Display.__init__(self, window, view)
 		window.connect('key-press-event', self.key_press)
-		self.recording_where = None
-
-	def toggle_record(self, extend = FALSE):
-		"Start or stop recording"
-		if self.recording_where:
-			self.recording_where = None
-		elif extend:
-			self.recording_where = Exec.exec_state.where
-			if not self.recording_where:
-				report_error("No current point!")
-				return
-
-			self.recording_exit = Exec.exec_state.exit
-		else:
-			node = self.view.current
-			self.recording_where = self.view.model.macro_list.record_new(node.nodeName).start
-			self.recording_exit = 'next'
-		
-		self.window.update_title()
 
 	def key_press(self, widget, kev):
 		try:
@@ -63,7 +43,7 @@ class GUIView(Display):
 			action(self)
 			return 1
 
-		self.may_record(action)
+		self.view.may_record(action)
 		return 1
 	
 	def node_clicked(self, node, bev):
@@ -73,64 +53,47 @@ class GUIView(Display):
 			lit = bev.state & SHIFT_MASK
 			ns = {}
 			path = make_relative_path(self.view.current, node, lit, ns)
-			self.may_record(["do_search", path, ns])
+			self.view.may_record(["do_search", path, ns])
 
-		if bev.button == 3:
-			items = [
-				('Search', self.show_search),
-				('Global', self.show_global),
-				(None, None),
-				('Cut', lambda self = self: self.may_record(['delete_node'])),
-				('Paste (replace)', lambda self = self: self.may_record(['put_replace'])),
-				('Paste (inside)', lambda self = self: self.may_record(['put_as_child'])),
-				('Paste (before)', lambda self = self: self.may_record(['put_before'])),
-				('Paste (after)', lambda self = self: self.may_record(['put_after'])),
-				(None, None),
-				('Substitute', self.show_subst),
-				('Process', self.show_pipe),
-				(None, None),
-				('Question', self.show_ask),
-				(None, None),
-				('Undo', lambda self = self: self.may_record(['undo'])),
-				('Redo', lambda self = self: self.may_record(['redo'])),
-				('Enter', self.view.enter),
-				('Leave', self.view.leave),
-				('Close Window', self.window.destroy),
-				]
-			Menu(items).popup(bev.button, bev.time)
-		return 1
+	def show_menu(self, bev):
+		items = [
+			('Search', self.show_search),
+			('Global', self.show_global),
+			(None, None),
+			('Cut', lambda self = self: self.view.may_record(['delete_node'])),
+			('Paste (replace)', lambda self = self: self.view.may_record(['put_replace'])),
+			('Paste (inside)', lambda self = self: self.view.may_record(['put_as_child'])),
+			('Paste (before)', lambda self = self: self.view.may_record(['put_before'])),
+			('Paste (after)', lambda self = self: self.view.may_record(['put_after'])),
+			(None, None),
+			('Substitute', self.show_subst),
+			('Process', self.show_pipe),
+			(None, None),
+			('Question', self.show_ask),
+			(None, None),
+			('Undo', lambda self = self: self.view.may_record(['undo'])),
+			('Redo', lambda self = self: self.view.may_record(['redo'])),
+			('Enter', self.view.enter),
+			('Leave', self.view.leave),
+			('Close Window', self.window.destroy),
+			]
+		Menu(items).popup(bev.button, bev.time)
 	
 	def playback(self, macro):
 		"Called when the user clicks on a macro button."
-		# TODO: Reset any running macro...
-		self.may_record(['playback', macro.uri])
+		Exec.exec_state.clean()
+		self.view.may_record(['playback', macro.uri])
 
-	def may_record(self, action):
-		"Perform, and possibly record, this action"
-		rec = self.recording_where
-
-		try:
-			self.view.do_action(action)
-		except Beep:
-			gdk_beep()
-			return 0
-
-		# Only record if we were recording when this action started
-		if rec:
-			self.recording_where = rec.record(action, self.recording_exit)
-			self.recording_exit = 'next'
-			Exec.exec_state.set_pos(self.recording_where, self.recording_exit)
-	
 	def show_ask(self):
 		def do_ask(q, self = self):
 			action = ["ask", q]
-			self.may_record(action)
+			self.view.may_record(action)
 		GetArg('Ask:', do_ask, ('Question:',))
 
 	def show_subst(self):
 		def do_subst(args, self = self):
 			action = ["subst", args[0], args[1]]
-			self.may_record(action)
+			self.view.may_record(action)
 		GetArg('Substitute:', do_subst, ('Replace:', 'With:'))
 
 	def show_edit(self):
@@ -139,37 +102,37 @@ class GUIView(Display):
 	def show_del_attrib(self):
 		def do_attrib(attrib, self = self):
 			action = ["del_attrib", attrib]
-			self.may_record(action)
+			self.view.may_record(action)
 		GetArg('Delete attribute:', do_attrib, ['Name:'])
 
 	def show_yank_attrib(self):
 		def do_attrib(attrib, self = self):
 			action = ["yank_attrib", attrib]
-			self.may_record(action)
+			self.view.may_record(action)
 		GetArg('Yank attribute:', do_attrib, ['Name:'])
 
 	def show_attrib(self):
 		def do_attrib(args, self = self):
 			action = ["attrib", args[0], args[1]]
-			self.may_record(action)
+			self.view.may_record(action)
 		GetArg('Set attribute:', do_attrib, ['Name:', 'Value:'])
 
 	def show_pipe(self):
 		def do_pipe(expr, self = self):
 			action = ["python", expr]
-			self.may_record(action)
+			self.view.may_record(action)
 		GetArg('Python expression:', do_pipe, ['Eval:'], "'x' is the old text...")
 
 	def show_global(self):
 		def do_global(pattern, self = self):
 			action = ["do_global", pattern]
-			self.may_record(action)
+			self.view.may_record(action)
 		GetArg('Global:', do_global, ['Pattern:'], 'Perform next action on all nodes matching')
 
 	def show_search(self):
 		def do_search(pattern, self = self):
 			action = ["do_search", pattern]
-			self.may_record(action)
+			self.view.may_record(action)
 		GetArg('Search for:', do_search, ['Pattern:'])
 
 	def new_element(self):

@@ -47,9 +47,9 @@ class Editor(GtkWindow):
 	
 	def do_it(self, data):
 		if self.where:
-			self.gui.may_record(['add_node', self.where, data])
+			self.gui.view.may_record(['add_node', self.where, data])
 		else:
-			self.gui.may_record(['change_node', data])
+			self.gui.view.may_record(['change_node', data])
 		self.destroy()
 
 class DataEditor(Editor):

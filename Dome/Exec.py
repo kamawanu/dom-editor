@@ -56,7 +56,7 @@ class Exec:
 
 	def rec_cb(self, choice):
 		if choice == 0:
-			#self.tree.toggle_record(extend = TRUE)
+			self.view.toggle_record(extend = TRUE)
 			self.where.macro.show_all()
 	
 	def play(self, macro_name, when_done = None):
@@ -76,6 +76,8 @@ class Exec:
 			self.stack.append(when_done)
 
 		self.set_pos(m.start)
+
+		print "stop_after", self.stop_after
 
 		if self.stop_after == 0:
 			m.show_all()
@@ -101,6 +103,7 @@ class Exec:
 	def sched(self):
 		self.stop()
 		self.sched_tag = idle_add(self.idle_cb)
+		print "Sched..."
 	
 	def idle_cb(self):
 		if not self.frozen:
@@ -183,7 +186,7 @@ class Exec:
 		gdk_beep()
 		self.stop_after = 0
 		self.set_pos(self.last_fail_node, 'fail')
-		if 0 and self.tree.recording_where == None:
+		if self.view.recording_where == None:
 			get_choice("Macro execution failed - record failure case?",
 					self.where.macro.uri,
 					('Record', 'No'),

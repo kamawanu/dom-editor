@@ -6,20 +6,30 @@ from xml.dom.Node import Node
 
 import string
 
+def wrap(str, width):
+	ret = ''
+	while len(str) > width:
+		i = string.rfind(str[:width], ' ')
+		if i == -1:
+			i = width
+		ret = ret + str[:i + 1] + '\n'
+		str = str[i + 1:]
+	return ret + str
+
 class Display(GnomeCanvas):
-	def __init__(self, view):
+	def __init__(self, window, view):
 		GnomeCanvas.__init__(self)
 		self.view = None
+		self.window = window
 		self.root_group = None
 		self.update_idle = 0
-		#self.connect('expose-event', self.expose)
-		#self.connect('realize', self.realize, view)
 
 		s = self.get_style().copy()
 		s.bg[STATE_NORMAL] = self.get_color('old lace')
 		self.set_style(s)
 
 		self.connect('destroy', self.destroyed)
+		self.connect('button-press-event', self.bg_event)
 
 		self.set_view(view)
 	
@@ -44,6 +54,9 @@ class Display(GnomeCanvas):
 			width = max_w
 		if height > max_h:
 			height = max_h
+
+	def update_record_state(self):
+		self.window.update_title()
 
 	def update_all(self):
 		if self.update_idle:
@@ -70,12 +83,16 @@ class Display(GnomeCanvas):
 	def destroyed(self, widget):
 		self.view.remove_display(self)
 	
-	def create_tree(self, node, group):
+	def create_tree(self, node, group, cramped = 0):
+		group.node = node
 		group.add('ellipse', x1 = -4, y1 = -4, x2 = 4, y2 = 4,
 					fill_color = 'yellow', outline_color = 'black')
-		group.text = group.add('text', x = 12, y = 0, anchor = ANCHOR_WEST,
+		text = str(self.get_text(node))
+		if cramped:
+			text = wrap(text, 32)
+		group.text = group.add('text', x = 12, y = -6, anchor = ANCHOR_NW,
 					font = 'fixed', fill_color = 'black',
-					text = str(string.join(self.get_text(node), '\n')))
+					text = text)
 		group.connect('event', self.node_event, node)
 		self.node_to_group[node] = group
 
@@ -86,36 +103,84 @@ class Display(GnomeCanvas):
 		group.rect.lower_to_bottom()
 		self.hilight(group, node in self.view.current_nodes)
 
-		y = hy + 4
+		hbox = node.nodeName == 'TR'
+		if hbox:
+			cramped = 1
+		
+		kids = []
 		for n in node.childNodes:
-			g = group.add('group', x = 32, y = y)
-			self.create_tree(n, g)
-			(lx, ly, hx, hy) = g.get_bounds()
-			g.move(0, y - ly)
-			y += (hy - ly) + 4
+			g = group.add('group', x = 0, y = 0)
+			self.create_tree(n, g, cramped)
+			kids.append(g)
+		
+		if not kids:
+			return
+
+		if cramped:
+			indent = 16
+		else:
+			indent = 32
+
+		if hbox:
+			y = hy + 8
+			x = indent
+			for g in kids:
+				(lx, ly, hx, hy) = g.get_bounds()
+				x -= lx
+				g.move(x, y - ly)
+				g.add('line', points = (0, ly - 4, 0, -4),
+					fill_color = 'black',
+					width_pixels = 1)
+				right_child = x
+				x += hx - lx + 8
+			group.add('line', points = (0, 4, 0, y - 4, right_child, y - 4),
+					fill_color = 'black',
+					width_pixels = 1)
+		else:
+			y = hy + 4
+			for g in kids:
+				(lx, ly, hx, hy) = g.get_bounds()
+				y -= ly
+				lowest_child = y
+				g.add('line', points = (-indent, 0, -4, 0),
+					fill_color = 'black',
+					width_pixels = 1)
+				g.move(indent, y)
+				y = y + hy + 4
+			group.add('line', points = (0, 4, 0, lowest_child), fill_color = 'black',
+					width_pixels = 1)
 
 	def get_text(self, node):
 		if node.nodeType == Node.TEXT_NODE:
-			return string.split(string.strip(node.nodeValue), '\n')
+			return string.strip(node.nodeValue)
 		elif node.nodeType == Node.ELEMENT_NODE:
-			ret = [node.nodeName]
+			ret = node.nodeName
 			for a in node.attributes:
 				val = a.value
-				if len(val) > 15:
-					val = '...' + val[-12:]
-				ret[0] += ' ' + a.name + '=' + val
+				if len(val) > 21:
+					val = '...' + val[-18:]
+				ret += ' ' + a.name + '=' + val
 			return ret
 		elif node.nodeName:
-			return [node.nodeName]
+			return node.nodeName
 		elif node.nodeValue:
-			return ['<noname>' + node.nodeValue]
+			return '<noname>' + node.nodeValue
 		else:
-			return ['<unknown>']
+			return '<unknown>'
 	
+	def show_menu(self, bev):
+		pass
+
+	def bg_event(self, widget, event):
+		if event.type == BUTTON_PRESS and event.button == 3:
+			self.show_menu(event)
+			return 1
+
+	# 'group' and 'node' may be None (for the background)
 	def node_event(self, group, event, node):
-		self.do_update_now()
-		if event.type != BUTTON_PRESS:
+		if event.type != BUTTON_PRESS or event.button == 3:
 			return 0
+		self.do_update_now()
 		self.node_clicked(node, event)
 		return 1
 	
@@ -123,9 +188,6 @@ class Display(GnomeCanvas):
 		return
 	
 	def move_from(self, old):
-		self.do_update_now()
-		if self.view.current_nodes:
-			self.scroll_to_show(self.view.current_nodes[0])
 		new = self.view.current_nodes
 		for n in old:
 			if n not in new:
@@ -133,6 +195,11 @@ class Display(GnomeCanvas):
 					self.hilight(self.node_to_group[n], FALSE)
 				except KeyError:
 					pass
+		if self.update_idle:
+			return		# We'll highlight on the callback...
+		# We can update without structural problems...
+		if self.view.current_nodes:
+			self.scroll_to_show(self.view.current_nodes[0])
 		for n in new:
 			if n not in old:
 				try:
@@ -141,12 +208,18 @@ class Display(GnomeCanvas):
 					pass
 	
 	def hilight(self, group, state):
+		node = group.node
 		if state:
 			group.rect.show()
 			group.text.set(fill_color = 'white')
 		else:
 			group.rect.hide()
-			group.text.set(fill_color = 'black')
+			if node.nodeType == Node.ELEMENT_NODE:
+				group.text.set(fill_color = 'black')
+			elif node.nodeType == Node.TEXT_NODE:
+				group.text.set(fill_color = 'blue')
+			else:
+				group.text.set(fill_color = 'red')
 
 	def scroll_to_show(self, node):
 		pass

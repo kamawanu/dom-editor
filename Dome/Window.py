@@ -95,7 +95,7 @@ class Window(GtkWindow):
 	
 	def update_title(self):
 		title = self.uri
-		if self.gui_view and self.gui_view.recording_where:
+		if self.gui_view and self.gui_view.view.recording_where:
 			title += ' (recording)'
 		self.set_title(title)
 	
@@ -164,7 +164,7 @@ class Window(GtkWindow):
 		Exec.exec_state.do_one_step()
 	
 	def tool_Record(self):
-		self.gui_view.toggle_record()
+		self.gui_view.view.toggle_record()
 	
 	def tool_Extend(self):
-		self.gui_view.toggle_record(extend = TRUE)
+		self.gui_view.view.toggle_record(extend = TRUE)

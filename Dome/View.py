@@ -25,6 +25,7 @@ class View:
 		self.root = self.model.get_root()
 		self.current_nodes = [self.root]
 		self.clipboard = None
+		self.recording_where = None
 		model.add_view(self)
 	
 	def __getattr__(self, attr):
@@ -33,6 +34,42 @@ class View:
 				return self.current_nodes[0]
 			raise Exception('This operation required exactly one selected node!')
 		raise Exception('Bad View attribute "%s"' % attr)
+
+	def toggle_record(self, extend = FALSE):
+		"Start or stop recording"
+		if self.recording_where:
+			self.recording_where = None
+		elif extend:
+			self.recording_where = Exec.exec_state.where
+			if not self.recording_where:
+				report_error("No current point!")
+				return
+
+			self.recording_exit = Exec.exec_state.exit
+		else:
+			node = self.current
+			self.recording_where = self.model.macro_list.record_new(node.nodeName).start
+			self.recording_exit = 'next'
+		
+		for display in self.displays:
+			display.update_record_state()
+
+	def may_record(self, action):
+		"Perform and, possibly, record this action"
+		rec = self.recording_where
+
+		try:
+			self.do_action(action)
+		except Beep:
+			gdk_beep()
+			return 0
+
+		# Only record if we were recording when this action started
+		if rec:
+			self.recording_where = rec.record(action, self.recording_exit)
+			self.recording_exit = 'next'
+			# XXX: Setting point stops background ops (eg playback)
+			#Exec.exec_state.set_pos(self.recording_where, self.recording_exit)
 	
 	def add_display(self, display):
 		"Calls move_from(old_node) when we move and update_all() on updates."
@@ -123,11 +160,14 @@ class View:
 		self.move_to(self.current.parentNode)
 	
 	def move_right(self):
-		kids = self.current.childNodes
-		if kids:
-			self.move_to(kids[0])
-		else:
-			raise Beep
+		new = []
+		for n in self.current_nodes:
+			kids = n.childNodes
+			if kids:
+				new.append(kids[0])
+			else:
+				raise Beep
+		self.move_to(new)
 	
 	def move_home(self):
 		self.move_to(self.root)
@@ -266,7 +306,9 @@ class View:
 		new = []
 		for x in nodes:
 			if x != self.root:
-				new.append(x.parentNode)
+				p = x.parentNode
+				if p not in new:
+					new.append(p)
 		if len(new) == 0:
 			raise Beep
 		for x in nodes:
@@ -281,6 +323,8 @@ class View:
 		self.model.redo(self.root)
 
 	def playback(self, macro_name):
+		print "Playback", macro_name
+
 		nodes = self.current_nodes[:]
 		inp = [nodes, None]
 		def next(self = self, macro_name = macro_name, inp = inp):
