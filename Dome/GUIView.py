@@ -58,7 +58,8 @@ menu = Menu('Dome', 'main', [
 		('/Select/Duplicate siblings', 'do_select_dups', '', ''),
 
 		('/Network', None, '<Branch>', ''),
-		('/Network/HTTP suck', 'do_suck', '', '<Shift>asciicircum'),
+		('/Network/HTTP GET', 'do_suck', '', '<Shift>asciicircum'),
+		('/Network/HTTP POST', 'do_http_post', '', ''),
 		('/Network/Send SOAP message', 'do_soap_send', '', ''),
 
 		('/Create', None, '<Branch>', ''),
@@ -424,6 +425,7 @@ class GUIView(Display):
 	do_enter = make_do('enter')
 	do_leave = make_do('leave')
 	do_suck = make_do('suck')
+	do_http_post = make_do('http_post')
 	do_soap_send = make_do('soap_send')
 	do_select_dups = make_do('select_dups')
 	do_paste_attribs = make_do('paste_attribs')

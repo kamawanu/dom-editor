@@ -58,6 +58,7 @@ record_again = [
 	"change_node",
 	"add_node",
 	"suck",
+	"http_post",
 	"put_before",
 	"put_after",
 	"put_replace",
@@ -639,7 +640,10 @@ class View:
 		check = len(self.current_nodes) == 1
 		for n in self.current_nodes:
 			if n.nodeType == Node.TEXT_NODE:
-				new, num = re.subn(replace, with, n.data)
+				old = str(n.data).replace('\n', ' ')
+				print `old`
+				new, num = re.subn(replace, with, old)
+				print "To", new, num
 				if check and not num:
 					raise Beep
 				self.model.set_data(n, new)
@@ -978,7 +982,18 @@ class View:
 
 		self.move_to(new)
 
-	def suck(self):
+	def http_post(self):
+		node = self.get_current()
+		attrs = node.attributes
+		post = []
+		for (ns,name) in attrs.keys():
+			if ns is None:
+				post.append((str(name),
+					     str(attrs[(ns, name)].value)))
+		print "POST", post
+		self.suck(post_data = urllib.urlencode(post))
+		
+	def suck(self, post_data = None):
 		node = self.get_current()
 
 		uri = None
@@ -1009,7 +1024,8 @@ class View:
 
 		print "Sucking", uri
 
-		stream = urllib.urlopen(uri)
+		print "POSTING", post_data
+		stream = urllib.urlopen(uri, post_data)
 		headers = stream.info().headers
 		last_mod = None
 		for x in headers:
@@ -1073,7 +1089,7 @@ class View:
 			support.report_exception()
 			raise Beep
 		else:
-			print "Parse OK...",
+			print "parse OK...",
 		
 		new = node.ownerDocument.importNode(root.documentElement, 1)
 		new.setAttributeNS(None, 'uri', uri)

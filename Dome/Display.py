@@ -146,14 +146,16 @@ class Display(GnomeCanvas):
 					print "Rebuilding..."
 					if self.root_group:
 						self.root_group.destroy()
+					print "new group..."
 					self.root_group = self.root().add('group', x = 0, y = 0)
 					group = self.root_group
 					node = self.view.root
 					group.connect('event', self.node_event, node)
+					print "creating tree..."
 					self.create_tree(node, group)
-					print "Highlighting..."
+					print "highlighting..."
 					self.auto_highlight(node, rec = 1)
-					print "Done"
+					print "done"
 			self.move_from()
 			self.set_bounds()
 			if self.view.current_nodes:
