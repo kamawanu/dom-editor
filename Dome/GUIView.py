@@ -61,6 +61,7 @@ menu = Menu('Dome', 'main', [
 		('/Mark', None, '<Branch>', ''),
 		('/Mark/Mark Selection', 'do_mark_selection', '', 'm'),
 		('/Mark/Switch with Selection', 'do_mark_switch', '', 'comma'),
+		('/Mark/Clear Mark', 'do_clear_mark', '', ''),
 
 		('/Network', None, '<Branch>', ''),
 		('/Network/HTTP GET', 'do_suck', '', '<Shift>asciicircum'),
@@ -71,10 +72,16 @@ menu = Menu('Dome', 'main', [
 		('/Create/Insert element', 'menu_insert_element', '', '<Shift>I'),
 		('/Create/Append element', 'menu_append_element', '', '<Shift>A'),
 		('/Create/Open element', 'menu_open_element', '', '<Shift>O'),
+		('/Create/Open element at end', 'menu_open_element_end', '', '<Shift>E'),
+
+		('/Create/', '', '', '<separator>'),
 
 		('/Create/Insert text node', 'menu_insert_text', '', 'I'),
 		('/Create/Append text node', 'menu_append_text', '', 'A'),
 		('/Create/Open text node', 'menu_open_text', '', 'O'),
+		('/Create/Open text node at end', 'menu_open_text_end', '', 'E'),
+
+		('/Create/', '', '', '<separator>'),
 
 		('/Create/Attribute', 'menu_show_add_attrib', '', '<Shift>plus'),
 
@@ -408,6 +415,11 @@ class GUIView(Display):
 		self.view.may_record(['add_node', 'oe', self.new_name()])
 		self.show_editbox()
 		
+	def menu_open_element_end(self):
+		"Open element at end"
+		self.view.may_record(['add_node', 'ee', self.new_name()])
+		self.show_editbox()
+		
 	def menu_insert_text(self):
 		"Insert text"
 		self.view.may_record(['add_node', 'it', ''])
@@ -421,6 +433,11 @@ class GUIView(Display):
 	def menu_open_text(self):
 		"Open text"
 		self.view.may_record(['add_node', 'ot', ''])
+		self.show_editbox()
+
+	def menu_open_text_end(self):
+		"Open text at end"
+		self.view.may_record(['add_node', 'et', ''])
 		self.show_editbox()
 
 	def menu_close_window(self):

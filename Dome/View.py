@@ -1027,6 +1027,8 @@ class View:
 				self.model.insert_before(cur, new)
 			elif where[0] == 'a':
 				self.model.insert_after(cur, new)
+			elif where[0] == 'e':
+				self.model.insert_before(None, new, parent = cur)
 			else:
 				self.model.insert(cur, new)
 		except:
@@ -1631,6 +1633,9 @@ class View:
 
 	def mark_selection(self):
 		self.set_marked(self.current_nodes)
+	
+	def clear_mark(self):
+		self.set_marked([])
 
 class StrGrab:
 	data = ''

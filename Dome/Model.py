@@ -59,6 +59,15 @@ class Model:
 						for y in x.childNodes:
 							if y.nodeType == Node.ELEMENT_NODE:
 								data_to_load = y
+		elif (root.namespaceURI == constants.XSLT_NS and 
+			root.localName in ['stylesheet', 'transform']) or \
+			root.hasAttributeNS(constants.XSLT_NS, 'version'):
+			import xslt
+			self.root_program = xslt.import_sheet(doc)
+			x = implementation.createDocument(None, 'xslt', None)
+			data_to_load = x.documentElement
+			data_to_load.appendChild(x.createElementNS(None, 'Result'))
+			data_to_load.appendChild(x.createElementNS(None, 'Source'))
 		else:
 			data_to_load = root
 
