@@ -261,6 +261,7 @@ class List(g.VBox):
 				self.show_menu(event, prog)
 			else:
 				self.view.run_new(self.run_return)
+				self.view.set_status("Running '%s'" % path)
 				if event.state & g.gdk.SHIFT_MASK:
 					self.view.may_record(['map', path])
 				else:
@@ -299,11 +300,13 @@ class List(g.VBox):
 	def menu_map(self):
 		prog = self.prog_menu_prog
 		self.view.run_new(self.run_return)
+		self.view.set_status("Running '%s'" % prog.get_path())
 		self.view.may_record(['map', prog.get_path()])
 
 	def menu_play(self):
 		prog = self.prog_menu_prog
 		self.view.run_new(self.run_return)
+		self.view.set_status("Running '%s'" % prog.get_path())
 		self.view.may_record(['play', prog.get_path()])
 
 	def show_menu(self, event, prog):
@@ -667,6 +670,8 @@ class ChainDisplay(g.EventBox):
 		
 	def expose(self, da, event):
 		if not self.backing: self.create_backing()
+
+		self.window.draw_drawable(self.style.white_gc, self.backing, 0, 0, 0, 0, -1, -1)
 
 		#self.update_links()
 		self.put_point(self.view.rec_point)

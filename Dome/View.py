@@ -185,6 +185,7 @@ class View:
 		self.reset_foreach_stack()
 		self.status_changed()
 		self.update_stack()
+		self.set_status(None)
 	
 	def reset_foreach_stack(self):
 		for block, nodes, restore, mark in self.foreach_stack:
@@ -337,6 +338,7 @@ class View:
 	# (duplicates will be removed)
 	# If it's a single node, then an 'attrib' node may also be specified
 	def move_to(self, nodes, attrib = None):
+		print "move_to", nodes
 		if self.current_nodes == nodes:
 			return
 
@@ -346,6 +348,8 @@ class View:
 		if type(nodes) != list:
 			assert nodes
 			nodes = [nodes]
+		else:
+			for n in nodes: assert n.nodeType
 
 		if len(nodes) > 1:
 			# Remove duplicates
@@ -1101,6 +1105,11 @@ class View:
 			return 0
 		self.sched()
 		return 0
+	
+	def set_status(self, message = None):
+		"Set the status bar message."
+		for d in self.displays:
+			if hasattr(d, 'set_status'): d.set_status(message)
 
 	def status_changed(self):
 		for display in self.displays:
@@ -1278,9 +1287,9 @@ class View:
 			request = self.request_from_node(x, attrib)
 			try:
 				new = self.suck_node(x, request, md5_only = md5_only)
+				final.append(new)
 			finally:
 				self.move_to(x)
-			final.append(new)
 		self.move_to(final)
 	
 	def suck_md5(self):
@@ -1315,7 +1324,7 @@ class View:
 			if current_last_mod == last_mod:
 				self.model.set_attrib(node, 'modified', None)
 				print "not modified => not sucking!\n"
-				return
+				return node
 
 		print "Fetching page contents..."
 		data = stream.read()

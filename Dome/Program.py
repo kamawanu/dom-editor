@@ -56,9 +56,11 @@ def load(node, parent, ns):
 					print "Converting search namespaces..."
 					for p, u in action[2].iteritems():
 						print "Convert", p, u
-						new_prefix = ns.ensure_ns(p, u)
-						action[1] = action[1].replace(p + ':',
-									new_prefix + ':')
+						old = p
+						if p.startswith('_'): p = None
+						p = ns.ensure_ns(p, u)
+						action[1] = action[1].replace(old + ':',
+									p + ':')
 					action[2] = 'unused'
 				op = Op(action)
 			elif op_node.localName == 'block':

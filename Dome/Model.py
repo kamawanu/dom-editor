@@ -148,6 +148,7 @@ class Model:
 	def lock(self, node):
 		"""Prevent removal of this node (or any ancestor)."""
 		#print "Locking", node.nodeName
+		assert node.nodeType
 		self.locks[node] = self.get_locks(node) + 1
 		if node.parentNode:
 			self.lock(node.parentNode)

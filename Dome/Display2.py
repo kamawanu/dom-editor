@@ -467,3 +467,6 @@ class Display(g.HBox):
 			node = node.parentNode
 		self.ref_pos = (x, 0)
 		self.update_all()
+	
+	def set_status(self, message):
+		self.parent_window.set_status(message)

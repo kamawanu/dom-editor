@@ -195,11 +195,18 @@ class GUI(rox.Dialog):
 		
 		d.set_default_response(g.RESPONSE_OK)
 
-		if d.run() != g.RESPONSE_OK:
-			d.destroy()
-			return
-		try:
-			ns[prefix.get_text()] = uri.get_text()
-		except:
-			rox.report_exception()
+		while 1:
+			if d.run() != g.RESPONSE_OK:
+				d.destroy()
+				return
+			uri_text = uri.get_text()
+			if uri_text in ns.prefix:
+				rox.alert('That namespace already has a prefix (%s)'
+						% ns.prefix[uri_text])
+				continue
+			try:
+				ns[prefix.get_text()] = uri_text
+				break
+			except:
+				rox.report_exception()
 		d.destroy()
