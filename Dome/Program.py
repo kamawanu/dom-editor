@@ -109,6 +109,10 @@ class Program:
 	def rename(self, name):
 		self.name = name
 		self.changed(None)
+		if self.parent:
+			self.parent.changed(None)
+		for k in self.subprograms:
+			k.changed(None)
 	
 	def to_xml(self):
 		data = "<dome-program name='%s'>\n" % escape_attval(self.name)

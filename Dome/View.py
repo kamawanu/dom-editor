@@ -36,6 +36,9 @@ def same(a, b):
 			return FALSE
 	return TRUE
 
+class InProgress(Exception):
+	"Throw this if the operation will complete later..."
+
 class View:
 	def __init__(self, model):
 		self.displays = []
@@ -257,7 +260,20 @@ class View:
 	def do_action(self, action):
 		"'action' is a tuple (function, arg1, arg2, ...)"
 		fn = getattr(self, action[0])
-		new = apply(fn, action[1:])
+		exit = 'next'
+		try:
+			new = apply(fn, action[1:])
+		except InProgress:
+			return
+		except Beep:
+			if not self.op_in_progress:
+				raise
+			exit = 'fail'
+			new = None
+		if self.op_in_progress:
+			op = self.op_in_progress
+			self.set_oip(None)
+			self.set_exec((op, exit))
 		if new:
 			self.move_to(new)
 	
@@ -650,9 +666,11 @@ class View:
 			report_error("Nothing more to do.")
 			return
 		self.set_oip(next)
+		self.do_action(next.action)
 
 	def set_oip(self, op):
-		self.set_exec(None)
+		if op:
+			self.set_exec(None)
 		self.op_in_progress = op
 		for l in self.lists:
 			l.set_oip()
