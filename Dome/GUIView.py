@@ -74,7 +74,7 @@ class GUIView(Display):
 				add = bev.state & CONTROL_MASK
 				ns = {}
 				path = make_relative_path(src, node, lit, ns)
-				if path == '.' and not self.view.current_attrib:
+				if path == '.' and self.view.current_nodes and not self.view.current_attrib:
 					return
 				self.view.may_record(["do_search", path, ns, add])
 			else:

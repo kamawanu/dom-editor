@@ -20,7 +20,10 @@ class Model:
 		self.doc = implementation.createDocument('', 'root', None)
 		self.views = []		# Notified when something changes
 		self.locks = {}		# Node -> number of locks
-		self.uri = 'Document'
+		if uri:
+			self.uri = uri
+		else:
+			self.uri = 'Document'
 	
 	def lock(self, node):
 		"""Prevent removal of this node (or any ancestor)."""
@@ -33,10 +36,14 @@ class Model:
 		"""Reverse the effect of lock(). Must call unlock the same number
 		of times as lock to fully unlock the node."""
 		l = self.get_locks(node)
-		if l > 0:
+		if l > 1:
 			self.locks[node] = l - 1
+		elif l == 1:
+			del self.locks[node]	# Or get a memory leak...
 		else:
 			raise Exception('unlock(%s): Node not locked!' % node)
+		if node.parentNode:
+			self.unlock(node.parentNode)
 	
 	def get_locks(self, node):
 		try:
@@ -111,10 +118,15 @@ class Model:
 		Change.replace_node(old, new)
 		self.update_replace(old, new)
 	
-	def delete_node(self, node):
-		p = node.parentNode
-		Change.delete(node)
-		self.update_all(p)
+	def delete_nodes(self, nodes):
+		print "Deleting", nodes
+		for n in nodes:
+			if self.get_locks(n):
+				raise Exception('Attempt to delete locked node %s' % n)
+		for n in nodes:
+			p = n.parentNode
+			Change.delete(n)
+			self.update_all(p)
 
 	def undo(self, node):
 		uop = None

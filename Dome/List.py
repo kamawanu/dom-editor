@@ -96,6 +96,9 @@ class List(GtkVBox):
 	def update_points(self):
 		self.chains.update_points()
 	
+	def program_changed(self, prog):
+		pass
+	
 	def prog_tree_changed(self, prog = None):
 		self.prog_to_tree = {}
 		self.tree.clear_items(0, -1)

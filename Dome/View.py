@@ -79,6 +79,7 @@ class Done(Exception):
 class View:
 	def __init__(self, model, program):
 		self.root_program = program
+		self.root = None
 		self.displays = []
 		self.lists = []
 		self.single_step = 1	# 0 = Play   1 = Step-into   2 = Step-over
@@ -99,8 +100,8 @@ class View:
 		self.exec_stack = []		# Ops we are inside (display use only)
 
 		self.breakpoints = {}		# (op, exit) keys, values don't matter
+		self.current_nodes = []
 		self.set_model(model)
-		self.current_nodes = [self.root]
 	
 	def __getattr__(self, attr):
 		if attr == 'current':
@@ -113,11 +114,16 @@ class View:
 		return a is not b
 	
 	def set_model(self, model):
+		if self.root:
+			self.move_to([])
+			self.model.unlock(self.root)
+		self.root = None
 		if self.model:
 			self.model.remove_view(self)
 		self.model = model
 		model.add_view(self)
 		self.set_display_root(self.model.get_root())
+		self.move_to(self.root)
 	
 	def running(self):
 		return self.idle_cb != 0 or self.in_callback
@@ -214,8 +220,12 @@ class View:
 	
 	def update_replace(self, old, new):
 		if old == self.root:
+			self.model.lock(new)
+			self.model.unlock(old)
 			self.root = new
 		if old in self.current_nodes:
+			self.model.lock(new)
+			self.model.unlock(old)
 			self.current_nodes.remove(old)
 			self.current_nodes.append(new)
 			self.update_all(new.parentNode)
@@ -236,14 +246,14 @@ class View:
 			print "[ lost root - using doc root ]"
 			self.root = self.model.doc.documentElement
 			self.chroots = []
+			raise Exception('Root locking error!')
 		
 		# Is the current node still around?
 		for n in self.current_nodes[:]:
 			if not self.has_ancestor(n, self.root):
-				# No - remove
+				# No - locking error!
 				self.current_nodes.remove(n)
-		if not self.current_nodes:
-			self.current_nodes = [self.root]
+				raise Exception('Internal locking error on %s!' % n)
 
 		if not (self.has_ancestor(node, self.root) or self.has_ancestor(self.root, node)):
 			print "[ change to %s doesn't affect us (root %s) ]" % (node, self.root)
@@ -254,8 +264,10 @@ class View:
 	
 	def delete(self):
 		print "View deleted"
+		self.move_to([])
 		for l in self.lists:
 			l.destroy()
+		self.model.unlock(self.root)
 		self.model.remove_view(self)
 		self.model = None
 		self.current = None
@@ -279,6 +291,11 @@ class View:
 
 		old_nodes = self.current_nodes
 		self.current_nodes = nodes
+
+		for node in self.current_nodes:
+			self.model.lock(node)
+		for node in old_nodes:
+			self.model.unlock(node)
 
 		self.current_attrib = attrib
 
@@ -326,6 +343,9 @@ class View:
 		self.move_to(node)
 	
 	def set_display_root(self, root):
+		self.model.lock(root)
+		if self.root:
+			self.model.unlock(self.root)
 		self.root = root
 		self.update_all(root)
 	
@@ -557,17 +577,12 @@ class View:
 		self.move_to([])	# Makes things go *much* faster!
 		new = []
 		for x in nodes:
-			if x != self.root:
-				p = x.parentNode
-				if p not in new:
-					new.append(p)
-		if len(new) == 0:
-			raise Beep
-		for x in nodes:
-			if self.has_ancestor(x, self.root):
-				#print "Deleting", x
-				self.model.delete_node(x)
+			p = x.parentNode
+			print "Delete %s, parent %s" % (x, p)
+			if p not in new:
+				new.append(p)
 		self.move_to(new)
+		self.model.delete_nodes(nodes)
 	
 	def undo(self):
 		self.model.undo(self.root)

@@ -135,8 +135,7 @@ class Window(GtkWindow):
 	def save(self, type):
 		if self.savebox:
 			self.savebox.destroy()
-		self.savebox = SaveBox(self, self.model.uri, 'text/' + type)
-		path = self.savebox.entry.get_chars(0, -1)
+		path = self.model.uri
 		dir, file = os.path.split(path)
 		i = string.rfind(file, '.')
 		if i != -1:
@@ -147,7 +146,7 @@ class Window(GtkWindow):
 			dir += '/'
 		else:
 			dir = ''
-		self.savebox.entry.set_text(dir + file)
+		self.savebox = SaveBox(self, dir + file, 'text/' + type)
 		self.savetype = type
 		self.savebox.show()
 	

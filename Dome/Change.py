@@ -95,6 +95,7 @@ def can_redo(node):
 	return n != None
 
 # Undo and redo stuff
+# XXX: Undo/redo need to check locking
 def add_undo(node, fn):
 	"Attempting to undo changes to 'node' will call this fn."
 	global op
