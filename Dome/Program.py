@@ -35,10 +35,10 @@ def load(chain):
 
 		op = Op(action)
 
-		dx = op_node.getAttributeNS(None, 'dx')
+		dx = int(op_node.getAttributeNS(None, 'dx'))
 		if dx:
 			op.dx = dx
-		dy = op_node.getAttributeNS(None, 'dy')
+		dy = int(op_node.getAttributeNS(None, 'dy'))
 		if dy:
 			op.dy = dy
 
