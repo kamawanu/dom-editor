@@ -522,7 +522,7 @@ class View:
 
 		# If we're in a block, try exiting from it...
 		if isinstance(op.parent, Block):
-			if self.start_block_iteration(op.parent, continuing = 1):
+			if self.start_block_iteration(op.parent, continuing = exit):
 				return			# Looping...
 			if not op.parent.is_toplevel():
 				self.set_exec((op.parent, exit))
@@ -903,8 +903,10 @@ class View:
 		self.status_changed()
 		raise InProgress
 	
-	def start_block_iteration(self, block, continuing = 0):
+	def start_block_iteration(self, block, continuing = None):
 		"True if we are going to run the block, False to exit the loop"
+		"Continuing is 'next' or 'fail' if we reached the end of the block."
+		print "Start interation"
 		if not self.foreach_stack:
 			raise Exception("Reached the end of a block we never entered!")
 		stack_block, nodes_list, restore = self.foreach_stack[-1]
@@ -915,6 +917,11 @@ class View:
 		if continuing and block.enter:
 			self.leave()
 			restore.append(self.get_current())
+
+		if continuing == 'fail':
+			print "Error in block; exiting early"
+			self.foreach_stack.pop()
+			return 0
 
 		if not nodes_list:
 			self.foreach_stack.pop()
@@ -945,7 +952,8 @@ class View:
 		oip = self.op_in_progress
 		self.set_oip(None)
 		self.play_block(oip)
-		self.sched()
+		if not self.single_step:
+			self.sched()
 		raise InProgress
 	
 	def sched(self):
