@@ -259,6 +259,8 @@ class View:
 			if action == ['enter']:
 				new_op = Block(op.parent)
 				new_op.toggle_enter()
+				if len(self.current_nodes) > 1:
+					new_op.toggle_foreach()
 			else:
 				new_op = Op(action)
 			op.link_to(new_op, old_exit)
