@@ -37,6 +37,11 @@ Most of the menu items are fairly obvious. Here are a few notes though:
   - '//a' selects all anchor nodes anywhere in the document.
   - './/a' selects all anchor nodes anywhere inside this node.
 
+  More advanced stuff is also possible, eg:
+
+  - '//text()[ext:match('fred')][2]' selects the second text node containing
+    'fred' within each element.
+
 - HTTP GET replaces an anchor node with the HTML document it points to.
   Select the attribute with the URI before using this.
   HTTP POST is similar, but tries to send all non-namespaced attributes
