@@ -263,8 +263,13 @@ class Op:
 		if current:
 			if child.next:
 				raise Exception('%s already has a next exit' % child)
+			primary = current.prev[0] == self
 			self.unlink(exit, may_delete = 0)
 			child.link_to(current, 'next')
+			if primary:
+				# We were the primary parent, so we must be again...
+				current.prev.remove(child)
+				current.prev.insert(0, child)
 		child.prev.append(self)
 		setattr(self, exit, child)
 		self.changed()
