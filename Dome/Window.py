@@ -1,5 +1,5 @@
 import rox
-from rox import g, TRUE, FALSE
+from rox import g, TRUE, FALSE, saving
 
 import os.path
 from Ft.Xml.Domlette import PrettyPrint
@@ -14,7 +14,7 @@ code = None
 from codecs import lookup
 utf8_encoder = lookup('UTF-8')[0]
 
-class Window(rox.Window):
+class Window(rox.Window, saving.Saveable):
 	def __init__(self, path = None, data = None):
 		# 'data' is used when 'path' is a stylesheet...
 		rox.Window.__init__(self)
@@ -111,39 +111,31 @@ class Window(rox.Window):
 			self.savebox.destroy()
 		path = self.model.uri
 
-		self.savebox = SaveBox(self, path, 'application/x-dome')
+		self.savebox = saving.SaveBox(self, path, 'application/x-dome')
 		toggle = g.CheckButton("Export XML")
 		toggle.show()
 		self.savebox.toggle_export_xml = toggle
-		self.savebox.save_area.pack_start(toggle)
+		self.savebox.vbox.pack_start(toggle)
 		self.savebox.show()
-	
-	def get_xml(self, export_xml = TRUE):
-		print "Saving", self.view.root
-		self.view.model.strip_space()
-		if export_xml:
-			doc = self.view.model.doc
-		else:
-			doc = self.view.export_all()
-
-		from cStringIO import StringIO
-		self.output_data = StringIO()
-		print "Getting data..."
-
-		PrettyPrint(doc, stream = self)
-		d = self.output_data.getvalue()
-		del self.output_data
-		print "Got data... saving..."
-		return d
 	
 	def write(self, text):
 		if type(text) == unicode:
 			text = utf8_encoder(text)[0]
 		self.output_data.write(text)
 
-	def save_get_data(self):
-		export = self.savebox.toggle_export_xml
-		return self.get_xml(export.get_active())
+	def save_to_stream(self, stream):
+		export = self.savebox.toggle_export_xml.get_active()
+
+		print "Saving", self.view.root
+		self.view.model.strip_space()
+		if export:
+			doc = self.view.model.doc
+		else:
+			doc = self.view.export_all()
+
+		print "Writing data..."
+
+		PrettyPrint(doc, stream)
 		
 	def set_uri(self, uri):
 		if not self.savebox.toggle_export_xml.get_active():
