@@ -1,5 +1,5 @@
 from xml.dom import Node
-#from loader import make_xds_loader
+from rox.loading import XDSLoader
 
 from rox import g, TRUE, FALSE
 keysyms = g.keysyms
@@ -111,12 +111,13 @@ menu = Menu('main', [
 def make_do(action):
 	return lambda(self): self.view.may_record([action])
 
-class GUIView(Display):
+class GUIView(Display, XDSLoader):
 	def __init__(self, window, view):
 		Display.__init__(self, window, view)
+		XDSLoader.__init__(self, ['application/x-dome', 'text/xml',
+					  'application/xml'])
 		window.connect('key-press-event', self.key_press)
 		self.cursor_node = None
-		#make_xds_loader(self, self)
 		self.update_state()
 
 		menu.attach(window, self)
@@ -131,8 +132,10 @@ class GUIView(Display):
 		self.parent_window.set_state(state)
 		self.do_update_now()
 
-	def load_file(self, path):
-		if path[-5:] == '.html':
+	def xds_load_from_stream(self, path, type, stream):
+		if not path:
+			raise Exception('Can only load from files... sorry!')
+		if path.endswith('.html'):
 			self.view.load_html(path)
 		else:
 			self.view.load_xml(path)
@@ -140,9 +143,6 @@ class GUIView(Display):
 			self.parent_window.uri = path
 			self.parent_window.update_title()
 
-	def load_data(self, data):
-		rox.alert("Can only load files for now - sorry")
-	
 	def key_press(self, widget, kev):
 		focus = widget.focus_widget
 		if focus and focus is not widget and focus.get_toplevel() is widget:

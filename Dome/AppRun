@@ -19,12 +19,14 @@ from os.path import dirname
 
 app_dir = dirname(sys.argv[0])
 
-from rox import g
+from rox import g, mime
 from Window import Window
 
 #sys.argv.append('--disable-crash-dialog')
 #import gnome.ui
 #sys.argv.pop()
+
+mime.install_mime_info('Dome')
 
 if len(sys.argv) > 1:
 	files = sys.argv[1:]
