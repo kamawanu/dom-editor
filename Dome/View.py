@@ -260,6 +260,8 @@ class View:
 				new_op = Op(action)
 			op.link_to(new_op, old_exit)
 			self.set_exec(rec)
+			self.breakpoints[(new_op, 'next')] = True
+			self.breakpoints[(new_op, 'fail')] = True
 			try:
 				self.do_one_step()
 			except InProgress:
@@ -280,10 +282,11 @@ class View:
 			self.do_action(action)
 		except InProgress:
 			pass
-		except Beep:
+		except Beep, b:
 			from rox import g
 			g.gdk.beep()
-			(type, val, tb) = sys.exc_info()
+			self.set_status(str(b))
+			#(type, val, tb) = sys.exc_info()
 			#if not val.may_record:
 			#	return 0
 			exit = 'fail'
@@ -434,8 +437,8 @@ class View:
 		"""Change the display root to a COPY of the selected node.
 		Call Leave to check changes back in."""
 		node = self.get_current()
-		if node is self.root:
-			raise Beep		# Locking problems if this happens...
+		if node is self.root:	# Locking problems if this happens...
+			raise Beep("Can't enter the root node")
 		if node.nodeType != Node.ELEMENT_NODE:
 			raise Exception('Can only enter an element!')
 		if self.model.doc is not node.ownerDocument:
@@ -1568,12 +1571,12 @@ class View:
 		else:
 			print "No such attribute"
 			print "Looking for %s in %s" % ((namespace, attrib), node.attributes)
-			raise Beep()
+			raise Beep
 	
 	def set_attrib(self, value):
 		a = self.current_attrib
 		if not a:
-			raise Beep()
+			raise Beep
 		node = self.get_current()
 		a = self.model.set_attrib(node, a.name, value)
 		self.move_to(node, a)
@@ -1581,7 +1584,7 @@ class View:
 	def rename_attrib(self, new):
 		a = self.current_attrib
 		if not a:
-			raise Beep()
+			raise Beep
 		node = self.get_current()
 		new_attr = self.model.set_attrib(node, new, a.value)
 		self.model.set_attrib(node, a.name, None)
@@ -1629,11 +1632,9 @@ class View:
 	def select_marked_region(self, attr = "unused"):
 		select = []
 		if len(self.marked) != 1:
-			print "Must be exactly one marked node!"
-			raise Beep()
+			raise Beep("Must be exactly one marked node!")
 		if len(self.current_nodes) != 1:
-			print "Must be exactly one selected node!"
-			raise Beep()
+			raise Beep("Must be exactly one selected node!")
 		import Path
 		a = Path.path_to(self.get_current())
 		b = Path.path_to(self.marked.keys()[0])
@@ -1656,8 +1657,7 @@ class View:
 					select.append(x)
 			self.move_to(select)
 		else:
-			print "One node is a parent of the other!"
-			raise Beep()
+			raise Beep("One node is a parent of the other!")
 	
 	def show_html(self):
 		from HTML import HTML

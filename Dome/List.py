@@ -375,14 +375,14 @@ class ChainOp(ChainNode):
 
 		da.op_to_object[op] = self
 
-		if op.next and op.next.prev[0] == op:
+		if op.next:
 			self.next = da.create_op(op.next, x, y + self.height + 4)
 			self.total_width = max(self.width, self.next.total_width)
 		else:
 			self.next = None
 			self.total_width = self.width
 
-		if op.fail and op.fail.prev[0] == op:
+		if op.fail:
 			if op.next:
 				indent = self.total_width + 20
 			else:
@@ -412,12 +412,23 @@ class ChainOp(ChainNode):
 		self.draw_link(self.next, 5, 10, 'black')
 		self.draw_link(self.fail, 5, 12, 'red')
 
+		self.draw_breakpoints()
+	
+	def draw_breakpoints(self):
+		da = self.da
+		w = da.backing
+		op = self.op
+		
 		if (op, 'next') in self.da.view.breakpoints:
 			w.draw_arc(da.style.black_gc, True,
-					self.x + 2, self.y + 12, 6, 6, 0, 400 * 60)
+					self.x + self.next_box[0] + 1,
+					self.y + self.next_box[1] + 1,
+					8, 8, 0, 400 * 60)
 		if (op, 'fail') in self.da.view.breakpoints:
 			w.draw_arc(da.style.black_gc, True,
-					self.x + 14, self.y + 10, 6, 6, 0, 400 * 60)
+					self.x + self.fail_box[0] + 1,
+					self.y + self.fail_box[1] + 1,
+					8, 8, 0, 400 * 60)
 
 	def draw_link(self, dest, dx, dy, colour):
 		if not dest: return
@@ -544,11 +555,12 @@ class ChainBlock(ChainOp):
 
 		w.draw_line(pen, self.x + 1, self.y + 1, self.x + self.width - 2, self.y + 1)
 		w.draw_line(pen, self.x + 1, self.y + 1, self.x + 1, self.y + self.height - 2)
-		
 		self.start.expose()
 
 		self.draw_link(self.next, 5, self.height, 'black')
 		self.draw_link(self.fail, self.width, self.height, 'red')
+
+		self.draw_breakpoints()
 	
 	def where(self, x, y):
 		if self.depth == 1: return None
@@ -770,7 +782,7 @@ class ChainDisplay(g.EventBox):
 		if fail: fail.op.unlink('fail', may_delete = False)
 
 		new = Block(block)
-		prev = top.prev[0]
+		prev = top.prev
 		if prev.next == top: exit = 'next'
 		else: exit = 'fail'
 		prev.unlink(exit, may_delete = 0)

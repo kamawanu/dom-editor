@@ -242,7 +242,7 @@ class Op:
 		self.action = action
 		self.next = None
 		self.fail = None
-		self.prev = []		# First parent is used for rendering as a tree
+		self.prev = None
 		self.dx, self.dy = (0, 0)
 	
 	def set_parent(self, parent):
@@ -250,13 +250,11 @@ class Op:
 			return
 		if parent and self.parent:
 			raise Exception('Already got a parent!')
-		nearby = self.prev[:]
 		if self.next:
-			nearby.append(self.next)
+			self.next.set_parent(parent)
 		if self.fail:
-			nearby.append(self.fail)
+			self.fail.set_parent(parent)
 		self.parent = parent
-		[x.set_parent(parent) for x in nearby if x.parent is not parent]
 	
 	def changed(self, op = None):
 		if hasattr(self, 'cached_code'):
@@ -275,6 +273,7 @@ class Op:
 		assert self.action[0] != 'Start' or exit == 'next'
 		assert child.action[0] != 'Start'
 		assert child is not self
+		assert child.prev is None
 
 		if (exit == 'next' and self.fail == child) or \
 		   (exit == 'fail' and self.next == child):
@@ -292,14 +291,9 @@ class Op:
 		if current:
 			if child.next:
 				raise Exception('%s already has a next exit' % child)
-			primary = current.prev[0] == self
 			self.unlink(exit, may_delete = 0)
 			child.link_to(current, 'next')
-			if primary:
-				# We were the primary parent, so we must be again...
-				current.prev.remove(child)
-				current.prev.insert(0, child)
-		child.prev.append(self)
+		child.prev = self
 		setattr(self, exit, child)
 		self.changed()
 	
@@ -313,15 +307,13 @@ class Op:
 		child = getattr(self, exit)
 		if not child:
 			raise Exception('%s has no child on exit %s' % (self, exit))
-		if self not in child.prev:
+		if self is not child.prev:
 			raise Exception('Internal error: %s not my child!' % child)
 
-		child.prev.remove(self)	# Only remove one copy
+		child.prev = None
 		setattr(self, exit, None)
 
-		for x in child.prev: print x
-
-		if may_delete and not child.prev:
+		if may_delete:
 			# There is no way to reach this child now, so unlink its children.
 			child.parent = None
 			if child.next:
@@ -350,9 +342,7 @@ class Op:
 			exit = None
 
 		if exit:
-			if len(self.prev) != 1:
-				raise Exception("Deleted node-chain must have a single link in")
-			prev = self.prev[0]
+			prev = self.prev
 			preserve = getattr(self, exit)
 			self.unlink(exit, may_delete = 0)
 			if prev.next == self:
@@ -361,11 +351,10 @@ class Op:
 				exit = 'fail'
 
 		# Remove all links to us
-		for p in self.prev[:]:
-			if p.next == self:
-				p.unlink('next')
-			if p.fail == self:
-				p.unlink('fail')
+		if self.prev.next == self:
+			self.prev.unlink('next')
+		else:
+			self.prev.unlink('fail')
 
 		# Exit is now our parent's exit that leads to us...
 		if exit:
@@ -401,31 +390,25 @@ class Op:
 		node = self.to_xml(parent.ownerDocument)
 		parent.appendChild(node)
 
-		if len(self.prev) > 1:
-			node.setAttributeNS(None, 'id', str(id(self)))
-
 		def add_link(op, parent):
 			node = parent.ownerDocument.createElementNS(DOME_NS, 'dome:link')
 			parent.appendChild(node)
 			node.setAttributeNS(None, 'target', str(id(op)))
 
 		if self.fail:
-			if self.fail.prev[0] == self:
-				if isinstance(self, Block):
-					fail = parent.ownerDocument.createElementNS(DOME_NS, 'dome:fail')
-					self.fail.to_xml_int(fail)
-					node.appendChild(fail)
-				else:
-					self.fail.to_xml_int(node)
+			if isinstance(self, Block):
+				fail = parent.ownerDocument.createElementNS(DOME_NS, 'dome:fail')
+				self.fail.to_xml_int(fail)
+				node.appendChild(fail)
 			else:
-				node.setAttributeNS(None, 'target_fail', str(id(self.fail)))
+				self.fail.to_xml_int(node)
 		if self.next:
-			if self.next.prev[0] == self:
-				self.next.to_xml_int(parent)
-			else:
-				node.setAttributeNS(None, 'target_next', str(id(self.next)))
+			self.next.to_xml_int(parent)
 	
 	def __str__(self):
+		return "{" + `self.action` + "}"
+
+	def __repr__(self):
 		return "{" + `self.action` + "}"
 	
 	def get_program(self):
