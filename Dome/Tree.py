@@ -41,6 +41,7 @@ def get_text(node):
 # Return a string that will match this node in an XPath.
 # ns is updated with any new namespace required.
 def match_name(node, ns):
+	print "match_name", node, ns
 	if node.nodeType == Node.TEXT_NODE:
 		return 'text()'
 	elif node.nodeType == Node.COMMENT_NODE:
@@ -58,7 +59,7 @@ def match_name(node, ns):
 				n += 1
 			ns[key] = node.namespaceURI
 			return '%s:%s' % (key, node.localName)
-		return node.localName
+		return node.nodeName
 	else:
 		return node.nodeName
 
@@ -113,6 +114,7 @@ class Tree(GtkDrawingArea):
 		self.recording_where = None
 		self.exec_state = Exec(self, window.macro_list)
 		self.idle_tag = 0
+		self.chroots = []	# Number of levels to go out on an unchroot...
 	
 	def destroyed(self, da):
 		self.window.disconnect(self.key_tag)
@@ -522,14 +524,23 @@ class Tree(GtkDrawingArea):
 		"Chroot"
 		if cur == self.display_root:
 			raise Beep
+		n = 0
+		node = cur
+		while node != self.display_root:
+			n += 1
+			node = node.parentNode
 		self.display_root = cur
+		self.chroots.append(n)
 		return cur
 
 	def unchroot(self, cur):
 		"Unchroot"
-		if not self.display_root.parentNode:
+		if not self.chroots:
 			raise Beep
-		self.display_root = self.display_root.parentNode
+		n = self.chroots.pop()
+		while n > 0:
+			n = n - 1
+			self.display_root = self.display_root.parentNode
 		return cur
 		
 	def move_prev_sib(self, cur):
