@@ -124,10 +124,11 @@ class Window(GtkWindow):
 		self.savebox.show()
 	
 	def get_xml(self):
+		print "Saving", self.view.root
 		if self.savetype == 'xml':
-			doc = node_to_xml(self.gui_view.view.root)
+			doc = node_to_xml(self.view.root)
 		elif self.savetype == 'html':
-			doc = node_to_html(self.gui_view.view.root)
+			doc = node_to_html(self.view.root)
 		else:
 			raise Exception('Unknown save type', self.savetype)
 		self.output_data = ''
