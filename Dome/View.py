@@ -415,7 +415,6 @@ class View:
 		"'action' is a tuple (function, arg1, arg2, ...)"
 		"Performs the action. Returns if action completes, or raises "
 		"InProgress if not (will call resume() later)."
-		print action
 		if action[0] in record_again:
 			self.last_action = action
 		elif action[0] == 'again':
@@ -517,7 +516,7 @@ class View:
 		def add(node):
 			if node.nodeType != Node.ELEMENT_NODE:
 				return
-			if node.localName == name and node.namespaceURI == namespaceURI:
+			if node.localName == localName and node.namespaceURI == namespaceURI:
 				select.append(node)
 			map(add, node.childNodes)
 		add(self.root)
