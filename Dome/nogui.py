@@ -65,3 +65,5 @@ shutil.copyfile(source, source + '.bak')
 
 doc = view.export_all()
 ext.PrettyPrint(doc, stream = open(source, 'w'))
+
+ext.PrettyPrint(view.model.doc, stream = open(source + '.xml', 'w'))

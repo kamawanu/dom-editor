@@ -24,6 +24,10 @@ class Window(GtkWindow):
 		self.show()
 		gdk_flush()
 
+		if path:
+			import os.path
+			path = os.path.abspath(path)
+			
 		import Model
 		self.model = Model.Model(path)
 		self.gui_view = None
