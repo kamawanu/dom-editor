@@ -10,10 +10,10 @@ def el_named(node, name):
 	return None
 	
 # Converts a DOM <block> node to a Block object.
-def load(node, program):
+def load(node, parent):
 	#assert node.localName == 'block'
 
-	block = Block(program)
+	block = Block(parent)
 	prev = block.start
 
 	id_hash = {}		# id from file -> Op
@@ -41,7 +41,7 @@ def load(node, program):
 					action[1] = "UNUSED"
 				op = Op(action)
 			elif op_node.localName == 'block':
-				op = load(op_node, program)
+				op = load(op_node, block)
 			else:
 				if op_node.nodeType == Node.ELEMENT_NODE:
 					print "** WARNING ** Unknown op:", op_node
@@ -204,29 +204,29 @@ class Op:
 		"Creates a new node (can be linked into another node later)"
 		if not action:
 			action = ['Start']
-		self.program = None
+		self.parent = None
 		self.action = action
 		self.next = None
 		self.fail = None
 		self.prev = []		# First parent is used for rendering as a tree
 		self.dx, self.dy = (0, 0)
 	
-	def set_program(self, program):
-		if self.program == program:
+	def set_parent(self, parent):
+		if self.parent == parent:
 			return
-		if self.program:
-			raise Exception('Already got a program!')
+		if self.parent:
+			raise Exception('Already got a parent!')
 		nearby = self.prev[:]
 		if self.next:
 			nearby.append(self.next)
 		if self.fail:
 			nearby.append(self.fail)
-		self.program = program
-		[x.set_program(program) for x in nearby if x.program is not program]
+		self.parent = parent
+		[x.set_parent(parent) for x in nearby if x.parent is not parent]
 	
-	def changed(self):
-		if self.program:
-			self.program.changed(self)
+	def changed(self, op = None):
+		if self.parent:
+			self.parent.changed(op or self)
 	
 	def swap_nf(self):
 		self.next, self.fail = (self.fail, self.next)
@@ -237,12 +237,15 @@ class Op:
 		assert self.action[0] != 'Start' or exit == 'next'
 		print child.action
 		assert child.action[0] != 'Start'
+
+		print "Link %s:%s -> %s" % (self, exit, child)
 		
-		if child.program and child.program is not self.program:
-			raise Exception('%s is from a different program (%s)!' % (child, child.program))
+		if child.parent and child.parent is not self.parent:
+			raise Exception('%s is from a different parent (%s vs %s)!' %
+					(child, child.parent, self.parent))
 		# If we already have something on this exit, and the new node has a
 		# clear next exit, move the rest of the chain there.
-		child.set_program(self.program)
+		child.set_parent(self.parent)
 		current = getattr(self, exit)
 		if current:
 			if child.next:
@@ -273,7 +276,7 @@ class Op:
 
 		if may_delete and not child.prev:
 			# There is no way to reach this child now, so unlink its children.
-			child.program = None
+			child.parent = None
 			if child.next:
 				child._unlink('next')
 			if child.fail:
@@ -289,7 +292,7 @@ class Op:
 		if not self.prev:
 			raise Exception("Can't delete a Start node!")
 
-		prog = self.program
+		prog = self.parent
 
 		# Find the chain to preserve (can't have both set here)
 		if self.next:
@@ -322,7 +325,7 @@ class Op:
 		assert not self.fail
 		doc = self.to_doc()
 		self.action = None
-		self.program = None
+		self.parent = None
 
 		prog.changed()
 		return doc
@@ -372,28 +375,31 @@ class Op:
 	
 	def __str__(self):
 		return "{" + `self.action` + "}"
+	
+	def get_program(self):
+		p = self.parent
+		while not isinstance(p, Program):
+			p = p.parent
+		return p
 
 class Block(Op):
 	"""A Block is an Op which contains a group of Ops."""
 
-	def __init__(self, program):
+	def __init__(self, parent):
 		Op.__init__(self, action = ['Block'])
-		self.program = program
+		self.parent = parent
 		self.start = Op()
-		self.start.block = self
-		self.start.program = program
+		self.start.parent = self
 
 	def set_start(self, start):
 		assert not start.prev
 
-		start.set_program(self.program)
+		start.set_parent(self)
 		self.start = start
-		self.program.changed(None)
-
-		start.block = self
+		self.changed()
 
 	def is_toplevel(self):
-		return self.program.code == self
+		return not isinstance(self.parent, Block)
 
 	def link_to(self, child, exit):
 		assert not self.is_toplevel()

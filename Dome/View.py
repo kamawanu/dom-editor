@@ -481,7 +481,7 @@ class View:
 		if self.breakpoints.has_key(self.exec_point):
 			return 1
 		op = self.exec_point[0]
-		if op.program.code.start == op and op.next == None:
+		if op.parent.start == op and op.next == None:
 			return 1		# Empty program
 		return 0
 	
@@ -505,7 +505,7 @@ class View:
 				self.set_rec(None)
 			self.single_step = 1
 			for l in self.lists:
-				l.show_prog(op.program)
+				l.show_prog(op.get_program())
 			return
 		
 		next = getattr(op, exit)
@@ -518,6 +518,13 @@ class View:
 			#print "Setting innermost_failure on", op
 			self.innermost_failure = op
 
+		# If we're in a block, try exiting from it...
+		if isinstance(op.parent, Block):
+			self.leave_block(op.parent)
+			if not op.parent.is_toplevel():
+				self.set_exec((op.parent, exit))
+				return
+
 		if self.callback_on_return:
 			cb = self.callback_on_return
 			self.callback_on_return = None
@@ -526,7 +533,7 @@ class View:
 			raise Done()
 
 	def set_oip(self, op):
-		print "set_oip:", self.exec_point
+		#print "set_oip:", self.exec_point
 		if op:
 			self.set_exec(None)
 		self.op_in_progress = op
@@ -895,16 +902,6 @@ class View:
 	
 	def play_block(self, block):
 		assert isinstance(block, Block)
-
-		old_cbor = self.callback_on_return
-		def cbor():
-			# Called from do_one_step...
-			self.callback_on_return = old_cbor
-			op, exit = self.exec_point
-			self.set_exec((block, exit))
-			print "End of block"
-
-		self.callback_on_return = cbor
 		self.set_exec((block.start, 'next'))
 	
 	def Block(self):
@@ -914,6 +911,10 @@ class View:
 		self.set_oip(None)
 		self.play_block(oip)
 		raise InProgress
+	
+	def leave_block(self, block):
+		# Do any tidying up
+		print "Leaving block", block
 	
 	def sched(self):
 		if self.op_in_progress:
@@ -1614,12 +1615,12 @@ class View:
 		print "Check points..."
 		if self.rec_point:
 			(op, exit) = self.rec_point
-			if not op.program:
+			if not op.parent:
 				print "Lost rec_point"
 				self.rec_point = None
 		if self.exec_point:
 			(op, exit) = self.exec_point
-			if not op.program:
+			if not op.parent:
 				print "Lost exec_point"
 				self.exec_point = None
 		for l in self.lists:

@@ -122,7 +122,7 @@ class List(GtkVBox):
 		self.view.model.root_program.watchers.append(self)
 		
 	def set_innermost_failure(self, op):
-		self.show_prog(op.program)
+		self.show_prog(op.get_program())
 	
 	def destroy(self):
 		self.view.lists.remove(self)
@@ -246,7 +246,7 @@ class List(GtkVBox):
 
 	def update_stack(self, op):
 		"The stack has changed - redraw 'op'"
-		if op and op.program == self.chains.prog:
+		if op and op.get_program() == self.chains.prog:
 			self.chains.update_all()
 		l = len(self.view.exec_stack)
 		if l == 0:
@@ -328,18 +328,16 @@ class ChainDisplay(GnomeCanvas):
 		
 		opexit = getattr(self.view, point)
 		if point == 'exec_point' and self.view.op_in_progress:
-			pass
-			#opexit = (self.view.op_in_progress, None)
+			opexit = (self.view.op_in_progress, None)
 		if opexit:
 			g = None
 			(op, exit) = opexit
-			if op.program != self.prog:
+			if op.get_program() != self.prog:
 				return
-			if op.program == self.prog:
-				try:
-					g = self.op_to_group[op]
-				except KeyError:
-					pass
+			try:
+				g = self.op_to_group[op]
+			except KeyError:
+				pass
 			if point == 'rec_point':
 				c = 'red'
 				s = 6
@@ -353,8 +351,8 @@ class ChainDisplay(GnomeCanvas):
 			setattr(self, point, item)
 			item.connect('event', self.line_event, op, exit)
 
-			if g:
-				print op, exit
+			if g and exit:
+				# TODO: cope with exit == None
 				x1, y1, x2, y2 = self.get_arrow_ends(op, exit)
 				x1, y1 = g.i2w(x1, y1)
 				x2, y2 = g.i2w(x2, y2)
@@ -375,7 +373,7 @@ class ChainDisplay(GnomeCanvas):
 		pass
 	
 	def program_changed(self, op):
-		if (not op) or op.program == self.prog:
+		if (not op) or op.get_program() == self.prog:
 			self.update_all()
 	
 	def update_all(self):
@@ -547,7 +545,7 @@ class ChainDisplay(GnomeCanvas):
 		if event.type == BUTTON_PRESS:
 			print "Prev %s = %s" % (op, map(str, op.prev))
 			if event.button == 1:
-				if op != op.program.code.start:
+				if op.parent.start != op or not op.parent.is_toplevel():
 					self.drag_last_pos = (event.x, event.y)
 				else:
 					self.drag_last_pos = None
@@ -601,7 +599,7 @@ class ChainDisplay(GnomeCanvas):
 	def paste_chain(self, op, exit):
 		print "Paste", self.clipboard
 		doc = self.clipboard
-		new = load(doc.documentElement, op.program)
+		new = load(doc.documentElement, op.parent)
 		op.link_to(new, exit)
 	
 	def end_link_drag(self, item, event, src_op, exit):
@@ -656,7 +654,7 @@ class ChainDisplay(GnomeCanvas):
 				def paste_chain():
 					self.paste_chain(op, exit)
 				def add_block():
-					op.link_to(Block(op.program), exit)
+					op.link_to(Block(op.parent), exit)
 				def toggle_breakpoint(self = self, op = op, exit = exit):
 					bp = self.view.breakpoints
 					if bp.has_key((op, exit)):
