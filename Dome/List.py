@@ -550,6 +550,7 @@ class ChainDisplay(g.DrawingArea):
 		if not point: return
 		w = self.window
 		op, exit = point
+		if op.get_program() != self.prog: return
 		try:
 			obj = self.op_to_object[op]
 		except:
@@ -585,8 +586,10 @@ class ChainDisplay(g.DrawingArea):
 		self.op_to_object = {}
 		if self.prog:
 			self.root_object = self.create_op(self.prog.code, 4, 4)
+			self.set_size_request(self.root_object.width + 8, self.root_object.height + 8)
 		else:
 			self.root_object = None
+			self.set_size_request(-1, -1)
 		self.queue_draw()
 		return 1
 	
