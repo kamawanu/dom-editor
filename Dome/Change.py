@@ -22,12 +22,10 @@ def insert_before(node, new, parent):
 	"of parent's children."
 	if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
 		raise Exception("insert_before() can't take a fragment!")
-	print "Insert", new, "before", node, "inside", parent
 	parent.insertBefore(new, node)
 	add_undo(parent, lambda new = new: delete(new))
 	
 def delete(node):
-	print "Delete", node
 	next = node.nextSibling
 	parent = node.parentNode
 	parent.removeChild(node)

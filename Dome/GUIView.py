@@ -13,15 +13,10 @@ from Editor import edit_node
 import Exec
 
 class GUIView(Display):
-	vmargin = 4
-
 	def __init__(self, window, view):
-		Display.__init__(self, view, window.vadj)
+		Display.__init__(self, view)
 		self.window = window
-		self.connect('button-press-event', self.button_event)
 		window.connect('key-press-event', self.key_press)
-		self.set_events(BUTTON_PRESS_MASK)
-		self.set_flags(CAN_FOCUS)
 		self.recording_where = None
 
 	def toggle_record(self, extend = FALSE):
@@ -71,16 +66,7 @@ class GUIView(Display):
 		self.may_record(action)
 		return 1
 	
-	def button_event(self, widget, bev):
-		if bev.type != BUTTON_PRESS:
-			return
-
-		height = self.row_height
-		line = int((bev.y - self.vmargin) / height)
-		try:
-			node = self.line_to_node[line]
-		except IndexError:
-			node = None
+	def node_clicked(self, node, bev):
 		if node and node not in self.view.current_nodes:
 			if len(self.view.current_nodes) != 1:
 				self.view.move_to(self.view.root)

@@ -56,12 +56,6 @@ class Window(GtkWindow):
 		self.model.macro_list.load_all()
 		hbox.pack_start(self.model.macro_list, FALSE, TRUE, 0)
 		
-		swin = GtkScrolledWindow()
-		hbox.pack_start(swin, TRUE, TRUE, 0)
-		swin.set_policy(POLICY_NEVER, POLICY_ALWAYS)
-		self.swin = swin
-		self.vadj = swin.get_vadjustment()
-
 		self.uri = "Document"
 
 		if path:
@@ -69,10 +63,16 @@ class Window(GtkWindow):
 				self.uri = path
 			self.load_file(path)
 
+		swin = GtkScrolledWindow()
+		hbox.pack_start(swin, TRUE, TRUE, 0)
+
 		view = View(self.model)
 		Exec.exec_state = Exec.Exec(view)
 		self.gui_view = GUIView(self, view)
-		self.swin.add_with_viewport(self.gui_view)
+		swin.add(self.gui_view)
+		swin.set_hadjustment(self.gui_view.get_hadjustment())
+		swin.set_vadjustment(self.gui_view.get_vadjustment())
+		swin.set_policy(POLICY_AUTOMATIC, POLICY_ALWAYS)
 
 		vbox.show_all()
 		self.connect('key-press-event', self.key)

@@ -373,7 +373,12 @@ class View:
 		node = self.current
 		if self.clipboard == None:
 			raise Beep
-		new = self.clipboard.cloneNode(deep = 1)
+		if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
+			if len(self.clipboard.childNodes) != 1:
+				raise Beep
+			new = self.clipboard.childNodes[0].cloneNode(deep = 1)
+		else:
+			new = self.clipboard.cloneNode(deep = 1)
 		try:
 			self.model.replace_node(node, new)
 		except:
