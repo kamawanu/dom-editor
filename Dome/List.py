@@ -122,8 +122,7 @@ class List(GtkVBox):
 				self.build_tree(subtree, k)
 			item.set_subtree(subtree)
 	
-	def run_return(self):
-		(op, exit) = self.view.exec_point
+	def run_return(self, exit):
 		if exit != 'next':
 			op = self.view.innermost_failure
 			self.view.set_exec((op, 'fail'))
@@ -193,6 +192,11 @@ class List(GtkVBox):
 			]
 		menu = Menu(items)
 		menu.popup(event.button, event.time)
+
+	def update_stack(self, op):
+		"The stack has changed - redraw 'op'"
+		if op.program == self.chains.prog:
+			self.chains.update_all()
 	
 class ChainDisplay(GnomeCanvas):
 	"A graphical display of a chain of nodes."
@@ -285,11 +289,16 @@ class ChainDisplay(GnomeCanvas):
 	
 		return 1
 	
+	def op_colour(self, op):
+		if op in self.view.exec_stack:
+			return 'cyan'
+		return 'blue'
+	
 	def create_node(self, op, group):
 		text = str(action_to_text(op.action))
 		
 		group.ellipse = group.add('ellipse',
-					fill_color = 'blue',
+					fill_color = self.op_colour(op),
 					outline_color = 'black',
 					x1 = -4, x2 = 4,
 					y1 = -4, y2 = 4,
@@ -344,7 +353,7 @@ class ChainDisplay(GnomeCanvas):
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')
 		elif event.type == LEAVE_NOTIFY:
-			item.set(fill_color = 'blue')
+			item.set(fill_color = self.op_colour(op))
 
 	def show_op_menu(self, event, op):
 		del_node = None

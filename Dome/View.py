@@ -93,6 +93,8 @@ class View:
 		self.callback_on_return = None	# Called when there are no more Ops...
 		self.in_callback = 0		# (not the above callback - this is the playback one)
 		self.innermost_failure = None
+		self.call_on_done = None	# Called when there is nowhere to return to
+		self.exec_stack = []		# Ops we are inside (display use only)
 	
 	def __getattr__(self, attr):
 		if attr == 'current':
@@ -109,13 +111,28 @@ class View:
 
 	def run_new(self, callback = None):
 		"Reset the playback system (stack, step-mode and point)."
-		"Call callback when execution finishes."
+		"Call callback(exit) when execution finishes."
 		if self.idle_cb:
 			idle_remove(self.idle_cb)
 			self.idle_cb = 0
 		self.single_step = 0
 		self.innermost_failure = None
-		self.callback_on_return = callback
+		self.call_on_done = callback
+		self.callback_on_return = None
+		while self.exec_stack:
+			self.pop_stack()
+
+	def push_stack(self, op):
+		if not isinstance(op, Op):
+			raise Exception('push_stack: not an Op', op)
+		self.exec_stack.append(op)
+		for l in self.lists:
+			l.update_stack(op)
+
+	def pop_stack(self):
+		op = self.exec_stack.pop()
+		for l in self.lists:
+			l.update_stack(op)
 
 	def set_exec(self, pos):
 		if self.op_in_progress:
@@ -142,6 +159,7 @@ class View:
 
 	def stop_recording(self):
 		if self.rec_point:
+			self.set_exec(self.rec_point)
 			self.set_rec(None)
 		else:
 			report_error("Not recording!")
@@ -548,6 +566,10 @@ class View:
 			self.set_exec((op, exit))
 		else:
 			print "No operation to return to!"
+			c = self.call_on_done
+			if c:
+				self.call_on_done = None
+				c(exit)
 			raise Done()
 
 	def play(self, name, done = None):
@@ -572,21 +594,21 @@ class View:
 				self.single_step = old_ss
 			self.callback_on_return = old_cbor
 
+			o, exit = self.exec_point
 			if op:
 				print "Resume op '%s' (%s)" % (op.program.name, op)
-				o, exit = self.exec_point
+				self.pop_stack()
 				self.set_oip(op)
-				return done(exit)
-			else:
-				print "No operation to return to."
-				return done(exit)
+			return done(exit)
 
 		self.callback_on_return = cbor
 
 		if self.single_step == 2:
 			self.single_step = 0
 			
-		self.set_oip(None)
+		if self.op_in_progress:
+			self.push_stack(self.op_in_progress)
+			self.set_oip(None)
 		self.set_exec((prog.start, 'next'))
 		self.sched()
 		raise InProgress
