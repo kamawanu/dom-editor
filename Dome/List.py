@@ -549,8 +549,11 @@ class ChainDisplay(GnomeCanvas):
 	def line_event(self, item, event, op, exit):
 		if event.type == BUTTON_PRESS:
 			if event.button == 1:
-				print "Clicked exit %s of %s" % (exit, op)
-				self.view.set_exec((op, exit))
+				if not getattr(op, exit):
+					self.drag_last_pos = (event.x, event.y)
+					import Display
+					item.grab(BUTTON_RELEASE | MOTION_NOTIFY,
+						Display.no_cursor, event.time)
 			elif event.button == 2:
 				self.paste_chain(op, exit)
 			elif event.button == 3:
@@ -582,6 +585,18 @@ class ChainDisplay(GnomeCanvas):
 					('Delete chain', del_chain),
 					('Paste chain', paste_chain)]
 				Menu(items).popup(event.button, event.time)
+		elif event.type == BUTTON_RELEASE:
+			if event.button == 1:
+				print "Clicked exit %s of %s" % (exit, op)
+				self.view.set_exec((op, exit))
+				self.drag_last_pos = None
+				item.ungrab(event.time)
+		elif event.type == MOTION_NOTIFY and self.drag_last_pos:
+			x, y = (event.x, event.y)
+			dx, dy = x - self.drag_last_pos[0], y - self.drag_last_pos[1]
+
+			if dx > 4 or dy > 4:
+				print "Create link!"
 		elif item != self.exec_point and item != self.rec_point:
 			if event.type == ENTER_NOTIFY:
 				item.set(fill_color = 'white')
@@ -590,6 +605,7 @@ class ChainDisplay(GnomeCanvas):
 					item.set(fill_color = 'black')
 				else:
 					item.set(fill_color = '#ff6666')
+		return 1
 	
 	def set_bounds(self):
 		min_x, min_y, max_x, max_y = self.root().get_bounds()

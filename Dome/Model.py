@@ -31,7 +31,7 @@ class Model:
 		# user op will have the same number...
 		self.user_op = 1
 		
-		root = None
+		doc = None
 		if path:
 			if path != '-':
 				self.uri = path
@@ -39,9 +39,9 @@ class Model:
 				from xml.dom.ext.reader import PyExpat
 				reader = PyExpat.Reader()
 				doc = reader.fromUri(path)
-				root = doc.documentElement
-		if not root:
-			root = implementation.createDocument(None, 'root', None)
+		if not doc:
+			doc = implementation.createDocument(None, 'root', None)
+		root = doc.documentElement
 
 		self.root_program = None
 		data_to_load = None
@@ -58,7 +58,7 @@ class Model:
 							if y.nodeType == Node.ELEMENT_NODE:
 								data_to_load = y
 		else:
-			data_to_load = root.documentElement
+			data_to_load = root
 
 		if root_program:
 			self.root_program = root_program
