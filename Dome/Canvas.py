@@ -21,6 +21,7 @@ class Canvas(GtkWindow):
 		s.bg[STATE_NORMAL] = self.canvas.get_color('LemonChiffon')
 		self.canvas.set_style(s)
 
+		self.set_title(self.display_root.nodeName)
 		self.view.add_display(self)
 		self.update_all()
 		self.connect('destroy', self.destroyed)

@@ -28,6 +28,12 @@ class Model:
 		doc = reader.fromUri(path)
 		self.root_program = load_dome_program(self, doc.documentElement)
 	
+	def mark(self):
+		"Increment the user_op counter. Undo will undo every operation between"
+		"two marks."
+		Change.user_op += 1
+		print "Mark", Change.user_op
+	
 	def get_root(self):
 		"Return the true root node (not a view root)"
 		return self.doc.documentElement
@@ -106,12 +112,24 @@ class Model:
 		self.update_all(p)
 
 	def undo(self, node):
-		node = Change.do_undo(node)
-		self.update_all(node)
+		uop = None
+		while 1:
+			result = Change.do_undo(node, uop)
+			if result is None:
+				return
+			alt_node, uop = result
+			print "Undid with uop =", uop
+			self.update_all(alt_node)
 
 	def redo(self, node):
-		node = Change.do_redo(node)
-		self.update_all(node)
+		uop = None
+		while 1:
+			result = Change.do_redo(node, uop)
+			if result is None:
+				return
+			alt_node, uop = result
+			print "Redid with uop =", uop
+			self.update_all(alt_node)
 	
 	def insert(self, node, new, index = 0):
 		if len(node.childNodes) > index:

@@ -10,6 +10,11 @@ from xml.dom import Node
 undo_state = '__dom_undo'
 undo_clear = 1
 
+# This value is stored with each undo record.
+# The caller may use this to indicate whether several operations
+# should be considered as one.
+user_op = 1
+
 # These actually modifiy the DOM
 def set_name(node, namespaceURI, qname):
 	# XXX: Hack!
@@ -71,7 +76,7 @@ def newest_change(node, history):
 	"Return the most recent (node,time) change to the 'history' list."
 
 	try:
-		best_node, best_time = node, getattr(node, history)[-1]
+		best_node, best_time = node, getattr(node, history)[-1][0]
 	except:
 		best_node, best_time = None, 0
 	
@@ -97,20 +102,23 @@ def add_undo(node, fn):
 	
 	if not hasattr(node, undo_state):
 		setattr(node, undo_state, [])
-	getattr(node, undo_state).append((op, fn))
+	getattr(node, undo_state).append((op, fn, user_op))
 	if undo_clear and hasattr(node, '__dom_redo'):
 		del node.__dom_redo
 
-def do_undo(node):
+def do_undo(node, user_op = None):
 	"Undo changes to this node (including descendants)."
-	"Returns the node containing the undone node."
-	if not can_undo(node):
-		raise Beep
-	
+	"Returns the node containing the undone node, and the user_op."
+	"If 'user_op' is given, only undo if it matches, else return None."
 	node, time = newest_change(node, '__dom_undo')
+	if not node:
+		return
+	op, fn, uop = node.__dom_undo[-1]
+	if user_op and user_op != uop:
+		return
 	parent = node.parentNode
 	
-	op, fn = node.__dom_undo.pop()
+	del node.__dom_undo[-1]
 
 	global undo_state, undo_clear
 	undo_state = '__dom_redo'
@@ -119,22 +127,25 @@ def do_undo(node):
 	undo_clear = 1
 	undo_state = '__dom_undo'
 
-	return parent
+	return (parent, uop)
 
-def do_redo(node):
+def do_redo(node, user_op = None):
 	"Redo undos on this node (including descendants)."
-	"Returns the node containing the redone node."
-	if not can_redo(node):
-		raise Beep
-	
+	"Returns the node containing the redone node, and the user_op."
+	"If 'user_op' is given, only redo if it matches, else return None."
 	node, time = newest_change(node, '__dom_redo')
+	if not node:
+		return
+	op, fn, uop = node.__dom_redo[-1]
+	if user_op and user_op != uop:
+		return
 	parent = node.parentNode
 	
-	op, fn = node.__dom_redo.pop()
+	del node.__dom_redo[-1]
 
 	global undo_state, undo_clear
 	undo_clear = 0
 	fn()
 	undo_clear = 1
 
-	return parent
+	return (parent, uop)

@@ -349,6 +349,7 @@ class View:
 		fn = getattr(self, action[0])
 		exit = 'next'
 		#print "DO:", action[0]
+		self.model.mark()
 		try:
 			new = apply(fn, action[1:])
 		except InProgress:
@@ -554,7 +555,7 @@ class View:
 			raise Beep
 		for x in nodes:
 			if self.has_ancestor(x, self.root):
-				print "Deleting", x
+				#print "Deleting", x
 				self.model.delete_node(x)
 		self.move_to(new)
 	
