@@ -787,7 +787,16 @@ class View:
 			node = self.get_current()
 			new = node.ownerDocument.importNode(root.documentElement, deep = 1)
 			new.setAttributeNS('', 'uri', uri)
-			self.model.replace_node(node, new)
+
+			self.move_to([])
+			if node == self.root:
+				self.model.unlock(self.root)
+				self.model.replace_node(self.root, new)
+				self.model.lock(new)
+				self.root = new
+			else:
+				self.model.replace_node(node, new)
+			self.move_to(new)
 			print "Loaded."
 			self.resume('next')
 		self.dom_from_command(command, done)
@@ -855,8 +864,10 @@ class View:
 			new = self.clipboard.childNodes[0].cloneNode(deep = 1)
 		else:
 			new = self.clipboard.cloneNode(deep = 1)
+		self.move_to([])
 		try:
 			self.model.replace_node(node, new)
+			self.move_to(new)
 		except:
 			raise Beep
 
