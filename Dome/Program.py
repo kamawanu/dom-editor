@@ -33,7 +33,7 @@ def load(chain):
 			#		action = ('set_attrib', action[3])
 			elif action[0] == 'playback':
 				action[0] = 'map'
-			elif action[0] == 'add_attrib' or action[0] == 'attribute':
+			elif action[0] == 'add_attrib':
 				action[1] = "UNUSED"
 
 			op = Op(action)

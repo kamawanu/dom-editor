@@ -592,7 +592,7 @@ class View:
 		else:
 			current = node.nodeName
 		pattern = pattern.replace('@CURRENT@', current)
-		print "Searching for", pattern
+		#print "Searching for", pattern
 		return pattern
 		
 	def do_search(self, pattern, ns = None, toggle = FALSE):
@@ -1001,9 +1001,8 @@ class View:
 			base = self.model.get_base_uri(node)
 			#print "Relative URI..."
 			if base:
-				print "Base URI is:", base, "add", uri
+				#print "Base URI is:", base, "add", uri
 				uri = urlparse.urljoin(base, uri)
-				print "Result:", uri
 			else:
 				pass
 				#print "Warning: Can't find 'uri' attribute!"
@@ -1254,7 +1253,7 @@ class View:
 		new = []
 		for a in attribs:
 			try:
-				new.append((a.name, a.childNodes[0].data))
+				new.append((a.nodeName, a.childNodes[0].data))
 			except:
 				raise Beep
 		for node in self.current_nodes:
@@ -1288,7 +1287,6 @@ class View:
 		a = node.attributes.get((namespace, attrib), None)
 
 		if a:
-			print "Moving to", a
 			self.move_to(node, a)
 		else:
 			print "No such attribute"
@@ -1300,13 +1298,11 @@ class View:
 			raise Beep()
 		node = self.get_current()
 		a = self.model.set_attrib(node, a.name, value)
-		print "Moving to", a
 		self.move_to(node, a)
 	
 	def add_attrib(self, UNUSED, name, value = ''):
 		node = self.get_current()
 		a = self.model.set_attrib(node, name, value)
-		print "Moving to", a
 		self.move_to(node, a)
 	
 	def load_html(self, path):

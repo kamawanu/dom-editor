@@ -315,12 +315,11 @@ class Model:
 			old = node.getAttributeNS(namespaceURI, localName)
 		else:
 			old = None
-		print "Set (%s,%s) = %s" % (namespaceURI, name, value)
+		#print "Set (%s,%s) = %s" % (namespaceURI, name, value)
 		if value != None:
 			node.setAttributeNS(namespaceURI, name, value)
 		else:
 			node.removeAttributeNS(namespaceURI, localName)
-		print "After setting:", node.attributes
 
 		self.add_undo(lambda: self.set_attrib(node, name, old))
 		
