@@ -55,18 +55,21 @@ class Window(GtkWindow):
 		else:
 			root = implementation.createDocument('', 'root', None)
 
-		self.update_title()
-		
-		self.tree = Tree(root, swin.get_vadjustment())
+		self.tree = Tree(self, root, swin.get_vadjustment())
 		self.tree.show()
 		swin.add_with_viewport(self.tree)
 		swin.show()
 		self.tree.grab_focus()
 
+		self.update_title()
+
 		self.connect('key-press-event', self.key)
 	
 	def update_title(self):
-		self.set_title(self.uri)
+		title = self.uri
+		if self.tree.recording != None:
+			title += ' (recording)'
+		self.set_title(title)
 	
 	def key(self, widget, kev):
 		if kev.keyval == F3:

@@ -9,10 +9,13 @@ undo_clear = 1
 
 # These two are just for convenience...
 def insert(node, new, index = 0):
-	insert_before(node.childNodes[0], new)
+	if len(node.childNodes) > index:
+		insert_before(node.childNodes[index], new)
+	else:
+		insert_before(None, new, parent = node)
 
 def insert_after(node, new):
-	insert_before(node.nextSibling, new)
+	insert_before(node.nextSibling, new, parent = node.parentNode)
 
 def set_name(node, new):
 	copy = node.ownerDocument.createElement(new)

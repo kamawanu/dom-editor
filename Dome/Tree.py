@@ -17,8 +17,9 @@ def get_text(node, line):
 class Tree(GtkDrawingArea):
 	vmargin = 4
 
-	def __init__(self, root, vadj):
+	def __init__(self, window, root, vadj):
 		GtkDrawingArea.__init__(self)
+		self.window = window
 		self.vadj = vadj
 		self.doc = root.ownerDocument
 		self.set_events(BUTTON_PRESS_MASK)
@@ -32,6 +33,7 @@ class Tree(GtkDrawingArea):
 		self.clipboard = None
 		self.left_hist = []
 		self.connect('realize', self.realize)
+		self.recording = None
 
 	def key_press(self, widget, kev):
 		try:
@@ -47,120 +49,26 @@ class Tree(GtkDrawingArea):
 		return stop
 	
 	def handle_key(self, kev):
-		cur = self.line_to_node[self.current_line]
 		key = kev.keyval
-		new = None
+
+		if key == q:
+			if self.recording != None:
+				self.create_macro()
+			else:
+				self.recording = []
+				self.window.update_title()
+			return 1
 
 		if key == F3 or key == Return:
 			return 0
-		
-		if key == I or key == A or key == O:
-			if cur.nodeType == Node.TEXT_NODE:
-				new = self.doc.createElement(
-						cur.parentNode.nodeName)
-			else:
-				new = self.doc.createElement(cur.nodeName)
-			edit = 1
-		elif key == i or key == a or key == o:
-			new = self.doc.createTextNode('')
-			edit = 1
-		else:
-			edit = 0
 
-		if key == Down:
-			self.move_to(self.current_line + 1)
-		elif key == Up:
-			self.move_to(self.current_line - 1)
-		elif key == Home:
-			self.move_to_node(self.display_root)
-		elif key == End:
-			last = self.display_root
-			while len(last.childNodes) > 0:
-				last = last.childNodes[-1]
-			self.move_to_node(last)
-		elif key == Left and cur is not self.display_root:
-			self.left_hist.append(self.current_line)
-			self.move_to_node(cur.parentNode)
-		elif key == Right and len(self.left_hist) > 0:
-			line = self.left_hist.pop()
-			node = None
-			try:
-				node = self.line_to_node[line]
-			except IndexError:
-				pass
-			if node and node.parentNode == cur:
-				self.move_to(line)
-			else:
-				self.left_hist = []
-		elif key == greater and cur != self.display_root:
-			node = cur
-			while node.parentNode != self.display_root:
-				node = node.parentNode
-			self.display_root = node
-			new = cur
-		elif key == less and self.display_root.parentNode:
-			self.display_root = self.display_root.parentNode
-			new = cur
-		elif key == Prior and cur is not self.display_root:
-			self.move_to_node(cur.previousSibling)
-		elif key == Next and cur is not self.display_root:
-			self.move_to_node(cur.nextSibling)
-		elif key == y:
-			self.clipboard = cur.cloneNode(deep = 1)
-		elif key == p:
-			new = self.clipboard.cloneNode(deep = 1)
-			key = a
-		elif key == bracketright:
-			new = self.clipboard.cloneNode(deep = 1)
-			key = o
-		elif key == P:
-			new = self.clipboard.cloneNode(deep = 1)
-			key = i
-		elif key == Tab:
-			edit_node(self, cur)
-		elif key == u and Change.can_undo(self.display_root):
-			Change.do_undo(self.display_root)
-			new = cur
-		elif key == r and Change.can_redo(self.display_root):
-			Change.do_redo(self.display_root)
-			new = cur
-#		elif key == J:
-#			cur.join()
-#			new = cur
-#		elif key == S and cur != self.display_root:
-#			cur.split(self.current_line - self.node_to_line[cur])
-#			new = cur.next_sibling()
-#		elif key == D and cur != self.display_root:
-#			new = cur.kids[0]
-#			if new:
-#				cur.parent.flatten(cur)
-#			else:
-#				key = x
-		elif key == slash:
-			Search(self)
+		try:
+			action = self.key_to_action[key]
+		except KeyError:
+			return 0
 
-		if new and (key == o or key == O):
-			Change.insert(cur, new, index = 0)
-		elif cur != self.display_root:
-			if new and (key == I or key == i):
-				Change.insert_before(cur, new)
-			elif new and (key == a or key == A):
-				Change.insert_after(cur, new)
-			elif key == X:
-				cur, new = cur.previousSibling, cur
-				if cur:
-					self.clipboard = cur.cloneNode(deep = 1)
-					Change.delete(cur)
-				else:
-					new = None
-			elif key == x:
-				new = cur.nextSibling
-				if not new:
-					self.move_to(self.current_line - 1)
-					new = self.line_to_node[ \
-							self.current_line]
-				self.clipboard = cur.cloneNode(deep = 1)
-				Change.delete(cur)
+		new = action(self, self.line_to_node[self.current_line])
+			
 		if new:
 			self.build_index()
 			if not self.node_to_line.has_key(new):
@@ -171,8 +79,6 @@ class Tree(GtkDrawingArea):
 			self.move_to_node(new)
 			idle_add(cb)
 			self.force_redraw()
-			if edit:
-				edit_node(self, new)
 		return 1
 	
 	def tree_changed(self):
@@ -352,3 +258,225 @@ class Tree(GtkDrawingArea):
 		if node.nodeType == Node.TEXT_NODE:
 			return len(string.split(node.nodeValue, '\n'))
 		return 1
+	
+	def create_macro(self):
+		self.recording = None
+		self.window.update_title()
+
+	# Motions
+	def move_up(self, node):
+		"Up"
+		self.move_to(self.current_line - 1)
+
+	def move_down(self, node):
+		"Down"
+		self.move_to(self.current_line + 1)
+
+	def move_left(self, node):
+		"Left"
+		if node is self.display_root:
+			return
+		self.left_hist.append(self.current_line)
+		self.move_to_node(node.parentNode)
+
+	def move_right(self, cur):
+		"Right"
+ 		if len(self.left_hist) == 0:
+			return
+		line = self.left_hist.pop()
+		node = None
+		try:
+			node = self.line_to_node[line]
+		except IndexError:
+			pass
+		if node and node.parentNode == cur:
+			self.move_to(line)
+		else:
+			self.left_hist = []
+
+	def move_home(self, node):
+		"Home"
+		self.move_to_node(self.display_root)
+
+	def move_end(self, node):
+		"End"
+		last = self.display_root
+		while len(last.childNodes) > 0:
+			last = last.childNodes[-1]
+		self.move_to_node(last)
+		
+	def chroot(self, cur):
+		"Chroot"
+		if cur == self.display_root:
+			return
+		node = cur
+		while node.parentNode != self.display_root:
+			node = node.parentNode
+		self.display_root = node
+		return cur
+
+	def unchroot(self, cur):
+		"Unchroot"
+		if not self.display_root.parentNode:
+			return
+		self.display_root = self.display_root.parentNode
+		return cur
+		
+	def move_prev_sib(self, cur):
+		"Previous sibling"
+		if cur is not self.display_root:
+			self.move_to_node(cur.previousSibling)
+
+	def move_next_sib(self, cur):
+		if cur is not self.display_root:
+			self.move_to_node(cur.nextSibling)
+
+	def search(self, node):
+		Search(self)
+
+	# Changes
+	def new_element(self, cur):
+		if cur.nodeType == Node.TEXT_NODE:
+			return self.doc.createElement( cur.parentNode.nodeName)
+		return self.doc.createElement(cur.nodeName)
+	
+	def insert_element(self, node):
+		"Insert element"
+		new = self.new_element(node)
+		Change.insert_before(node, new)
+		edit_node(self, new)
+		return new
+
+	def append_element(self, node):
+		"Append element"
+		new = self.new_element(node)
+		Change.insert_after(node, new)
+		edit_node(self, new)
+		return new
+
+	def open_element(self, node):
+		"Open element"
+		new = self.new_element(node)
+		Change.insert(node, new, index = 0)
+		edit_node(self, new)
+		return new
+		
+	def insert_text(self, node):
+		"Insert text"
+		new = self.doc.createTextNode('')
+		Change.insert_before(node, new)
+		edit_node(self, new)
+		return new
+
+	def append_text(self, node):
+		"Append text"
+		new = self.doc.createTextNode('')
+		Change.insert_after(node, new)
+		edit_node(self, new)
+		return new
+
+	def open_text(self, node):
+		"Open text"
+		new = self.doc.createTextNode('')
+		Change.insert(node, new, index = 0)
+		edit_node(self, new)
+		return new
+
+	def yank(self, node):
+		"Yank"
+		self.clipboard = node.cloneNode(deep = 1)
+
+	def put_before(self, node):
+		"Put before"
+		new = self.clipboard.cloneNode(deep = 1)
+		Change.insert_before(node, new)
+		return new
+
+	def put_after(self, node):
+		"Put after"
+		new = self.clipboard.cloneNode(deep = 1)
+		Change.insert_after(node, new)
+		return new
+
+	def put_as_child(self, node):
+		"Put as child"
+		new = self.clipboard.cloneNode(deep = 1)
+		Change.insert(node, new, index = 0)
+		return new
+
+	def edit_node(self, node):
+		edit_node(self, node)
+		pass
+
+
+	def delete_node(self, cur):
+		"Delete"
+		new = cur.nextSibling
+		if not new:
+			self.move_to(self.current_line - 1)
+			new = self.line_to_node[self.current_line]
+		self.clipboard = cur.cloneNode(deep = 1)
+		Change.delete(cur)
+		return new
+
+	def delete_prev_sib(self, cur):
+		"Delete previous sibling"
+		cur, new = cur.previousSibling, cur
+		if not cur:
+			return
+		self.clipboard = cur.cloneNode(deep = 1)
+		Change.delete(cur)
+		return new
+
+	# Undo/redo
+	def undo(self, cur):
+		if Change.can_undo(self.display_root):
+			Change.do_undo(self.display_root)
+			return cur
+
+	def redo(self, cur):
+		if Change.can_redo(self.display_root):
+			Change.do_redo(self.display_root)
+			return cur
+
+	key_to_action = {
+		# Motions
+		Up	: move_up,
+		Down	: move_down,
+		Left	: move_left,
+		Right	: move_right,
+		
+		Home	: move_home,
+		End	: move_end,
+		
+		greater	: chroot,
+		less	: unchroot,
+		
+		Prior	: move_prev_sib,
+		Next	: move_next_sib,
+
+		slash	: search,
+
+		# Changes
+		I	: insert_element,
+		A	: append_element,
+		O	: open_element,
+		
+		i	: insert_text,
+		a	: append_text,
+		o	: open_text,
+
+		y	: yank,
+		P	: put_before,
+		p	: put_after,
+		bracketright : put_as_child,
+
+		Tab	: edit_node,
+
+		x	: delete_node,
+		X	: delete_prev_sib,
+
+		# Undo/redo
+		u	: undo,
+		r	: redo
+	}
