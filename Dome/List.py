@@ -605,34 +605,7 @@ class ChainDisplay(g.EventBox):
 			self.scroll_to_show(self.rec_point)
 
 	def scroll_to_show(self, item):
-		print "XXX"
-		return
-
-		(lx, ly, hx, hy) = item.get_bounds()
-		x, y = item.i2w(0, 0)
-		x, y = self.w2c(x, y)
-		lx += x
-		ly += y
-		hx += x
-		hy += y
-		lx -= 16
-
-		sx, sy = self.get_scroll_offsets()
-		if lx < sx:
-			sx = lx
-		if ly < sy:
-			sy = ly
-
-		(x, y, w, h) = self.get_allocation()
-		hx -= w
-		hy -= h
-		
-		if hx > sx:
-			sx = hx
-		if hy > sy:
-			sy = hy
-		
-		self.scroll_to(sx, sy)
+		print "TODO: scroll_to_show"
 	
 	def put_point(self, point):
 		if not point: return
@@ -719,11 +692,8 @@ class ChainDisplay(g.EventBox):
 
 		self.window.draw_drawable(self.style.white_gc, self.backing, 0, 0, 0, 0, -1, -1)
 
-		#self.update_links()
 		self.put_point(self.view.rec_point)
 		self.put_point(self.view.exec_point)
-
-		#self.set_bounds()
 
 		if self.hover:
 			op, exit = self.hover
@@ -755,31 +725,6 @@ class ChainDisplay(g.EventBox):
 		if op in self.view.exec_stack:
 			return 'cyan'
 		return 'blue'
-	
-	def update_links(self, op = None):
-		"""Walk through all nodes in the tree-version of the op graph,
-		making all the links (which already exist as stubs) point to
-		the right place."""
-		if not self.prog:
-			return
-		if not op:
-			op = self.prog.code
-		if op.next:
-			if op.next.prev[0] == op:
-				self.update_links(op.next)
-			else:
-				self.join_nodes(op, 'next')
-		if op.fail:
-			if op.fail.prev[0] == op:
-				self.update_links(op.fail)
-			else:
-				self.join_nodes(op, 'fail')
-		if isinstance(op, Block):
-			self.update_links(op.start)
-	
-	def create_node(self, op, parent):
-		if op.is_toplevel():
-			return obj
 	
 	def edit_op(self, op):
 		def modify():
@@ -834,71 +779,6 @@ class ChainDisplay(g.EventBox):
 
 		win.show_all()
 	
-	def join_nodes(self, op, exit):
-		try:
-			x1, y1, x2, y2 = self.get_arrow_ends(op, exit)
-
-			prev_group = self.op_to_group[op]
-			line = getattr(prev_group, exit + '_line')
-			line.set(points = connect(x1, y1, x2, y2))
-		except Block:
-			print "*** ERROR setting arc from %s:%s" % (op, exit)
-	
-	def op_event(self, item, event, op):
-		if event.type == g.gdk.BUTTON_PRESS:
-			print "Prev %s = %s" % (op, map(str, op.prev))
-			if event.button == 1:
-				if op.parent.start != op or not op.parent.is_toplevel():
-					self.drag_last_pos = (event.x, event.y)
-				else:
-					self.drag_last_pos = None
-			else:
-				self.show_op_menu(event, op)
-		elif event.type == g.gdk.BUTTON_RELEASE:
-			if event.button == 1:
-				self.drag_last_pos = None
-				self.program_changed(None)
-		elif event.type == g.gdk.ENTER_NOTIFY:
-			item.set(fill_color = '#339900')
-		elif event.type == g.gdk.LEAVE_NOTIFY:
-			item.set(fill_color = self.op_colour(op))
-		elif event.type == g.gdk.MOTION_NOTIFY and self.drag_last_pos:
-			if not event.state & g.gdk.BUTTON1_MASK:
-				print "(stop drag!)"
-				self.drag_last_pos = None
-				self.program_changed(None)
-				return 1
-			x, y = (event.x, event.y)
-			dx, dy = x - self.drag_last_pos[0], y - self.drag_last_pos[1]
-			if abs(op.dx + dx) < 4:
-				dx = -op.dx
-				x = dx + self.drag_last_pos[0]
-			if abs(op.dy + dy) < 4:
-				dy = -op.dy
-				y = dy + self.drag_last_pos[1]
-			op.dx += dx
-			op.dy += dy
-			self.drag_last_pos = (x, y)
-
-			self.op_to_group[op].move(dx, dy)
-			for p in op.prev:
-				if p.next == op:
-					self.join_nodes(p, 'next')
-				if p.fail == op:
-					self.join_nodes(p, 'fail')
-			self.update_links()
-			#self.create_node(self.prog.start, self.nodes)
-			self.update_points()
-		elif event.type == g.gdk._2BUTTON_PRESS:
-			if op.action[0] == 'Start':
-				self.edit_comment(op.parent)
-			else:
-				self.edit_op(op)
-			print "(edit; stop drag!)"
-			self.drag_last_pos = None
-			self.program_changed(None)
-		return 1
-
 	def edit_comment(self, block):
 		assert isinstance(block, Block)
 
@@ -949,49 +829,6 @@ class ChainDisplay(g.EventBox):
 		new.start.unlink('next', may_delete = 0)
 		start.set_parent(None)
 		op.link_to(start, exit)
-	
-	def end_link_drag(self, item, event, src_op, exit):
-		# Scan all the nodes looking for one nearby...
-		x, y = event.x, event.y
-
-		def closest_node(op):
-			"Return the closest (node, dist) in this chain to (x, y)"
-			nx, ny = self.op_to_group[op].i2w(0, 0)
-			if op is src_op:
-				best = None
-			elif isinstance(op, Block):
-				best = None
-			else:
-				best = (op, math.hypot(nx - x, ny - y))
-			if op.next and op.next.prev[0] == op:
-				next = closest_node(op.next)
-				if next and (best is None or next[1] < best[1]):
-					best = next
-			if op.fail and op.fail.prev[0] == op:
-				fail = closest_node(op.fail)
-				if fail and (best is None or fail[1] < best[1]):
-					best = fail
-			if isinstance(op, Block):
-				sub = closest_node(op.start)
-				if sub and (best is None or sub[1] < best[1]):
-					best = sub
-			return best
-		
-		result = closest_node(self.prog.code)
-		if result:
-			node, dist = result
-		else:
-			dist = 1000
-		if dist > 12:
-			# Too far... put the line back to the disconnected state...
-			self.join_nodes(src_op, exit)
-			return
-		try:
-			while node.action[0] == 'Start':
-				node = node.parent
-			src_op.link_to(node, exit)
-		finally:
-			self.update_all()
 	
 	def line_paste_chain(self):
 		op, exit = self.line_menu_line
@@ -1068,96 +905,7 @@ class ChainDisplay(g.EventBox):
 			line_menu.popup(self, event)
 		else:
 			self.show_op_menu(event, op)
-
-	def line_event(self, item, event, op, exit):
-		# Item may be rec_point or exec_point...
-		item = getattr(self.op_to_group[op], exit + '_line')
-
-		if event.type == g.gdk.BUTTON_PRESS:
-			if event.button == 1:
-				if not getattr(op, exit):
-					self.drag_last_pos = (event.x, event.y)
-			elif event.button == 2:
-				self.paste_chain(op, exit)
-			elif event.button == 3:
-				self.line_menu_line = (op, exit)
-				line_menu.popup(self, event)
-		elif event.type == g.gdk.BUTTON_RELEASE:
-			if event.button == 1:
-				print "Clicked exit %s of %s" % (exit, op)
-				self.view.set_exec((op, exit))
-				self.drag_last_pos = None
-				if not getattr(op, exit):
-					self.end_link_drag(item, event, op, exit)
-		elif event.type == g.gdk.MOTION_NOTIFY and self.drag_last_pos:
-			if not event.state & g.gdk.BUTTON1_MASK:
-				print "(stop drag!)"
-				self.drag_last_pos = None
-				if not getattr(op, exit):
-					self.end_link_drag(item, event, op, exit)
-				return 1
-			x, y = (event.x, event.y)
-			dx, dy = x - self.drag_last_pos[0], y - self.drag_last_pos[1]
-
-			if abs(dx) > 4 or abs(dy) > 4:
-				sx, sy = self.get_arrow_start(op, exit)
-				x, y = item.w2i(event.x, event.y)
-				gr = self.op_to_group[op]
-				if exit == 'fail':
-					width = gr.width
-				else:
-					width = 0
-				item.set(points = connect(sx, sy, x, y))
-		elif event.type == g.gdk.ENTER_NOTIFY:
-			item.set(fill_color = '#339900')
-		elif event.type == g.gdk.LEAVE_NOTIFY:
-			if exit == 'next':
-				item.set(fill_color = 'black')
-			else:
-				item.set(fill_color = '#ff6666')
-		return 1
 	
-	def get_arrow_start(self, op, exit):
-		gr = self.op_to_group[op]
-		return ((exit == 'fail' and gr.width) or 0, gr.height)
-	
-	def get_arrow_ends(self, op, exit):
-		"""Return coords of arrow, relative to op's group."""
-		op2 = getattr(op, exit)
-
-		prev_group = self.op_to_group[op]
-
-		x1, y1 = self.get_arrow_start(op, exit)
-
-		if op2:
-			try:
-				group = self.op_to_group[op2]
-			except:
-				x2 = x1 + 50
-				y2 = y1 + 50
-			else:
-				x2, y2 = group.i2w(0, 0)
-				x2, y2 = prev_group.w2i(x2, y2)
-		elif exit == 'next':
-			x2, y2 = DEFAULT_NEXT
-			x2 += x1
-			y2 += y1
-		else:
-			x2, y2 = DEFAULT_FAIL
-			x2 += x1
-			y2 += y1
-		return (x1, y1, x2, y2)
-	
-	def set_bounds(self):
-		#self.update_now()	# GnomeCanvas bug?
-		min_x, min_y, max_x, max_y = self.root().get_bounds()
-		min_x -= 8
-		max_x += 8
-		min_y -= 8
-		max_y += 8
-		self.set_scroll_region(min_x, min_y, max_x, max_y)
-		self.root().move(0, 0) # Magic!
-		#self.set_usize(max_x - min_x, -1)
 	
 class ChainWindow(rox.Window):
 	def __init__(self, view, prog):
