@@ -202,8 +202,10 @@ class Display(g.HBox):
 		attr_parent = None
 		for node, bbox, draw_fn in self.walk_tree(self.ref_node, self.ref_pos):
 			if bbox[1] > self.last_alloc[1]: break	# Off-screen
-
-			draw_fn()
+			if bbox[1] > -self.last_alloc[1]:
+				draw_fn()
+			else:
+				print 'Warning: Ref node way off:', bbox[1]
 			if node.nodeType == Node.ATTRIBUTE_NODE:
 				self.drawn[node] = (bbox, attr_parent)
 			else:
