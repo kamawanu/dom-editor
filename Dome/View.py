@@ -1255,10 +1255,14 @@ class View:
 			raise Beep
 		if uri.find('//') == -1:
 			base = self.model.get_base_uri(node)
-			#print "Relative URI..."
+			print "Relative URI..."
 			if base:
-				#print "Base URI is:", base, "add", uri
-				uri = urlparse.urljoin(base, uri)
+				print "Base URI is:", base, "add", uri
+				if uri.startswith('/'):
+					uri = urlparse.urljoin(base, uri)
+				else:
+					uri = base + '/' + uri
+				print "Final URI is:", uri
 			else:
 				pass
 				#print "Warning: Can't find 'uri' attribute!"
