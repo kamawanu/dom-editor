@@ -523,9 +523,9 @@ class GUIView(Display, XDSLoader):
 		box.set_has_separator(False)
 
 		box.add_button(g.STOCK_CANCEL, g.RESPONSE_CANCEL)
-		box.add_button('Add _Element', Node.ELEMENT_NODE)
-		box.add_button('Add _Text', Node.TEXT_NODE)
 		box.add_button('Add _Attribute', Node.ATTRIBUTE_NODE)
+		box.add_button('Add _Text', Node.TEXT_NODE)
+		box.add_button('Add _Element', Node.ELEMENT_NODE)
 		box.set_default_response(g.RESPONSE_OK)
 		text.grab_focus()
 		def response(box, resp):
