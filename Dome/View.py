@@ -971,7 +971,14 @@ class View:
 		def done(root, self = self):
 			print "Loaded!"
 			new = self.root.ownerDocument.importNode(root.documentElement, deep = 1)
+
+			if self.root:
+				self.model.unlock(self.root)
+			self.move_to([])
 			self.model.replace_node(self.root, new)
+			self.model.lock(new)
+			self.root = new
+			self.move_to(self.root)
 
 		self.dom_from_command(command, done)
 
