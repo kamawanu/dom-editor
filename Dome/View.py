@@ -997,11 +997,17 @@ class View:
 			if ns is None:
 				post.append((str(name),
 					     str(attrs[(ns, name)].value)))
-		self.suck(post_data = urllib.urlencode(post))
+		node = self.suck_node(post_data = urllib.urlencode(post))
+		if node:
+			self.move_to(node)
+	
+	def suck(self):
+		nodes = self.current_nodes[:]
+		self.move_to([])
+		nodes = [x for x in map(self.suck_node, nodes) if x]
+		self.move_to(nodes)
 		
-	def suck(self, post_data = None):
-		node = self.get_current()
-
+	def suck_node(self, node, post_data = None):
 		uri = None
 		if node.nodeType == Node.TEXT_NODE:
 			uri = node.nodeValue
@@ -1047,9 +1053,9 @@ class View:
 				print "not modified => not sucking!\n"
 				return
 
-		print "Fetching page contents...",
+		print "Fetching page contents..."
 		data = stream.read()
-		print "got data... tidying...",
+		print "got data... tidying..."
 
 		(r, w) = os.pipe()
 		child = os.fork()
@@ -1116,8 +1122,9 @@ class View:
 		else:
 			self.model.replace_node(node, new)
 			#self.model.strip_space(new)
-		self.move_to(new)
+
 		print "Loaded."
+		return new
 	
 	def dom_from_command(self, command, callback = None, old_md5 = None):
 		"""Execute shell command 'command' in the background.

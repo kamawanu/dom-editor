@@ -116,7 +116,7 @@ class Model:
 		with a copy of the subtree."""
 		self.lock(node)
 		m = Model(self.get_base_uri(node), root_program = self.root_program)
-		copy = m.doc.importNode(node, 1)
+		copy = support.import_with_ns(m.doc, node)
 		root = m.get_root()
 		m.replace_node(root, copy)
 		return m

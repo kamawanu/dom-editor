@@ -16,8 +16,8 @@ def error(message, title = 'Error'):
 support.report_error = error
 
 import sys
-from xml.dom import ext
-from xml.dom.ext.reader import PyExpat
+#from xml.dom import ext
+from Ft.Xml.Domlette import PrettyPrint
 
 from Model import Model
 from View import View, Done, InProgress
@@ -76,10 +76,11 @@ import shutil
 shutil.copyfile(source, source + '.bak')
 
 doc = view.export_all()
-ext.PrettyPrint(doc, stream = open(source, 'w'))
+PrettyPrint(doc, stream = open(source, 'w'))
 
 if source[-5:] == '.dome':
 	xml = source[:-5] + '.xml'
 else:
 	xml = source + '.xml'
-ext.PrettyPrint(view.model.doc, stream = open(xml, 'w'))
+PrettyPrint(view.model.doc, stream = open(xml, 'w'))
+
