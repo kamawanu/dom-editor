@@ -140,6 +140,7 @@ class Display(GnomeCanvas):
 						print "(node missing)"
 						pass
 					else:
+						print "adjust", node
 						for i in group.children():
 							i.destroy()
 						self.create_tree(node, group, cramped = group.cramped)
