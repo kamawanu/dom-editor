@@ -6,7 +6,7 @@ from xml.dom import ext
 from Model import Model
 from View import View, Done
 
-model = Model()
+model = Model('Document')
 view = View(model)
 
 if len(sys.argv) < 2:

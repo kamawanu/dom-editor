@@ -35,7 +35,7 @@ class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
 		
-		self.model = Model()
+		self.model = Model('Document')
 		self.gui_view = None
 		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
@@ -77,8 +77,6 @@ class Window(GtkWindow):
 		hbox.pack_start(self.list, FALSE, TRUE, 0)
 		self.list.show()
 		
-		self.uri = "Document"
-
 		swin = GtkScrolledWindow()
 		swin.set_policy(POLICY_AUTOMATIC, POLICY_ALWAYS)
 		hbox.pack_start(swin, TRUE, TRUE, 0)
@@ -101,7 +99,7 @@ class Window(GtkWindow):
 	
 	def load_file(self, path):
 		if path != '-':
-			self.uri = path
+			self.model.uri = path
 		self.gui_view.load_file(path)
 	
 	def destroyed(self, widget):
@@ -123,7 +121,7 @@ class Window(GtkWindow):
 
 
 	def update_title(self):
-		title = self.uri
+		title = self.model.uri
 		self.set_title(title)
 	
 	def key(self, widget, kev):
@@ -137,7 +135,7 @@ class Window(GtkWindow):
 	def save(self, type):
 		if self.savebox:
 			self.savebox.destroy()
-		self.savebox = SaveBox(self, self.uri, 'text/' + type)
+		self.savebox = SaveBox(self, self.model.uri, 'text/' + type)
 		path = self.savebox.entry.get_chars(0, -1)
 		dir, file = os.path.split(path)
 		i = string.rfind(file, '.')
@@ -174,7 +172,7 @@ class Window(GtkWindow):
 		return self.get_xml()
 		
 	def set_uri(self, uri):
-		self.uri = uri
+		self.model.uri = uri
 		self.update_title()
 
 	# Toolbar bits

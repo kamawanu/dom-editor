@@ -7,6 +7,7 @@
 from xml.dom import implementation, XMLNS_NAMESPACE
 from xml.dom import ext
 from xml.dom import Node
+from xml.dom.Document import Document
 import string
 import Html
 import Change
@@ -15,15 +16,16 @@ from Beep import Beep
 from support import html_to_xml
 
 class Model:
-	def __init__(self):
+	def __init__(self, uri):
 		self.doc = implementation.createDocument('', 'root', None)
 		self.views = []		# Notified when something changes
+		self.uri = 'Document'
 	
 	def lock_and_copy(self, node):
 		"""Locks 'node' in the current model and returns a new model
 		with a copy of the subtree."""
 		print "TODO: lock!"
-		m = Model()
+		m = Model(self.get_base_uri(node))
 		copy = m.doc.importNode(node, deep = 1)
 		root = m.get_root()
 		m.replace_node(root, copy)
@@ -148,3 +150,15 @@ class Model:
 			raise Exception("No such namespace prefix '%s'" % prefix)
 		else:
 			return ''
+
+	def get_base_uri(self, node):
+		"""Go up through the parents looking for a uri attribute.
+		If there isn't one, use the document's URI."""
+		while node:
+			if isinstance(node, Document):
+				return self.uri
+			if node.hasAttributeNS('', 'uri'):
+				return node.getAttributeNS('', 'uri')
+			node = node.parentNode
+		return None
+

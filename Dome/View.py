@@ -2,7 +2,6 @@ from gtk import *
 import GDK
 from support import *
 from xml.dom import Node, ext
-from xml.dom.Document import Document
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
 from xml.dom.ext.reader import PyExpat
 import os, re, string, types
@@ -54,6 +53,7 @@ record_again = [
 	"set_attrib",
 	"add_attrib",
 	"show_canvas",
+	"show_html",
 ]
 
 def same(a, b):
@@ -742,24 +742,6 @@ class View:
 
 		self.move_to(new)
 
-	def get_base_uri(self, node):
-		"""Go up through the parents looking for a uri attribute.
-		Also explore the chroot stack."""
-		p = node
-		base = None
-		stack = self.chroots[:]
-		while p:
-			if isinstance(p, Document):
-				print "Up the chroot stack!"
-				try:
-					(m, p) = stack.pop()
-				except:
-					return None
-			if p.hasAttributeNS('', 'uri'):
-				return p.getAttributeNS('', 'uri')
-			p = p.parentNode
-		return None
-
 	def suck(self):
 		node = self.current
 
@@ -779,7 +761,7 @@ class View:
 			print "Can't suck", node
 			raise Beep
 		if uri.find('//') == -1:
-			base = self.get_base_uri(node)
+			base = self.model.get_base_uri(node)
 			print "Relative URI..."
 			if base:
 				print "Base URI is:", base
@@ -993,7 +975,7 @@ class View:
 	
 	def show_html(self):
 		from HTML import HTML
-		HTML(self, self.current).show()
+		HTML(self.model, self.current).show()
 	
 	def show_canvas(self):
 		Canvas(self, self.current).show()

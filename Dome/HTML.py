@@ -16,16 +16,15 @@ os.environ['MOZILLA_FIVE_HOME'] = '/usr/lib/mozilla/'
 dummy_html = GtkMozEmbed()
 
 class HTML(GtkWindow):
-	def __init__(self, view, node):
+	def __init__(self, model, node):
 		GtkWindow.__init__(self)
-		self.view = view
+		self.model = model
 		self.display_root = node
 
 		self.html = GtkMozEmbed()
 
 		self.set_title(self.display_root.nodeName)
-		self.view.add_display(self)
-		self.update_all()
+		self.model.add_view(self)
 		self.connect('destroy', self.destroyed)
 
 		self.show()
@@ -36,27 +35,34 @@ class HTML(GtkWindow):
 		print "Add"
 		self.add(self.html)
 		self.html.show()
-		#self.html.load_url('http://localhost/')
+		self.update_all()
 
-		doc = node_to_html(self.view.root)
+	def update_replace(self, old, new):
+		if old == self.display_root:
+			self.display_root = new
+		self.update_all()
+	
+	def update_all(self, node = None):
+		print "Update HTML"
+		doc = node_to_html(self.display_root)
 		self.output_data = ''
 		ext.PrettyPrint(doc, stream = self)
 		data = self.output_data
 		self.output_data = ''
-		uri = self.view.get_base_uri(self.view.root)
+		uri = self.model.get_base_uri(self.display_root)
 		if not uri:
 			uri = 'http://localhost/'
-		print data
+		if uri[:7] != 'http://':
+			uri = 'file://' + uri
+		print "Base URI:", uri
+		print "Data:", data
 		self.html.render_data(data, uri, 'text/html')
 
 		return 0
 	
 	def destroyed(self, widget):
 		print "Gone!"
-		self.view.remove_display(self)
-	
-	def update_all(self, node = None):
-		print "Update HTML!"
-	
+		self.model.remove_view(self)
+
 	def write(self, text):
 		self.output_data = self.output_data + text
