@@ -445,6 +445,7 @@ class View:
 		new_model = self.model.lock_and_copy(node)
 		self.chroots.append((self.model, node, self.marked))
 		self.set_model(new_model)
+		self.update_stack()
 	
 	def leave(self):
 		"""Undo the effect of the last chroot()."""
@@ -456,6 +457,7 @@ class View:
 		model = self.model
 
 		(old_model, old_node, old_marked) = self.chroots.pop()
+		self.update_stack()
 
 		copy = old_model.doc.importNode(self.model.get_root(), 1)
 		old_model.unlock(old_node)

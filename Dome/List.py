@@ -270,11 +270,14 @@ class List(GtkVBox):
 			self.chains.update_all()
 		l = len(self.view.exec_stack) + len(self.view.foreach_stack)
 		if l == 0:
-			self.stack_frames.set_text('No stack')
+			text = 'No stack'
 		elif l == 1:
-			self.stack_frames.set_text('1 frame')
+			text = '1 frame'
 		else:
-			self.stack_frames.set_text('%d frames' % l)
+			text = '%d frames' % l
+		if self.view.chroots:
+			text += ' (%d enters)' % len(self.view.chroots)
+		self.stack_frames.set_text(text)
 	
 	def show_prog(self, prog):
 		self.tree.select_child(self.prog_to_tree[prog])
