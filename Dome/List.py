@@ -52,6 +52,10 @@ from Program import Program, load, Block
 
 no_cursor = g.gdk.Cursor(g.gdk.TCROSS)
 
+box_size = 9
+next_box = (0, 12)
+fail_box = (12, 8)
+
 def trunc(text):
 	if len(text) < 28:
 		return text
@@ -409,24 +413,32 @@ class ChainOp(ChainNode):
 		da.backing.draw_line(pen, self.x + dx, self.y + dy, dest.x + 5, dest.y)
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
-	def nearby(self, x, y):
-		return x > self.x - 4 and x < self.x + self.width + 20 and \
-		       y > self.y and y < self.y + self.height + 20
-	
-	def maybe_clicked(self, event):
-		x = event.x - self.x
+	def where(self, x, y):
+		"Identify where (x,y) falls on us -> None, 'op', 'next', 'fail'"
+		x -= self.x
 		if x < 0: return False
-		y = event.y - self.y
+		y -= self.y
 		if y < 0: return False
 
-		if x > self.width or y > self.height:
-			return False
+		if x >= next_box[0] and y >= next_box[1] and \
+		   x <= next_box[0] + box_size and y <= next_box[1] + box_size:
+		   	return 'next'
 
+		if x >= fail_box[0] and y >= fail_box[1] and \
+		   x <= fail_box[0] + box_size and y <= fail_box[1] + box_size:
+		   	return 'fail'
+
+		if x < self.width and y < self.height: return 'op'
+	
+	def maybe_clicked(self, event):
+		pos = self.where(event.x, event.y)
+		if not pos: return
 		if event.button == 1:
-			self.da.view.set_exec((self.op, 'next'))
+			if pos in ('next', 'fail'):
+				self.da.view.set_exec((self.op, pos))
 		else:
-			if x < 10 and y > 10:
-				self.da.show_menu(event, self.op, 'next')
+			if pos != 'op':
+				self.da.show_menu(event, self.op, pos)
 			else:
 				self.da.show_menu(event, self.op)
 		return True
@@ -522,8 +534,8 @@ class ChainBlock(ChainOp):
 	def maybe_clicked(self, event):
 		return False
 	
-	def nearby(self, x, y):
-		return False
+	def where(self, x, y):
+		return None
 
 class ChainDisplay(g.EventBox):
 	"A graphical display of a chain of nodes."
@@ -617,19 +629,21 @@ class ChainDisplay(g.EventBox):
 			print "Can't find %s!\n" % op
 			return
 		x = obj.x
+		y = obj.y
+		size = box_size
 		if point is self.view.rec_point:
-			size = 11
 			colour = 'red'
 		else:
-			size = 6
+			size -= 4
 			x += 2
+			y += 2
 			colour = 'yellow'
-		y = obj.y
 		if exit == 'fail':
-			x += 4
-			y += 4
+			x += fail_box[0]
+			y += fail_box[1]
 		else:
-			y += 5
+			x += next_box[0]
+			y += next_box[1]
 		pen = self.style.white_gc
 		pen.set_rgb_fg_color(g.gdk.color_parse(colour))
 		w.draw_rectangle(self.style.black_gc, False, x, y, size, size)
@@ -695,20 +709,23 @@ class ChainDisplay(g.EventBox):
 
 		#self.set_bounds()
 
-		op = self.hover
-		if op:
+		if self.hover:
+			op, exit = self.hover
 			pen = self.style.black_gc
 			w = self.window
-			if not op.fail:
-				w.draw_rectangle(pen, False, op.x + 14, op.y + 10, 5, 5)
-			if not op.next:
-				w.draw_rectangle(pen, False, op.x + 2, op.y + 14, 5, 5)
+			if exit == 'fail':
+				w.draw_rectangle(pen, False, op.x + fail_box[0], op.y + fail_box[1],
+								box_size, box_size)
+			else:
+				w.draw_rectangle(pen, False, op.x + next_box[0], op.y + next_box[1],
+								box_size, box_size)
 
 	def motion(self, box, event):
 		hover = None
 		for op in self.op_to_object.itervalues():
-			if op.nearby(event.x, event.y):
-				hover = op
+			pos = op.where(event.x, event.y)
+			if pos in ('next', 'fail'):
+				hover = (op, pos)
 		if hover == self.hover:
 			return
 		self.hover = hover
