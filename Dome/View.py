@@ -361,7 +361,9 @@ class View:
 			return
 		self.yank()
 		if self.current_attrib:
-			self.model.set_attrib(self.current, self.current_attrib, None)
+			ca = self.current_attrib
+			self.current_attrib = None
+			self.model.set_attrib(self.current, ca, None)
 			return
 		new = []
 		for x in nodes:
@@ -573,7 +575,5 @@ class View:
 		self.move_to(self.current, attrib)
 	
 	def set_attrib(self, new):
-		if not self.current_attrib:
-			raise Beep
 		name, value = string.split(new, '=', 1)
 		self.model.set_attrib(self.current, name, value)

@@ -250,9 +250,16 @@ class GUIView(Display):
 		GetArg('Yank value of attribute:', do_attrib, ['Name:'])
 
 	def show_attrib(self):
-		def do_attrib(args, self = self):
-			action = ["attribute", args]
-			self.view.may_record(action)
+		def do_attrib(name, self = self):
+			if self.view.current.hasAttribute(name):
+				action = ["attribute", name]
+				self.view.may_record(action)
+			else:
+				def do_create(value, self = self, name = name):
+					action = ["set_attrib", ("%s=%s" % (name, value))]
+					print action
+					self.view.may_record(action)
+				GetArg('Create attribute:', do_create, ['%s = ' % name])
 		GetArg('Select attribute:', do_attrib, ['Name:'])
 
 	def show_pipe(self):
