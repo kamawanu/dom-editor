@@ -43,9 +43,72 @@ def action_to_text(action):
 		text = text + '\n' + details
 	return text
 
-class List(GnomeCanvas):
-	"A graphical display of a program."
+class List(GtkVBox):
 	def __init__(self, view):
+		GtkVBox.__init__(self)
+
+		self.view = view
+
+		self.tree = GtkTree()
+		self.tree.unset_flags(CAN_FOCUS)
+		self.chains = ChainDisplay(view, view.model.root_program)
+
+		self.pack_start(self.tree, expand = 0, fill = 1)
+		self.pack_start(self.chains, expand = 1, fill = 1)
+
+		self.build_tree(self.tree, view.model.root_program)
+		self.chains.show()
+		self.tree.show()
+		for i in self.tree.children():
+			i.expand()
+
+	def build_tree(self, tree, prog):
+		item = GtkTreeItem(prog.name)
+		item.connect('select', lambda widget, c = self.chains, p = prog: \
+							c.switch_to(p))
+		item.show()
+		tree.append(item)
+		if prog.subprograms:
+			subtree = GtkTree()
+			subtree.append(GtkTreeItem('Marker'))
+			for k in prog.subprograms:
+				self.build_tree(subtree, k)
+			item.set_subtree(subtree)
+
+	def new_prog(self):
+		def create(name, self = self):
+			new = Program(name)
+			self.prog.add_sub(new)
+			#self.switch_to(new)
+		GetArg('New program', create, ['Program name:'])
+
+	def show_menu(self, sub):
+		def del_prog(self = self, sub = sub):
+			parent = sub.parent
+			sub.parent.remove_sub(sub)
+			self.switch_to(parent)
+		def rename_prog(prog = sub):
+			def rename(name, prog = prog):
+				prog.rename(name)
+			GetArg('Rename program', rename, ['Program name:'])
+		view = self.view
+		if sub.parent:
+			dp = del_prog
+		else:
+			dp = None
+		items = [
+			('Play', lambda view = view, s = sub: view.play(s)),
+			('Map', lambda view = view, s = sub: view.map(s)),
+			('View', lambda self = self, s = sub: self.switch_to(s)),
+			('Rename', rename_prog),
+			('Delete', dp),
+			]
+		menu = Menu(items)
+		menu.popup(event.button, event.time)
+	
+class ChainDisplay(GnomeCanvas):
+	"A graphical display of a chain of nodes."
+	def __init__(self, view, prog):
 		GnomeCanvas.__init__(self)
 		self.view = view
 		self.unset_flags(CAN_FOCUS)
@@ -62,15 +125,9 @@ class List(GnomeCanvas):
 		self.set_usize(100, 100)
 
 		self.view.lists.append(self)
-		self.prog = None
-		self.switch_to(view.model.root_program)
 	
-	def new_prog(self):
-		def create(name, self = self):
-			new = Program(name)
-			self.prog.add_sub(new)
-			self.switch_to(new)
-		GetArg('New program', create, ['Program name:'])
+		self.prog = None
+		self.switch_to(prog)
 	
 	def update_points(self):
 		print "update_points"
@@ -88,6 +145,8 @@ class List(GnomeCanvas):
 			opexit = (self.view.op_in_progress, None)
 		if opexit:
 			(op, exit) = opexit
+			if op.program != self.prog:
+				return
 			if point == 'rec_point':
 				c = 'red'
 				s = 6
@@ -116,28 +175,6 @@ class List(GnomeCanvas):
 				else:
 					(x2, y2) = (x1, y1)
 				item.move((x1 + x2) / 2, (y1 + y2) / 2)
-			else:
-				p = self.nearest_prog(op.program)
-				g = self.prog_to_group[p]
-				(x, y) = g.i2w(0, 0)
-				item.move(x, y)
-	
-	def nearest_prog(self, prog):
-		"If prog is above us, returns our parent."
-		"If below us, returns the program containing it."
-		"Otherwise, returns our parent."
-		p = self.prog.parent
-		while p:
-			if p == prog:
-				return self.prog.parent
-			p = p.parent
-
-		p = prog
-		while p.parent:
-			if p.parent == self.prog:
-				return p
-			p = p.parent
-		return self.prog.parent
 	
 	def switch_to(self, prog):
 		if self.prog:
@@ -151,91 +188,16 @@ class List(GnomeCanvas):
 		self.update_all()
 	
 	def update_all(self):
-		if self.subs:
-			self.subs.destroy()
-		self.subs = self.root().add('group', x = 0, y = 0)
-
 		if self.nodes:
 			self.nodes.destroy()
 
-		y = 0
-		self.prog_to_group = {}
-		for p in [self.prog.parent, self.prog] + self.prog.subprograms:
-			if not p:
-				continue
-
-			g = self.subs.add('group', x = 0, y = y)
-			if p == self.prog:
-				c = 'yellow'
-			else:
-				c = 'grey80'
-			height = self.create_prog(p.name, g, c)
-			self.prog_to_group[p] = g
-			g.connect('event', self.subprog_event, g.rect, p)
-
-			y += height + 12
-
 		self.op_to_group = {}
-		self.nodes = self.root().add('group', x = 0, y = y + 32)
+		self.nodes = self.root().add('group', x = 0, y = 0)
 		self.create_node(self.prog.start, self.nodes)
 		self.update_points()
 
 		self.set_bounds()
 	
-	def create_prog(self, name, g, colour):
-		t = g.add('text', fill_color = 'black', x = 0, y = 0, anchor = ANCHOR_CENTER,
-							text = name, font = 'fixed')
-		(lx, ly, hx, hy) = t.get_bounds()
-		if -lx > hx:
-			w = -lx
-		else:
-			w = hx
-		g.move(0, -ly)
-
-		m = 4
-		g.rect = g.add('rect', fill_color = colour,
-					outline_color = 'black',
-					x1 = -w - m , y1 = ly - m,
-					x2 = w + m , y2 = hy + m)
-		t.raise_to_top()
-		return hy - ly
-	
-	def subprog_event(self, group, event, rect, sub):
-		if event.type == ENTER_NOTIFY:
-			rect.set(width_pixels = 2)
-		elif event.type == LEAVE_NOTIFY:
-			rect.set(width_pixels = 1)
-		elif event.type == BUTTON_PRESS:
-			if event.button == 1:
-				if event.state & SHIFT_MASK:
-					self.view.map(sub)
-				else:
-					self.view.play(sub)
-			elif event.button == 2:
-				self.switch_to(sub)
-			elif event.button == 3:
-				def del_prog(self = self, sub = sub):
-					parent = sub.parent
-					sub.parent.remove_sub(sub)
-					self.switch_to(parent)
-				def rename_prog(prog = sub):
-					def rename(name, prog = prog):
-						prog.rename(name)
-					GetArg('Rename program', rename, ['Program name:'])
-				view = self.view
-				if sub.parent:
-					dp = del_prog
-				else:
-					dp = None
-				items = [
-					('Play', lambda view = view, s = sub: view.play(s)),
-					('Map', lambda view = view, s = sub: view.map(s)),
-					('View', lambda self = self, s = sub: self.switch_to(s)),
-					('Rename', rename_prog),
-					('Delete', dp),
-					]
-				menu = Menu(items)
-				menu.popup(event.button, event.time)
 		return 1
 	
 	def create_node(self, op, group):
