@@ -1429,6 +1429,51 @@ class View:
 				select.append(n)
 		self.move_to(select)
 	
+	def select_marked_region(self, attr):
+		if ':' in attr:
+			(prefix, localName) = string.split(attr, ':', 1)
+			namespaceURI = self.model.prefix_to_namespace(src, prefix)
+		else:
+			(prefix, localName) = (None, attr)
+			namespaceURI = None
+		select = []
+		def add(node):
+			if node.nodeType != Node.ELEMENT_NODE:
+				return
+			for key in node.attributes.keys():
+				a = node.attributes[key]
+				if a.localName == localName and a.namespaceURI == namespaceURI:
+					select.append(node)
+			map(add, node.childNodes)
+		add(self.root)
+		if len(select) != 2:
+			print "Must be exactly two selected nodes!"
+			raise Beep()
+		import Path
+		a = Path.path_to(select[0])
+		b = Path.path_to(select[1])
+
+		while a and b and a[0] == b[0]:
+			del a[0]
+			del b[0]
+
+		if a and b:
+			select = []
+			s = 0
+			a = a[0]
+			b = b[0]
+			for x in a.parentNode.childNodes:
+				if x == a:
+					s = 1
+				elif x == b:
+					s = 0
+				if s:
+					select.append(x)
+			self.move_to(select)
+		else:
+			print "One node is a parent of the other!"
+			raise Beep()
+	
 	def show_html(self):
 		from HTML import HTML
 		HTML(self.model, self.get_current()).show()

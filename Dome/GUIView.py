@@ -56,6 +56,7 @@ menu = Menu('Dome', 'main', [
 		('/Select', None, '<Branch>', ''),
 		('/Select/By XPath', 'menu_show_global', '', 'numbersign'),
 		('/Select/Duplicate siblings', 'do_select_dups', '', ''),
+		('/Select/Marked Range', 'menu_select_marked', '', 'minus'),
 
 		('/Network', None, '<Branch>', ''),
 		('/Network/HTTP GET', 'do_suck', '', '<Shift>asciicircum'),
@@ -358,6 +359,14 @@ class GUIView(Display):
 			action = ["python", expr]
 			self.view.may_record(action)
 		GetArg('Python expression:', do_pipe, ['Eval:'], "'x' is the old text...")
+
+	def menu_select_marked(self):
+		def do_select(attr, self = self):
+			action = ["select_marked_region", attr]
+			self.view.may_record(action)
+		GetArg('Select marked range:', do_select, ['Attribute:'],
+			'Select all elements between the two elements with the '
+			'given attribute')
 
 	def menu_show_global(self):
 		def do_global(pattern, self = self):

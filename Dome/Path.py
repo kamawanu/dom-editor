@@ -57,6 +57,14 @@ def jump_to_sibling(src, dst, ns):
 			count += 1
 	return 'preceding-sibling::%s[%d]/' % (match_name(dst, ns), count)
 
+def path_to(node):
+	"Returns a path to the node in the form [root, ... , node]"
+	ps = [node]
+	while node.parentNode:
+		node = node.parentNode
+		ps.insert(0, node)
+	return ps
+
 def make_relative_path(src_node, dst_node, lit, ns):
 	"Return an XPath string which will move us from src to dst."
 	"If 'lit' then the text of the (data) node must match too."
@@ -64,14 +72,6 @@ def make_relative_path(src_node, dst_node, lit, ns):
 
 	if src_node == dst_node:
 		return '.'
-
-	def path_to(node):
-		"Returns a path to the node in the form [root, ... , node]"
-		ps = [node]
-		while node.parentNode:
-			node = node.parentNode
-			ps.insert(0, node)
-		return ps
 
 	src_parents = path_to(src_node)
 	dst_parents = path_to(dst_node)
