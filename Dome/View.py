@@ -8,6 +8,7 @@ import os, re, string, types
 import urlparse
 import Html
 from StringIO import StringIO
+from Canvas import Canvas
 
 from Program import Op
 from Beep import Beep
@@ -67,7 +68,9 @@ class View:
 			if len(self.current_nodes) == 1:
 				return self.current_nodes[0]
 			raise Exception('This operation required exactly one selected node!')
-		raise Exception('Bad View attribute "%s"' % attr)
+		elif attr == '__cmp__':
+			return (lambda a, self = self: a is self)
+		return self.__dict__[attr]
 	
 	def running(self):
 		return self.idle_cb != 0
@@ -136,6 +139,8 @@ class View:
 	def remove_display(self, display):
 		self.displays.remove(display)
 		print "Removed, now:", self.displays
+		if not self.displays:
+			self.delete()
 	
 	def update_replace(self, old, new):
 		if old == self.root:
@@ -178,9 +183,11 @@ class View:
 			display.update_all(node)
 	
 	def delete(self):
+		print "View deleted"
 		self.model.remove_view(self)
 		self.model = None
 		self.current = None
+		self.root = None
 	
 	def home(self):
 		"Move current to the display root."
@@ -811,3 +818,11 @@ class View:
 	def prog_tree_changed(self, prog):
 		for l in self.lists:
 			l.prog_tree_changed(prog)
+	
+	def show_canvas(self):
+		node = self.current
+		nv = View(self.model)
+		nv.move_to(node)
+		nv.enter()
+		Canvas(nv).show()
+	

@@ -33,6 +33,10 @@ def action_to_text(action):
 				details = details + pat[:i + 1] + '\n'
 				pat = pat[i + 1:]
 			details = details + pat
+		elif action[0] == 'attribute':
+			details = str(action[2])
+		elif action[0] == 'set_attrib':
+			details = str(action[2]) + '=' + str(action[3])
 		elif action[0] == 'add_node':
 			details = action[2]
 		elif action[0] == 'play' or action[0] == 'map':

@@ -6,7 +6,6 @@ from loader import make_xds_loader
 
 from support import report_exception
 
-from Canvas import Canvas
 from View import View
 from Display import Display
 from Beep import Beep
@@ -115,19 +114,12 @@ class GUIView(Display):
 			(None, None),
 			('Undo', do('undo')),
 			('Redo', do('redo')),
-			('Enter', self.view.enter),
-			('Leave', self.view.leave),
-			('Show as canvas', self.show_canvas),
+			('Enter', do('enter')),
+			('Leave', do('leave')),
+			('Show as canvas', do('show_canvas')),
 			('Close Window', self.window.destroy),
 			]
 		Menu(items).popup(bev.button, bev.time)
-	
-	def show_canvas(self):
-		node = self.view.current
-		nv = View(self.view.model)
-		nv.move_to(node)
-		nv.enter()
-		Canvas(nv).show()
 	
 	def playback(self, macro, map):
 		"Called when the user clicks on a macro button."
