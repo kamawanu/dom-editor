@@ -29,6 +29,21 @@ line_menu = Menu('line', [
 	('/Add block', 'line_add_block', '', '')
 ])
 
+block_menu = Menu('op', [
+	('/Toggle Enter\/Leave', 'block_toggle_enter', '', ''),
+	('/Toggle Foreach','block_toggle_foreach', '', ''),
+	('/Toggle Restore Mark','block_toggle_restore', '', ''),
+	('/Edit comment', 'block_edit_comment', '', ''),
+	('/Swap next\/fail', 'op_swap_nf', '', ''),
+	('/Remove node', 'op_del_node', '', '')
+])
+
+op_menu = Menu('op', [
+	('/Edit node', 'op_edit', '', ''),
+	('/Swap next\/fail', 'op_swap_nf', '', ''),
+	('/Remove node', 'op_del_node', '', '')
+])
+
 #from GetArg import GetArg
 from Program import Program, load, Block
 
@@ -711,24 +726,39 @@ class ChainDisplay(canvas.Canvas):
 			block.set_comment(comment)
 		GetArg('Comment', set, ['Comment:'],
 			message = '\\n for a newline', init = [block.comment])
+	
+	def block_toggle_enter(self):
+		self.op_menu_op.toggle_enter()
+
+	def block_toggle_foreach(self):
+		self.op_menu_op.toggle_foreach()
+
+	def block_toggle_restore(self):
+		self.op_menu_op.toggle_restore()
+
+	def block_edit_comment(self):
+		self.edit_comment(self.op_menu_op)
+
+	def op_edit(self):
+		self.edit_op(self.op_menu_op)
+
+	def op_swap_nf(self):
+		self.op_menu_op.swap_nf()
+
+	def op_del_node(self):
+		op = self.op_menu_op
+		if op.next and op.fail:
+			rox.alert("Can't delete a node with both exits in use")
+			return
+		self.clipboard = op.del_node()
 
 	def show_op_menu(self, event, op):
 		if op.action[0] == 'Start':
-			op = op.parent
-			items = [('Toggle Enter/Leave', lambda: op.toggle_enter()),
-				 ('Toggle Foreach', lambda: op.toggle_foreach()),
-				 ('Toggle Restore Mark', lambda: op.toggle_restore()),
-				 ('Edit comment', lambda: self.edit_comment(op))]
+			self.op_menu_op = op.parent
+			block_menu.popup(self, event)
 		else:
-			items = [('Edit node', lambda: self.edit_op(op))]
-
-		del_node = None
-		if not (op.next and op.fail):
-			def del_node(self = self, op = op):
-				self.clipboard = op.del_node()
-
-		items += [('Swap next/fail', lambda: op.swap_nf()), ('Remove node', del_node)]
-		Menu(items).popup(event.button, event.time)
+			self.op_menu_op = op
+			op_menu.popup(self, event)
 
 	def paste_chain(self, op, exit):
 		print "Paste", self.clipboard
