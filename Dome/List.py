@@ -389,10 +389,33 @@ class ChainDisplay(GnomeCanvas):
 		if self.view.breakpoints.has_key((op, 'fail')):
 			group.fail_line.set(line_style = LINE_ON_OFF_DASH)
 	
+	def edit_op(self, op):
+		win = GtkWindow()
+		win.set_border_width(8)
+		vbox = GtkVBox(TRUE, 8)
+		win.add(vbox)
+		for x in op.action:
+			entry = GtkEntry()
+			entry.set_text(`x`)
+			vbox.pack_start(entry, TRUE, FALSE, 0)
+		hbox = GtkHBox(TRUE, 4)
+		vbox.pack_start(hbox, TRUE, FALSE, 0)
+		
+		button = GtkButton("Modify")
+		button.set_sensitive(FALSE)
+		hbox.pack_start(button, TRUE, TRUE, 0)
+
+		button = GtkButton("Cancel")
+		hbox.pack_start(button, TRUE, TRUE, 0)
+		button.connect('clicked', lambda b, win = win: win.destroy())
+
+		win.show_all()
+	
 	def op_event(self, item, event, op):
 		if event.type == BUTTON_PRESS:
 			if event.button == 1:
 				print "Clicked", op, "(in", op.program.name + ")"
+				self.edit_op(op)
 			else:
 				self.show_op_menu(event, op)
 		elif event.type == ENTER_NOTIFY:

@@ -19,7 +19,7 @@ def load(chain):
 		if str(op_node.localName) != 'node':
 			continue
 		
-		attr = op_node.getAttributeNS('', 'action')
+		attr = op_node.getAttributeNS(None, 'action')
 		action = eval(str(attr))
 		if action[0] == 'chroot':
 			action[0] = 'enter'
@@ -32,6 +32,9 @@ def load(chain):
 		#		action = ('set_attrib', action[3])
 		elif action[0] == 'playback':
 			action[0] = 'map'
+		elif action[0] == 'add_attrib' or action[0] == 'attribute':
+			if action[1] == '':
+				action[1] = None
 
 		op = Op(action)
 
@@ -51,7 +54,7 @@ def load_dome_program(prog):
 	if prog.nodeName != 'dome-program':
 		raise Exception('Not a DOME program!')
 
-	new = Program(str(prog.getAttributeNS('', 'name')))
+	new = Program(str(prog.getAttributeNS(None, 'name')))
 
 	start = load(prog)
 	if start:

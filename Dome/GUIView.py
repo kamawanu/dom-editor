@@ -298,7 +298,7 @@ class GUIView(Display):
 			if ':' in name:
 				(prefix, localName) = string.split(name, ':', 1)
 			else:
-				(prefix, localName) = ('', name)
+				(prefix, localName) = (None, name)
 			namespaceURI = self.view.model.prefix_to_namespace(self.view.get_current(), prefix)
 			action = ["attribute", namespaceURI, localName]
 			self.view.may_record(action)
@@ -309,7 +309,7 @@ class GUIView(Display):
 			if ':' in name:
 				(prefix, localName) = string.split(name, ':', 1)
 			else:
-				(prefix, localName) = ('', name)
+				(prefix, localName) = (None, name)
 			namespaceURI = self.view.model.prefix_to_namespace(self.view.get_current(), prefix)
 			action = ["add_attrib", namespaceURI, name]
 			self.view.may_record(action)

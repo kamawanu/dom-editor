@@ -753,7 +753,7 @@ class View:
 				if ':' in new_data:
 					(prefix, localName) = string.split(new_data, ':', 1)
 				else:
-					(prefix, localName) = ('', new_data)
+					(prefix, localName) = (None, new_data)
 				namespaceURI = self.model.prefix_to_namespace(node, prefix)
 				self.model.set_name(node, namespaceURI, new_data)
 
@@ -763,7 +763,7 @@ class View:
 			if ':' in data:
 				(prefix, localName) = string.split(data, ':', 1)
 			else:
-				(prefix, localName) = ('', data)
+				(prefix, localName) = (None, data)
 			namespaceURI = self.model.prefix_to_namespace(self.get_current(), prefix)
 			new = self.model.doc.createElementNS(namespaceURI, data)
 		else:
@@ -789,8 +789,8 @@ class View:
 		else:
 			if self.current_attrib:
 				uri = self.current_attrib.value
-			elif node.hasAttributeNS('', 'uri'):
-				uri = node.getAttributeNS('', 'uri')
+			elif node.hasAttributeNS(None, 'uri'):
+				uri = node.getAttributeNS(None, 'uri')
 			else:
 				for attr in node.attributes:
 					uri = attr.value
@@ -817,7 +817,7 @@ class View:
 				return
 			node = self.get_current()
 			new = node.ownerDocument.importNode(root.documentElement, deep = 1)
-			new.setAttributeNS('', 'uri', uri)
+			new.setAttributeNS(None, 'uri', uri)
 
 			self.move_to([])
 			if node == self.root:
@@ -1059,11 +1059,11 @@ class View:
 	
 	def toggle_hidden(self):
 		for node in self.current_nodes:
-			if node.hasAttributeNS('', 'hidden'):
+			if node.hasAttributeNS(None, 'hidden'):
 				new = None
 			else:
 				new = 'yes'
-			self.model.set_attrib(node, '', 'hidden', new)
+			self.model.set_attrib(node, None, 'hidden', new)
 	
 	def soap_send(self):
 		copy = node_to_xml(self.get_current())

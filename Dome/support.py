@@ -11,7 +11,7 @@ from rox.support import *
 
 def node_to_xml(node):
 	"Takes an XML node and returns an XML documentElement suitable for saving."
-	root = implementation.createDocument('', 'root', None)
+	root = implementation.createDocument(None, 'root', None)
 	new = node.cloneNode(deep = 1)
 	new = root.importNode(new, deep = 1)
 	root.replaceChild(new, root.documentElement)
@@ -40,7 +40,7 @@ def set_default_namespace(node):
 			old.append((a.name, a.value))
 		for (name, value) in old:
 			node.removeAttribute(name)
-			node.setAttributeNS('', name, value)
+			node.setAttributeNS(None, name, value)
 	for k in node.childNodes:
 		set_default_namespace(k)
 

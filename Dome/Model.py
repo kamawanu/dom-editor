@@ -17,7 +17,7 @@ from support import html_to_xml
 
 class Model:
 	def __init__(self, uri):
-		self.doc = implementation.createDocument('', 'root', None)
+		self.doc = implementation.createDocument(None, 'root', None)
 		self.views = []		# Notified when something changes
 		self.locks = {}		# Node -> number of locks
 		if uri:
@@ -210,8 +210,8 @@ class Model:
 		while node:
 			if isinstance(node, Document):
 				return self.uri
-			if node.hasAttributeNS('', 'uri'):
-				return node.getAttributeNS('', 'uri')
+			if node.hasAttributeNS(None, 'uri'):
+				return node.getAttributeNS(None, 'uri')
 			node = node.parentNode
 		return None
 
