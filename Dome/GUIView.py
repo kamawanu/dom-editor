@@ -26,6 +26,7 @@ menu = Menu('Dome', 'main', [
 		('/Edit/Paste attributes', 'do_paste_attribs', '', ''),
 		('/Edit/Yank attrib value', 'do_yank_value', '', ''),
 		('/Edit/Cut', 'do_delete_node', '', 'x'),
+		('/Edit/Delete', 'do_delete_node_no_clipboard', '', '<Ctrl>X'),
 		('/Edit/Shallow cut', 'do_delete_shallow', '', '<Shift>X'),
 		('/Edit/Yank', 'do_yank', '', 'y'),
 		('/Edit/Shallow yank', 'do_shallow_yank', '', '<Shift>Y'),
@@ -423,6 +424,7 @@ class GUIView(Display):
 	do_paste_attribs = make_do('paste_attribs')
 	do_yank_value = make_do('yank_value')
 	do_delete_node = make_do('delete_node')
+	do_delete_node_no_clipboard = make_do('delete_node_no_clipboard')
 	do_delete_shallow = make_do('delete_shallow')
 	do_yank = make_do('yank')
 	do_shallow_yank = make_do('shallow_yank')

@@ -1,3 +1,5 @@
+from __future__ import nested_scopes
+
 import GDK
 from support import *
 from rox import support
@@ -43,6 +45,7 @@ record_again = [
 	"yank",
 	"shallow_yank",
 	"delete_node",
+	"delete_node_no_clipboard",
 	"delete_shallow",
 	"play",
 	"map",
@@ -657,11 +660,15 @@ class View:
 			self.model.delete_shallow(n)
 		self.move_home()
 	
-	def delete_node(self):
+	def delete_node_no_clipboard(self):
+		self.delete_node(yank = 0)
+
+	def delete_node(self, yank = 1):
 		nodes = self.current_nodes[:]
 		if not nodes:
 			return
-		self.yank()
+		if yank:
+			self.yank()
 		if self.current_attrib:
 			ca = self.current_attrib
 			self.current_attrib = None
@@ -679,20 +686,24 @@ class View:
 		self.model.delete_nodes(nodes)
 	
 	def undo(self):
+		nodes = self.current_nodes[:]
 		self.move_to([])
 		self.model.unlock(self.root)
 		try:
 			self.model.undo()
 		finally:
 			self.model.lock(self.root)
+		self.move_to(filter(lambda x: self.has_ancestor(x, self.root), nodes))
 
 	def redo(self):
+		nodes = self.current_nodes[:]
 		self.move_to([])
 		self.model.unlock(self.root)
 		try:
 			self.model.redo()
 		finally:
 			self.model.lock(self.root)
+		self.move_to(filter(lambda x: self.has_ancestor(x, self.root), nodes))
 	
 	def default_done(self, exit):
 		"Called when execution of a program returns. op_in_progress has been "
