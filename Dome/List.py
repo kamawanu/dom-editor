@@ -511,14 +511,14 @@ class ChainDisplay(canvas.Canvas):
 				colour = 'yellow'
 				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = ly + 5, y2 = ly + 13,
 					fill_color = colour).lower_to_bottom()
-				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = hy - 3, y2 = hy + 3,
+				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = hy - 4, y2 = hy + 4,
 					fill_color = colour).lower_to_bottom()
 			if op.restore:
 				colour = 'orange'
 				margin = op.enter * 8
 				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = ly + 5 + margin, y2 = ly + 13 + margin,
 					fill_color = colour).lower_to_bottom()
-				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = hy - 3 - margin, y2 = hy + 3 - margin,
+				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = hy - 4 - margin, y2 = hy + 4 - margin,
 					fill_color = colour).lower_to_bottom()
 			next_off_y = 0
 			group.width, group.height = hx, hy
