@@ -234,6 +234,9 @@ class Op:
 		[x.set_parent(parent) for x in nearby if x.parent is not parent]
 	
 	def changed(self, op = None):
+		if hasattr(self, 'cached_code'):
+			del self.cached_code
+			print "(remove cached code)"
 		self.parent.changed(op or self)
 	
 	def swap_nf(self):

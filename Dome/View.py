@@ -597,18 +597,22 @@ class View:
 			if fast_global.match(pattern):
 				self.fast_global(pattern[2:])
 				return
+		
+		assert not self.op_in_progress or (self.op_in_progress.action[1] == pattern)
+		try:
+			code = self.op_in_progress.cached_code
+		except:
+			from Ft.Xml.XPath import XPathParser
+			code = XPathParser.new().parse(self.macro_pattern(pattern))
+			if self.op_in_progress and pattern.find('@CURRENT@') == -1:
+				self.op_in_progress.cached_code = code
+
 		ns = {}
 		if not ns:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
-		try:
-			ns['_'] = ns[None]
-		except KeyError:
-			pass
 		#print "ns is", ns
 		c = Context.Context(self.get_current(), processorNss = ns)
-		from Ft.Xml.XPath import XPathParser
-		code = XPathParser.new().parse(self.macro_pattern(pattern))
 		#print code
 		nodes = code.evaluate(c)
 		assert type(nodes) == list
@@ -667,12 +671,23 @@ class View:
 			src = self.root
 		else:
 			src = self.current_nodes[-1]
+		
+		# May be from a text_search...
+		#assert not self.op_in_progress or (self.op_in_progress.action[1] == pattern)
+		try:
+			code = self.op_in_progress.cached_code
+		except:
+			from Ft.Xml.XPath import XPathParser
+			code = XPathParser.new().parse(self.macro_pattern(pattern))
+			if self.op_in_progress and pattern.find('@CURRENT@') == -1:
+				self.op_in_progress.cached_code = code
+
 		if not ns:
 			ns = ext.GetAllNs(src)
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
 		
-		rt = XPath.Evaluate(self.macro_pattern(pattern), context = c)
+		rt = code.evaluate(c)
 		node = None
 		for x in rt:
 			if not self.has_ancestor(x, self.root):
