@@ -100,14 +100,13 @@ def load_dome_program(prog):
 	return new
 
 class Program:
-	"A program contains a Start Op and any number of sub-programs."
-	def __init__(self, name, start = None):
+	"A program contains a code Block and any number of sub-programs."
+	def __init__(self, name):
 		assert '/' not in name
 
-		if not start:
-			start = Op()
-			start.program = self
-		self.start = start
+		self.code = Block(self)
+		self.start = self.code.start
+		
 		self.name = name
 		self.subprograms = {}
 		self.watchers = []
@@ -182,7 +181,7 @@ class Program:
 	
 	def __str__(self):
 		return "Program(%s)" % self.name
-	
+
 class Op:
 	"Each node in a chain is an Op. There is no graphical stuff in here."
 
@@ -346,3 +345,10 @@ class Op:
 	def __str__(self):
 		return "{" + `self.action` + "}"
 
+class Block(Op):
+	"""A Block is an Op which contains a group of Ops."""
+
+	def __init__(self, program):
+		Op.__init__(self, action = ['Block'])
+		self.start = Op()
+		self.start.program = program

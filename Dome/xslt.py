@@ -30,7 +30,7 @@ def import_sheet(doc):
 	op = add(op, 'mark_selection')
 	op = add(op, 'do_search', '/xslt/Source')
 	op = add(op, 'play', 'XSLT/Default mode')
-
+	
 	reader = StylesheetReader()
 	sheet = reader.fromDocument(doc)
 
@@ -53,13 +53,15 @@ def import_sheet(doc):
 
 	for mode in sheet.matchTemplates.keys():
 		if mode:
-			prog = Program('Mode:' + mode[1])
+			mode_name = 'Mode:' + mode[1]
 		else:
-			prog = Program('Default mode')
+			mode_name = 'Default mode'
+		prog = Program(mode_name)
 		root.add_sub(prog)
 		tests = prog.start
 		print "Mode", mode
 		types = sheet.matchTemplates[mode]
+		loose_ends = []
 		for type in types.keys():
 			if type == Node.ELEMENT_NODE:
 				templates = types[type].values()
@@ -82,6 +84,17 @@ def import_sheet(doc):
 					tests = add(tests, 'fail_if', pattern)
 					op = Op(action = ['play', temp.get_path()])
 					tests.link_to(op, 'fail')
+					loose_ends.append(op)
+		# Now add the built-in rules
+
+		print "Tidy", loose_ends
+
+		tests = add(tests, 'do_global', '*')
+		tests = add(tests, 'map', prog.get_path())
+		tests = add(tests, 'mark_switch')
+		tests = add(tests, 'mark_switch')
+		[ op.link_to(tests, 'next') for op in loose_ends ]
+
 
 	return root
 

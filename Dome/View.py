@@ -1248,7 +1248,8 @@ class View:
 				value = self.clipboard.data
 			a = self.current_attrib
 			value = value.replace('\n', ' ')
-			self.model.set_attrib(node, a.name, value)
+			a = self.model.set_attrib(node, a.name, value)
+			self.move_to(node, a)
 			return
 		if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
 			if len(self.clipboard.childNodes) != 1:
