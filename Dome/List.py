@@ -65,8 +65,8 @@ def action_to_text(action):
 		elif action[0] == 'add_node':
 			details = trunc(action[2])
 		elif action[0] == 'play' or action[0] == 'map':
-			if len(action[1]) > 10:
-				details = '...' + str(action[1][-9:])
+			if len(action[1]) > 20:
+				details = '...' + str(action[1][-19:])
 			else:
 				details = str(action[1])
 		else:

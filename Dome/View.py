@@ -539,14 +539,14 @@ class View:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
 		ns['_'] = ns[None]
-		print "ns is", ns
+		#print "ns is", ns
 		c = Context.Context(self.get_current(), processorNss = ns)
 		from Ft.Xml.XPath import XPathParser
 		code = XPathParser.new().parse(self.macro_pattern(pattern))
-		print code
+		#print code
 		nodes = code.evaluate(c)
 		#nodes = XPath.Evaluate(self.macro_pattern(pattern), contextNode = self.get_current())
-		print "Found", nodes
+		#print "Found", nodes
 		self.move_to(nodes)
 
 	def select_region(self, path, ns = None):

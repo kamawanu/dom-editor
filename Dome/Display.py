@@ -127,12 +127,20 @@ class Display(GnomeCanvas):
 				root = self.view.root
 				if node is not root and self.view.has_ancestor(node, root):
 					# The root is OK - the change is inside...
-					group = self.node_to_group[node]
-					for i in group.children():
-						i.destroy()
-					self.create_tree(node, group, cramped = group.cramped)
-					self.auto_highlight(node, rec = 1)
-					self.child_group_resized(node)
+					try:
+						group = self.node_to_group[node]
+					except:
+						# Modified node not created yet.
+						# Don't worry, updating the parent later
+						# will fix it...
+						print "(node missing)"
+						pass
+					else:
+						for i in group.children():
+							i.destroy()
+						self.create_tree(node, group, cramped = group.cramped)
+						self.auto_highlight(node, rec = 1)
+						self.child_group_resized(node)
 				else:
 					# Need to rebuild everything...
 					print "Rebuilding..."
