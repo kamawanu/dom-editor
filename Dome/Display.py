@@ -150,7 +150,6 @@ class Display(canvas.Canvas):
 						y = group.get_property('y')
 						gr = parent.add(canvas.CanvasGroup, x = x, y = y)
 						group.destroy()
-						print group.attrib_to_group
 						group.attrib_to_group = None
 						self.node_to_group[node] = gr
 						gr.connect('event', self.node_event, node)
