@@ -624,6 +624,10 @@ class View:
 		#print code
 		nodes = code.evaluate(c)
 		assert type(nodes) == list
+
+		#don't select the document itself!
+		for n in nodes: assert n.parentNode
+		
 		#nodes = XPath.Evaluate(self.macro_pattern(pattern), contextNode = self.get_current())
 		#print "Found", nodes
 		self.move_to(nodes)
