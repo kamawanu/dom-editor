@@ -219,10 +219,6 @@ class View:
 	def set_exec(self, pos):
 		if self.op_in_progress:
 			raise Exception("Operation in progress...")
-		if pos:
-			assert isinstance(pos[0], Op)
-			while isinstance(pos[0], Block):
-				pos = (pos[0].start, pos[1])
 		self.exec_point = pos
 		#if pos:
 		#print "set_exec: %s:%s" % pos
@@ -499,7 +495,6 @@ class View:
 			support.report_error("No current playback point.")
 			raise Done()
 		(op, exit) = self.exec_point
-		assert not isinstance(op, Block)
 
 		if self.single_step == 0 and self.breakpoint():
 			print "Hit a breakpoint! At " + time.ctime(time.time())
@@ -889,10 +884,15 @@ class View:
 		if self.op_in_progress:
 			self.push_stack(self.op_in_progress)
 			self.set_oip(None)
-		self.set_exec((prog.code, 'next'))
+		self.run_block(prog.code)
 		self.sched()
 		self.status_changed()
 		raise InProgress
+	
+	def run_block(self, block):
+		while isinstance(block.start, Block):
+			block = block.start
+		self.set_exec((block.start, 'next'))
 	
 	def sched(self):
 		if self.op_in_progress:

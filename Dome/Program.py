@@ -65,7 +65,15 @@ def load(node, program):
 			exit = 'next'
 			prev = op
 			
-			_load(op_node, op, 'fail')
+			if op_node.nodeName == 'block':
+				# Block nodes have a special failure child
+				for x in op_node.childNodes:
+					if x.localName == 'fail':
+						_load(x, op, 'fail')
+						break
+			else:
+				# If the new node has children then they are the failure case
+				_load(op_node, op, 'fail')
 
 			link = op_node.getAttributeNS(None, 'target_fail')
 			if link:
@@ -226,6 +234,10 @@ class Op:
 	
 	def link_to(self, child, exit):
 		# Create a link from this exit to this child Op
+		assert self.action[0] != 'Start' or exit == 'next'
+		print child.action
+		assert child.action[0] != 'Start'
+		
 		if child.program and child.program is not self.program:
 			raise Exception('%s is from a different program (%s)!' % (child, child.program))
 		# If we already have something on this exit, and the new node has a
@@ -321,14 +333,18 @@ class Op:
 		self.to_xml_int(doc.documentElement)
 		return doc
 	
-	def to_xml_int(self, parent):
-		"""Adds a chain of <Node> elements to 'parent'. Links only followed when node is
-		first parent."""
-		node = parent.ownerDocument.createElementNS(DOME_NS, 'node')
-		parent.appendChild(node)
+	def to_xml(self, doc):
+		node = doc.createElementNS(DOME_NS, 'node')
 		node.setAttributeNS(None, 'action', `self.action`)
 		node.setAttributeNS(None, 'dx', str(self.dx))
 		node.setAttributeNS(None, 'dy', str(self.dy))
+		return node
+	
+	def to_xml_int(self, parent):
+		"""Adds a chain of <Node> elements to 'parent'. Links only followed when node is
+		first parent."""
+		node = self.to_xml(parent.ownerDocument)
+		parent.appendChild(node)
 
 		if len(self.prev) > 1:
 			node.setAttributeNS(None, 'id', str(id(self)))
@@ -340,7 +356,12 @@ class Op:
 
 		if self.fail:
 			if self.fail.prev[0] == self:
-				self.fail.to_xml_int(node)
+				if isinstance(self, Block):
+					fail = parent.ownerDocument.createElementNS(DOME_NS, 'fail')
+					self.fail.to_xml_int(fail)
+					node.appendChild(fail)
+				else:
+					self.fail.to_xml_int(node)
 			else:
 				node.setAttributeNS(None, 'target_fail', str(id(self.fail)))
 		if self.next:
@@ -372,9 +393,6 @@ class Block(Op):
 	def link_to(self, child, exit):
 		assert not self.is_toplevel()
 		Op.link_to(self, child, exit)
-	
-	def to_xml_int(self, parent):
-		parent.appendChild(self.to_xml(parent.ownerDocument))
 	
 	def to_xml(self, doc):
 		node = doc.createElementNS(DOME_NS, 'block')

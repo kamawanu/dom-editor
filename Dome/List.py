@@ -462,13 +462,14 @@ class ChainDisplay(GnomeCanvas):
 			group.width, group.height = 0, 0
 
 		if op.next and op.next.prev[0] == op:
+			sx, sy = self.get_arrow_start(op, 'next')
 			g = group.add('group', x = 0, y = 0)
 			self.create_node(op.next, g)
 			(lx, ly, hx, hy) = g.get_bounds()
 			drop = max(20, next_off_y + 10)
 			y = drop - ly
 			y += op.next.dy
-			g.move(0, y)
+			g.move(sx, sy + y)
 		
 		group.next_line = group.add('line',
 					fill_color = 'black',
@@ -482,6 +483,7 @@ class ChainDisplay(GnomeCanvas):
 
 		(x, y) = DEFAULT_FAIL
 		if op.fail and op.fail.prev[0] == op:
+			sx, sy = self.get_arrow_start(op, 'fail')
 			y = 46
 			g = group.add('group', x = 0, y = 0)
 			self.create_node(op.fail, g)
@@ -489,7 +491,7 @@ class ChainDisplay(GnomeCanvas):
 			x = 20 - lx
 			x += op.fail.dx
 			y += op.fail.dy
-			g.move(x, y)
+			g.move(sx + x, sy + y)
 		group.fail_line = group.add('line',
 					fill_color = '#ff6666',
 					points = connect(0, 0, 1, 1),
@@ -500,6 +502,8 @@ class ChainDisplay(GnomeCanvas):
 					arrow_shape_c = 5)
 		group.fail_line.lower_to_bottom()
 		group.fail_line.connect('event', self.line_event, op, 'fail')
+		if op.action[0] == 'Start':
+			group.fail_line.hide()
 
 		self.join_nodes(op, 'next')
 		self.join_nodes(op, 'fail')
@@ -537,6 +541,7 @@ class ChainDisplay(GnomeCanvas):
 
 			prev_group = self.op_to_group[op]
 			line = getattr(prev_group, exit + '_line')
+			sx, sy = self.get_arrow_start(op, exit)
 
 			if op2:
 				group = self.op_to_group[op2]
@@ -544,12 +549,13 @@ class ChainDisplay(GnomeCanvas):
 				x, y = prev_group.w2i(x, y)
 			elif exit == 'next':
 				x, y = DEFAULT_NEXT
+				x += sx
+				y += sy
 			else:
 				x, y = DEFAULT_FAIL
+				x += sx
+				y += sy
 
-			sx, sy = self.get_arrow_start(op, exit)
-			x += sx
-			y += sy
 			line.set(points = connect(sx, sy, x, y))
 		except:
 			print "*** ERROR setting arc from %s:%s" % (op, exit)
@@ -609,7 +615,7 @@ class ChainDisplay(GnomeCanvas):
 	def paste_chain(self, op, exit):
 		print "Paste", self.clipboard
 		doc = self.clipboard
-		new = load(doc.documentElement)
+		new = load(doc.documentElement, op.program)
 		op.link_to(new, exit)
 	
 	def end_link_drag(self, item, event, src_op, exit):
@@ -620,6 +626,8 @@ class ChainDisplay(GnomeCanvas):
 			"Return the closest (node, dist) in this chain to (x, y)"
 			nx, ny = self.op_to_group[op].i2w(0, 0)
 			if op is src_op:
+				best = None
+			elif isinstance(op, Block):
 				best = None
 			else:
 				best = (op, math.hypot(nx - x, ny - y))
@@ -659,8 +667,10 @@ class ChainDisplay(GnomeCanvas):
 			elif event.button == 2:
 				self.paste_chain(op, exit)
 			elif event.button == 3:
-				def paste_chain(self = self, op = op, exit = exit):
+				def paste_chain():
 					self.paste_chain(op, exit)
+				def add_block():
+					op.link_to(Block(op.program), exit)
 				def toggle_breakpoint(self = self, op = op, exit = exit):
 					bp = self.view.breakpoints
 					if bp.has_key((op, exit)):
@@ -685,7 +695,8 @@ class ChainDisplay(GnomeCanvas):
 					('Set/clear breakpoint', toggle_breakpoint),
 					('Yank chain', yank_chain),
 					('Remove link', del_chain),
-					('Paste chain', paste_chain)]
+					('Paste chain', paste_chain),
+					('Add block', add_block)]
 				Menu(items).popup(event.button, event.time)
 		elif event.type == BUTTON_RELEASE:
 			if event.button == 1:
