@@ -2,8 +2,6 @@ from gtk import *
 from GDK import *
 import string
 
-import Tree
-
 # text -> last value
 history = {}
 

@@ -14,6 +14,8 @@ import Exec
 from SaveBox import SaveBox
 from Menu import Menu
 
+clipboard = None
+
 def action_to_text(action):
 	text = action[0]
 	if text[:3] == 'do_':
@@ -154,47 +156,7 @@ class Macro(GtkWindow):
 	def load_data(self, data):
 		reader = PyExpat.Reader()
 		doc = reader.fromStream(StringIO(data))
-		self.load(self.start, doc.documentElement)
-	
-	# Data is <node action="...">[<fail>][<node>]</node> for the CURRENT node
-	def load(self, start, node):
-		def action(node):
-			attr = node.attributes[('', 'action')]
-			action = eval(str(attr.value))
-			if action[0] == 'chroot':
-				action[0] = 'enter'
-			elif action[0] == 'unchroot':
-				action[0] = 'leave'
-			elif action[0] == 'playback':
-				action[0] = 'map'
-			return action
-			
-		next = None
-		fail = None
-		for k in node.childNodes:
-			if k.nodeName == 'node':
-				next = k
-			elif k.nodeName == 'fail':
-				fail = k
-				
-		if next:
-			self.record(start, action(next), 'next')
-			self.load(start.next, next)
-		
-		if fail:
-			for k in fail.childNodes:
-				if k.nodeName == 'node':
-					self.record(start, action(k), 'fail')
-					self.load(start.fail, k)
-					return
-			raise Exception('Badly formed <fail> node')
-	
-	def record(self, node, action, exit = 'next'):
-		"node is the node which this action follows"
-		if self.is_destroyed:
-			raise Exception('Macro no longer exists!')
-
-		return node.add_child(action, exit)
+		self.start.load(doc.documentElement)
 	
 	def update_title(self):
 		self.set_title(self.uri)
@@ -364,9 +326,21 @@ class MacroNode:
 
 		return new
 	
+	def paste_clipboard(self, exit):
+		print "Paste %s:%s:\n%s" % (self, exit, clipboard)
+		if not clipboard:
+			raise Exception('No clipboard!')
+
+		reader = PyExpat.Reader()
+		doc = reader.fromStream(StringIO(clipboard))
+		self.load(doc.documentElement, exit = exit)
+	
 	def line_event(self, line, event, prev, exit):
-		if event.type == BUTTON_PRESS and event.button == 1:
-			self.get_exec_state().set_pos(prev, exit, 0.5)
+		if event.type == BUTTON_PRESS:
+			if event.button == 1:
+				self.get_exec_state().set_pos(prev, exit, 0.5)
+			elif event.button == 2:
+				prev.paste_clipboard(exit)
 		return 1
 	
 	def show_menu(self, event):
@@ -406,12 +380,18 @@ class MacroNode:
 		prev.forget_child(self)
 		if self.next:
 			self.next.reparent(prev, exit)
+			self.next = None
 		elif self.fail:
 			self.fail.reparent(prev, exit)
+			self.fail = None
+		global clipboard
+		clipboard = self.add()
 		self.group.destroy()
 		#self.prev.kill_child(self)
 	
 	def del_chain(self):
+		global clipboard
+		clipboard = self.add()
 		self.prev.kill_child(self)
 	
 	def event(self, group, event):
@@ -517,8 +497,50 @@ class MacroNode:
 			self.marker.move(dx, dy)
 			self.where = where
 	
-	def record(self, action, exit):
-		return self.macro.record(self, action, exit)
+	def record(self, action, exit = 'next'):
+		if self.macro.is_destroyed:
+			raise Exception('Macro no longer exists!')
+		return self.add_child(action, exit)
 	
 	def __str__(self):
 		return "{" + `self.action` + "}"
+
+	# Data is <node action="...">[<fail>][<node>]</node> for the CURRENT node
+	# unless 'exit' is given, in which case the node is added to that exit.
+	def load(self, node, exit = None):
+		def action(node):
+			attr = node.attributes[('', 'action')]
+			action = eval(str(attr.value))
+			if action[0] == 'chroot':
+				action[0] = 'enter'
+			elif action[0] == 'unchroot':
+				action[0] = 'leave'
+			elif action[0] == 'playback':
+				action[0] = 'map'
+			return action
+			
+		if exit:
+			new = self.record(action(node), exit)
+			new.load(node)
+			return
+
+		next = None
+		fail = None
+		for k in node.childNodes:
+			if k.nodeName == 'node':
+				next = k
+			elif k.nodeName == 'fail':
+				fail = k
+				
+		if next:
+			self.record(action(next), 'next')
+			self.next.load(next)
+		
+		if fail:
+			for k in fail.childNodes:
+				if k.nodeName == 'node':
+					self.record(action(k), 'fail')
+					self.fail.load(k)
+					return
+			raise Exception('Badly formed <fail> node')
+	

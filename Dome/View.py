@@ -1,7 +1,6 @@
 from gtk import *
 from support import *
 from xml.dom.Node import Node
-from xml.dom import ext
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
 import os, re, string, types
 import urlparse

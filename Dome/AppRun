@@ -5,9 +5,7 @@ from gtk import *
 import sys
 from os.path import dirname
 
-from Tree import Tree
 from Window import Window
-import Macro
 
 app_dir = dirname(sys.argv[0])
 

@@ -92,7 +92,11 @@ class Display(GnomeCanvas):
 		group.node = node
 		group.add('ellipse', x1 = -4, y1 = -4, x2 = 4, y2 = 4,
 					fill_color = 'yellow', outline_color = 'black')
-		text = str(self.get_text(node))
+		text = self.get_text(node)
+		try:
+			text = str(text)
+		except UnicodeError:
+			text = `text`
 		if cramped:
 			text = wrap(text, 32)
 		group.text = group.add('text', x = 12, y = -6, anchor = ANCHOR_NW,

@@ -11,7 +11,6 @@ from xml.dom.ext.reader import PyExpat
 import Html
 from loader import make_xds_loader
 from support import *
-from Tree import Tree
 from SaveBox import SaveBox
 from List import List
 from Toolbar import Toolbar

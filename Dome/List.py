@@ -48,7 +48,7 @@ class List(GtkVBox):
 		new = self.record_new(str(name))
 		for node in tree.childNodes:
 			if node.nodeName == 'node':
-				new.load(new.start, node)
+				new.start.load(node)
 				return
 	
 	def macro_named(self, name):

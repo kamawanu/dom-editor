@@ -2,7 +2,7 @@ from gtk import *
 from support import *
 
 from Beep import Beep
-from Macro import MacroNode
+import Macro
 
 # An exec represents an executing macro, including the stack, root and cursor position
 
@@ -156,7 +156,7 @@ class Exec:
 		# XXX: Recursion won't unhighlight correctly...
 		while n > 0:
 			node = self.stack.pop()
-			if isinstance(node, MacroNode):
+			if isinstance(node, Macro.MacroNode):
 				node.highlight('blue')
 			n -= 1
 			if self.stop_after > 0:

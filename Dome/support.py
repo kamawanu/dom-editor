@@ -1,6 +1,7 @@
 import sys
 import traceback
 from xml.dom import implementation
+from xml.dom import ext
 
 from string import find, lower, join
 from socket import gethostbyaddr, gethostname
