@@ -205,6 +205,7 @@ class View:
 			self.pop_stack()
 		self.foreach_stack = []
 		self.status_changed()
+		self.update_stack()
 
 	def push_stack(self, op):
 		if not isinstance(op, Op):
