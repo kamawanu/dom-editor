@@ -72,6 +72,12 @@ class View:
 	def running(self):
 		return self.idle_cb != 0
 
+	def run_new(self, callback = None):
+		"Reset the playback system (stack, step-mode and point)."
+		"Call callback when execution finishes."
+		self.single_step = 0
+		self.callback_on_return = callback
+
 	def set_exec(self, pos):
 		if self.op_in_progress:
 			raise Exception("Operation in progress...")
@@ -270,6 +276,7 @@ class View:
 		"'action' is a tuple (function, arg1, arg2, ...)"
 		fn = getattr(self, action[0])
 		exit = 'next'
+		#print "DO:", action[0]
 		try:
 			new = apply(fn, action[1:])
 		except InProgress:
@@ -301,7 +308,13 @@ class View:
 		if next:
 			self.set_oip(next)
 			self.do_action(next.action)
-		elif self.callback_on_return:
+			return
+
+		if exit == 'fail' and not self.innermost_failure:
+			print "Setting innermost_failure"
+			self.innermost_failure = op
+
+		if self.callback_on_return:
 			cb = self.callback_on_return
 			self.callback_on_return = None
 			cb()
@@ -473,10 +486,11 @@ class View:
 
 	def play(self, name):
 		prog = self.name_to_prog(name)
+		self.innermost_failure = None
 
 		if self.op_in_progress:
 			def fin(self = self, op = self.op_in_progress, done = self.callback_on_return):
-				(end, exit) = self.exec_point
+				(prev, exit) = self.exec_point
 				print "Up to", op, exit
 				self.set_exec((op, exit))
 				self.callback_on_return = done
@@ -531,6 +545,7 @@ class View:
 			if check:
 				(op, exit) = self.exec_point
 				if exit != 'next':
+					self.callback_on_return = old_cb
 					return self.resume(exit)
 			inp[2] = TRUE
 			self.move_to(nodes[0])

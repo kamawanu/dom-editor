@@ -3,11 +3,13 @@ from GDK import *
 from gnome.ui import *
 from support import *
 import string
+from xml.dom.ext.reader import PyExpat
+from StringIO import StringIO
 
 import choices
 from Menu import Menu
 from GetArg import GetArg
-from Program import Program
+from Program import Program, load
 
 def action_to_text(action):
 	text = action[0]
@@ -108,6 +110,18 @@ class List(GtkVBox):
 			for k in prog.subprograms.values():
 				self.build_tree(subtree, k)
 			item.set_subtree(subtree)
+	
+	def run_return(self):
+		(op, exit) = self.view.exec_point
+		if exit != 'next':
+			self.view.set_exec((self.view.innermost_failure, 'fail'))
+			self.tree.select_child(self.prog_to_tree[op.program])
+			def cb(choice, self = self):
+				if choice == 0:
+					self.view.record_at_point()
+			get_choice("Program failed - record a failure case?", "Dome",
+				buttons = ['Record', 'Cancel'], callback = cb)
+		print "List: execution done!"
 
 	def prog_event(self, item, event, prog):
 		if event.button == 2 or event.button == 3:
@@ -117,7 +131,7 @@ class List(GtkVBox):
 				self.show_menu(event, prog)
 			else:
 				name = self.prog_to_name(prog)
-				self.view.single_step = 0
+				self.view.run_new(self.run_return)
 				if event.state & SHIFT_MASK:
 					self.view.may_record(['map', name])
 				else:
@@ -154,7 +168,7 @@ class List(GtkVBox):
 		name = self.prog_to_name(prog)
 		def do(play, view = view, name = name):
 			def ret(play = play, view = view, name = name):
-				view.single_step = 0
+				self.view.run_new(self.run_return)
 				view.may_record([play, name])
 			return ret
 		items = [
@@ -348,6 +362,10 @@ class ChainDisplay(GnomeCanvas):
 				self.view.set_exec((op, exit))
 			elif event.button == 2:
 				print "Paste", self.clipboard
+				reader = PyExpat.Reader()
+				doc = reader.fromStream(StringIO(self.clipboard))
+				new = load(op.program, doc.documentElement)
+				op.link_to(new, exit)
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')
 		elif event.type == LEAVE_NOTIFY:

@@ -1,6 +1,5 @@
 from xml.parsers.xmlproc.utils import escape_attval
 from xml.dom.ext.reader import PyExpat
-from StringIO import StringIO
 import string
 
 from support import *
@@ -11,12 +10,6 @@ def el_named(node, name):
 			return n
 	return None
 	
-def load_xml(op_xml):
-	"op_xml is '<chain>...</chain>'"
-	reader = PyExpat.Reader()
-	doc = reader.fromStream(StringIO(op_xml))
-	return load(doc.documentElement)
-
 # Node is a DOM <dome-program> or <node> node.
 # Returns the start Op.
 def load(program, chain):
