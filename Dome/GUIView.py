@@ -73,29 +73,32 @@ class GUIView(Display):
 		self.view.may_record(["attribute", attrib.namespaceURI, attrib.localName])
 	
 	def show_menu(self, bev):
+		def do(action, self = self):
+			return lambda self = self: self.view.may_record([action])
+
 		items = [
 			('Search', self.show_search),
 			('Text search', self.show_text_search),
 			('Global', self.show_global),
 			(None, None),
 			('Yank attributes', self.show_yank_attribs),
-			('Paste attributes', lambda self = self: self.view.may_record(['paste_attribs'])),
+			('Paste attributes', do('paste_attribs')),
 			('Yank attrib value', self.show_yank_attrib),
 			(None, None),
-			('Cut', lambda self = self: self.view.may_record(['delete_node'])),
-			('Paste (replace)', lambda self = self: self.view.may_record(['put_replace'])),
-			('Paste (inside)', lambda self = self: self.view.may_record(['put_as_child'])),
-			('Paste (before)', lambda self = self: self.view.may_record(['put_before'])),
-			('Paste (after)', lambda self = self: self.view.may_record(['put_after'])),
+			('Cut', do('delete_node')),
+			('Paste (replace)', do('put_replace')),
+			('Paste (inside)', do('put_as_child')),
+			('Paste (before)', do('put_before')),
+			('Paste (after)', do('put_after')),
 			(None, None),
 			('Substitute', self.show_subst),
 			('Process', self.show_pipe),
 			(None, None),
-			('Question', self.show_ask),
-			('Fail', lambda self = self: self.view.may_record(['fail'])),
+			('Input', self.show_ask),
+			('Fail', do('fail')),
 			(None, None),
-			('Undo', lambda self = self: self.view.may_record(['undo'])),
-			('Redo', lambda self = self: self.view.may_record(['redo'])),
+			('Undo', do('undo')),
+			('Redo', do('redo')),
 			('Enter', self.view.enter),
 			('Leave', self.view.leave),
 			('Close Window', self.window.destroy),
@@ -114,7 +117,7 @@ class GUIView(Display):
 		def do_ask(q, self = self):
 			action = ["ask", q]
 			self.view.may_record(action)
-		GetArg('Ask:', do_ask, ('Question:',))
+		GetArg('Input:', do_ask, ('Prompt:',))
 
 	def show_subst(self):
 		def do_subst(args, self = self):
@@ -205,8 +208,9 @@ class GUIView(Display):
 
 	def commit_edit(self, new):
 		if self.cursor_attrib:
+			name, value = string.split(new, '=', 1)
 			self.view.may_record(['set_attrib', self.cursor_attrib.namespaceURI,
-						self.cursor_attrib.localName, new])
+						self.cursor_attrib.localName, value])
 		else:
 			self.view.may_record(['change_node', new])
 	
@@ -260,18 +264,20 @@ class GUIView(Display):
 			else:
 				(prefix, localName) = ('', name)
 			namespaceURI = self.view.model.prefix_to_namespace(self.view.current, prefix)
-			if self.view.current.hasAttributeNS(namespaceURI, localName):
-				action = ["attribute", namespaceURI, localName]
-				self.view.may_record(action)
-			else:
-				def do_create(value, self = self,
-						namespaceURI = namespaceURI,
-						name = name):
-					action = ["set_attrib", namespaceURI, name, value]
-					print action
-					self.view.may_record(action)
-				GetArg('Create attribute:', do_create, ['%s = ' % name])
+			action = ["attribute", namespaceURI, localName]
+			self.view.may_record(action)
 		GetArg('Select attribute:', do_attrib, ['Name:'])
+
+	def show_add_attrib(self):
+		def do_it(name, self = self):
+			if ':' in name:
+				(prefix, localName) = string.split(name, ':', 1)
+			else:
+				(prefix, localName) = ('', name)
+			namespaceURI = self.view.model.prefix_to_namespace(self.view.current, prefix)
+			action = ["set_attrib", namespaceURI, name, ""]
+			self.view.may_record(action)
+		GetArg('Create attribute:', do_it, ['Name:'])
 
 	def show_pipe(self):
 		def do_pipe(expr, self = self):
@@ -380,6 +386,7 @@ class GUIView(Display):
 		Tab	: toggle_edit,
 		Return	: toggle_edit,
 		at	: show_attrib,
+		plus	: show_add_attrib,
 		exclam	: show_pipe,
 		s	: show_subst,
 

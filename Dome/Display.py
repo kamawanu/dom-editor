@@ -128,6 +128,7 @@ class Display(GnomeCanvas):
 						self.root_group.destroy()
 					self.root_group = self.root().add('group', x = 0, y = 0)
 					group = self.root_group
+					group.connect('event', self.node_event, node)
 					node = self.view.root
 					self.create_tree(node, group)
 					self.auto_highlight_rec(node)
@@ -198,7 +199,6 @@ class Display(GnomeCanvas):
 		group.text = group.add('text', x = 12, y = -6, anchor = ANCHOR_NW,
 					font = 'fixed', fill_color = 'black',
 					text = text)
-		group.connect('event', self.node_event, node)
 		self.node_to_group[node] = group
 
 		(lx, ly, hx, hy) = group.text.get_bounds()
@@ -238,6 +238,7 @@ class Display(GnomeCanvas):
 		kids = []
 		for n in node.childNodes:
 			g = group.add('group', x = 0, y = 0)
+			g.connect('event', self.node_event, n)
 			self.create_tree(n, g, cramped)
 			kids.append(g)
 		

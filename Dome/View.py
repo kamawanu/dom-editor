@@ -7,6 +7,7 @@ import urlparse
 import Html
 
 from Beep import Beep
+from GetArg import GetArg
 import Exec
 
 DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
@@ -322,12 +323,13 @@ class View:
 
 	def ask(self, q):
 		def ask_cb(result, self = self):
-			if result == 0:
+			self.clipboard = self.model.doc.createTextNode(result)
+			if self.exec_state.where:
 				self.exec_state.unfreeze('next')
-			elif result == 1:
-				self.exec_state.unfreeze('fail')
-		self.exec_state.freeze()
-		get_choice(q, "Question:", ('Yes', 'No'), ask_cb)
+		self.exec_state = Exec.exec_state	# XXX
+		if self.exec_state.where:
+			self.exec_state.freeze()
+		GetArg('Input:', ask_cb, [q])
 
 	def python_to_node(self, data):
 		"Convert a python data structure into a tree and return the root."
@@ -506,6 +508,14 @@ class View:
 		node = self.current
 		if self.clipboard == None:
 			raise Beep
+		if self.current_attrib:
+			if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
+				value = self.clipboard.childNodes[0].data
+			else:
+				value = self.clipboard.data
+			a = self.current_attrib
+			self.model.set_attrib(node, a.namespaceURI, a.localName, value)
+			return
 		if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
 			if len(self.clipboard.childNodes) != 1:
 				raise Beep
@@ -609,3 +619,4 @@ class View:
 	def set_attrib(self, namespaceURI, name, value):
 		# 'name' must include the prefix if namespaceURI is not ''
 		self.model.set_attrib(self.current, namespaceURI, name, value)
+		self.move_to(self.current, self.current.getAttributeNodeNS(namespaceURI, name))
