@@ -456,14 +456,10 @@ class Block(Op):
 	
 	def toggle_restore(self):
 		self.restore = not self.restore
-		if self.restore:
-			self.enter = 0
 		self.changed()
 	
 	def toggle_enter(self):
 		self.enter = not self.enter
-		if self.enter:
-			self.restore = 0
 		self.changed()
 	
 	def toggle_foreach(self):

@@ -142,7 +142,7 @@ class View:
 		self.single_step = 1	# 0 = Play   1 = Step-into   2 = Step-over
 		self.model = None
 		self.chroots = []	# (model, node, marked)
-		self.foreach_stack = []	# (block, [nodes], restore-nodes)
+		self.foreach_stack = []	# (block, [nodes], restore-nodes, restore-marks)
 		self.current_nodes = []
 		self.clipboard = None
 		self.current_attrib = None
@@ -959,7 +959,7 @@ class View:
 		#print "Start interation"
 		if not self.foreach_stack:
 			raise Done
-		stack_block, nodes_list, restore = self.foreach_stack[-1]
+		stack_block, nodes_list, restore, old_mark = self.foreach_stack[-1]
 		if stack_block != block:
 			self.foreach_stack = []
 			self.update_stack()
@@ -968,7 +968,7 @@ class View:
 		if continuing:
 			if block.enter:
 				self.leave()
-			if block.foreach and not block.restore:
+			if block.foreach:
 				restore.extend(self.current_nodes)
 			if continuing == 'fail':
 				print "Error in block; exiting early in program", block.get_program()
@@ -982,9 +982,12 @@ class View:
 		if not nodes_list:
 			self.foreach_stack.pop()
 			self.update_stack()
-			if block.foreach or block.restore:
+			if block.foreach:
 				nodes = filter(lambda x: self.has_ancestor(x, self.root), restore)
 				self.move_to(nodes)
+			if old_mark is not None:
+				self.set_marked(old_mark)
+				[self.model.unlock(x) for x in old_mark]
 			return 0	# Nothing left to do
 		nodes = nodes_list[0]
 		del nodes_list[0]
@@ -1008,9 +1011,11 @@ class View:
 			list = [self.current_nodes[:]]	# List of one item, containing everything
 			
 		if block.restore:
-			self.foreach_stack.append((block, list, self.current_nodes[:]))
+			marks = self.marked.copy()
+			[self.model.lock(x) for x in marks]
 		else:
-			self.foreach_stack.append((block, list, []))
+			marks = None
+		self.foreach_stack.append((block, list, [], marks))
 			
 		self.update_stack()
 		if not self.start_block_iteration(block):

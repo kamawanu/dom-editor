@@ -11,7 +11,7 @@ from Ft.Xml.Xslt.StylesheetReader import StylesheetReader
 from Ft.Xml.Xslt.StylesheetTree import XsltElement, XsltText
 from Ft.Xml.Xslt.LiteralElement import LiteralElement
 from Ft.Xml.Xslt.ApplyTemplatesElement import ApplyTemplatesElement
-from Program import Program, Op
+from Program import Program, Op, Block
 
 def import_sheet(doc):
 	print "Import!", doc
@@ -113,6 +113,14 @@ def add(op, *action):
 #
 # Add the instructions to instantiate this template to 'op'.
 def make_template(op, temp):
+	op = add(op, 'mark_switch')
+	block = Block(op.parent)
+	block.toggle_restore()
+	op.link_to(block, 'next')
+	op = block.start
+	op2 = add(block, 'mark_switch')
+
+	op = add(op, 'mark_switch')
 	for child in temp.children:
 		if isinstance(child, XsltText):
 			print "Text node", child.data
@@ -131,4 +139,6 @@ def make_template(op, temp):
 			op = add(op, 'mark_switch')
 		else:
 			print "Unknown template type", child, "(%s)" % child.__class__
-	return op
+	op = add(op, 'mark_switch')
+
+	return op2
