@@ -115,9 +115,14 @@ class Display(GnomeCanvas):
 	
 	def unhighlight(self, node):
 		"After creating the tree, everything is highlighted..."
-		self.hightlight(self.node_to_group[node], node in self.view.current_nodes)
+		self.auto_hightlight(node)
 		for k in node.childNodes:
 			self.unhighlight(k)
+	
+	def auto_hightlight(self, node):
+		"Highlight this node depending on its selected state."
+		self.hightlight(self.node_to_group[node],
+			self.view.current_attrib == None and node in self.view.current_nodes)
 	
 	def destroyed(self, widget):
 		self.view.remove_display(self)
@@ -127,6 +132,13 @@ class Display(GnomeCanvas):
 					font = 'fixed', fill_color = 'grey40',
 					text = "%s=%s" % (str(attrib.name), str(attrib.value)))
 		group.connect('event', self.attrib_event, parent, attrib)
+
+		(lx, ly, hx, hy) = group.text.get_bounds()
+		group.rect = group.add('rect',
+					x1 = lx - 1, y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
+					fill_color = 'blue')
+		group.rect.lower_to_bottom()
+		group.rect.hide()
 	
 	def create_tree(self, node, group, cramped = 0):
 		group.node = node
@@ -269,7 +281,7 @@ class Display(GnomeCanvas):
 
 		new = self.view.current_nodes
 		for n in old:
-			if n not in new:
+			if self.view.current_attrib or n not in new:
 				try:
 					self.hightlight(self.node_to_group[n], FALSE)
 				except KeyError:
@@ -279,21 +291,22 @@ class Display(GnomeCanvas):
 		# We can update without structural problems...
 		if self.view.current_nodes:
 			self.scroll_to_show(self.view.current_nodes[0])
-		for n in new:
-			if n not in old:
-				try:
-					self.hightlight(self.node_to_group[n], TRUE)
-				except KeyError:
-					pass
+		if self.view.current_attrib:
+			pass
+		else:
+			for n in new:
+				self.hightlight(self.node_to_group[n], TRUE)
 
 	def set_current_attrib(self, attrib):
 		"Select 'attrib' attribute node of the current node. None to unselect."
 		if self.current_attrib:
+			self.current_attrib.rect.hide()
 			self.current_attrib.text.set(fill_color = 'grey40')
 			self.current_attrib = None
 		if attrib:
 			group = self.node_to_group[self.view.current].attrib_to_group[attrib]
-			group.text.set(fill_color = 'red')
+			group.rect.show()
+			group.text.set(fill_color = 'white')
 			self.current_attrib = group
 
 	def hightlight(self, group, state):

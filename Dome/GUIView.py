@@ -130,7 +130,7 @@ class GUIView(Display):
 		if self.cursor_node:
 			group = self.node_to_group[self.cursor_node]
 			self.cursor_hidden_text.show()
-			self.hightlight(group, self.cursor_node in self.view.current_nodes)
+			self.auto_hightlight(self.cursor_node)
 			self.cursor_node = None
 			self.edit_box_item.destroy()
 
