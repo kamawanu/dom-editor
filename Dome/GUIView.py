@@ -67,7 +67,7 @@ class GUIView(Display):
 		elif key == Escape:
 			self.show_cursor(None)
 			return
-		elif key == Tab or key == Return:
+		elif key == Tab:
 			if str(self.get_text(self.cursor_node)) != self.cursor_text:
 				self.view.may_record(["change_node", self.cursor_text])
 			self.show_cursor(None)
@@ -76,10 +76,13 @@ class GUIView(Display):
 			new = self.cursor_text[:i - 1] + self.cursor_text[i:]
 			i -= 1
 		else:
-			try:
-				c = chr(key)
-			except:
-				return
+			if key == Return:
+				c = '\n'
+			else:
+				try:
+					c = chr(key)
+				except:
+					return
 			new = self.cursor_text[:i] + c + self.cursor_text[i:]
 			i += 1
 		if new != None:
@@ -180,10 +183,15 @@ class GUIView(Display):
 		self.cursor_index = index
 		font = load_font('fixed')
 		t = self.cursor_text[:index]
+		nls = string.count(t, '\n')
+		last_nl = string.rfind(t, '\n')
+		if last_nl != -1:
+			t = t[last_nl + 1:]
 		if t[-1:] == ' ':
 			t += ' '			# ?!?
 		x = font.measure(t)
-		self.cursor.line.set(points = (x, 0, x, self.cursor_height))
+		y = nls * self.cursor_height
+		self.cursor.line.set(points = (x, y, x, y + self.cursor_height))
 	
 	def show_cursor(self, node, index = 0):
 		"Move the cursor 'index' within the text of 'node'"
@@ -201,7 +209,7 @@ class GUIView(Display):
 			group.text.hide()
 			lx, ly, hx, hy = group.text.get_bounds()
 			x, y = group.i2w(lx, ly)
-			self.cursor_height = hy - ly
+			self.cursor_height = 14
 			self.cursor = self.root().add('group', x = x, y = y)
 			self.cursor.rect = self.cursor.add('rect', fill_color = 'white',
 							outline_color = 'black', width_pixels = 1)
