@@ -40,6 +40,11 @@ class Model:
 			self.locks[node] = l - 1
 		elif l == 1:
 			del self.locks[node]	# Or get a memory leak...
+			if node == self.doc.documentElement:
+				if node.parentNode:
+					self.unlock(node.parentNode)
+				self.may_free()
+				return
 		else:
 			raise Exception('unlock(%s): Node not locked!' % node)
 		if node.parentNode:
@@ -78,8 +83,19 @@ class Model:
 	
 	def remove_view(self, view):
 		print "Removing view", view
-		self.views.remove(view)
 		print "Now:", self.views
+		self.views.remove(view)
+		self.may_free()
+	
+	def may_free(self):
+		if self.views:
+			return
+		if self.get_locks(self.doc.documentElement) == 0:
+			from xml.dom.ext import ReleaseNode
+			ReleaseNode(self.doc.documentElement)
+			print "(releasing)"
+		else:
+			print "(still locked)"
 
 	def update_all(self, node):
 		"Called when 'node' has been updated."

@@ -170,9 +170,18 @@ class Op:
 			self.unlink(current)
 			child.link_to(current, 'next')
 		child.prev = self
-		child.program = self.program
+		child.set_program(self.program)
 		setattr(self, exit, child)
 		self.changed()
+	
+	def set_program(self, program):
+		if self.program:
+			raise Exception('Already got a program!')
+		self.program = program
+		if self.next:
+			self.next.set_program(program)
+		if self.fail:
+			self.fail.set_program(program)
 	
 	def unlink(self, child):
 		"child becomes a Start node"
