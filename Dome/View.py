@@ -1374,7 +1374,7 @@ class View:
 		from Ft.Xml.FtMiniDom import nonvalParse
 		isrc = InputSourceFactory()
 
-		root = parse_data(data, uri)
+		root = self.parse_data(data, uri)
 		
 		new = node.ownerDocument.importNode(root.documentElement, 1)
 		new.setAttributeNS(None, 'uri', uri)
