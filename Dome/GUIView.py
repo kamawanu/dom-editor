@@ -17,8 +17,19 @@ class GUIView(Display):
 	def __init__(self, window, view):
 		Display.__init__(self, window, view)
 		window.connect('key-press-event', self.key_press)
+		self.window = window
 		self.cursor_node = None
 		make_xds_loader(self, self)
+		self.update_state()
+	
+	def update_state(self):
+		if self.view.rec_point:
+			state = "(recording)"
+		elif self.view.idle_cb or self.view.op_in_progress:
+			state = "(playing)"
+		else:
+			state = ""
+		self.window.set_state(state)
 
 	def load_file(self, path):
 		if path[-5:] == '.html':

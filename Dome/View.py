@@ -144,6 +144,7 @@ class View:
 		self.callback_on_return = None
 		while self.exec_stack:
 			self.pop_stack()
+		self.status_changed()
 
 	def push_stack(self, op):
 		if not isinstance(op, Op):
@@ -172,6 +173,7 @@ class View:
 		self.rec_point = pos
 		for l in self.lists:
 			l.update_points()
+		self.status_changed()
 	
 	def record_at_point(self):
 		if not self.exec_point:
@@ -526,6 +528,7 @@ class View:
 			self.set_exec((op, exit))
 			if not self.single_step:
 				self.sched()
+				self.status_changed()
 		else:
 			print "(nothing to resume)"
 		
@@ -650,6 +653,7 @@ class View:
 			self.set_oip(None)
 		self.set_exec((prog.start, 'next'))
 		self.sched()
+		self.status_changed()
 		raise InProgress
 	
 	def sched(self):
@@ -685,11 +689,18 @@ class View:
 			node = self.op_in_progress
 			self.set_oip(None)
 			self.set_exec((node, 'fail'))
+			self.status_changed()
 			return 0
 		if self.op_in_progress or self.single_step:
+			self.status_changed()
 			return 0
 		self.sched()
 		return 0
+
+	def status_changed(self):
+		for display in self.displays:
+			if hasattr(display, 'update_state'):
+				display.update_state()
 
 	def map(self, name):
 		# XXX - doesn't work always from a macro?

@@ -36,6 +36,7 @@ class Window(GtkWindow):
 		
 		self.model = Model('Document')
 		self.gui_view = None
+		self.state = ""
 		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
 				      gdk_screen_height() * 2 / 3)
@@ -118,10 +119,19 @@ class Window(GtkWindow):
 
 		print "Saved to ", path
 
+	def set_state(self, state):
+		if state == self.state:
+			return
+		if state:
+			self.state = " " + state
+		else:
+			self.state = ""
+
+		self.update_title()
 
 	def update_title(self):
 		title = self.model.uri
-		self.set_title(title)
+		self.set_title(title + self.state)
 	
 	def key(self, widget, kev):
 		if kev.keyval == F3:
