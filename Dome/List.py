@@ -141,6 +141,7 @@ class List(g.VBox):
 		tree.connect('button-press-event', self.button_press)
 		tree.unset_flags(g.CAN_FOCUS)
 		tree.set_headers_visible(FALSE)
+		self.tree = tree
 
 		cell = g.CellRendererText()
 		column = g.TreeViewColumn('Program', cell, text = 0)
@@ -148,7 +149,6 @@ class List(g.VBox):
 
 		sel = tree.get_selection()
 		def change_prog(tree, sel = sel, self = self):	# Huh?
-			print sel, self
 			selected = sel.get_selected()
 			if not selected:
 				return
@@ -198,7 +198,7 @@ class List(g.VBox):
 		pass
 	
 	def prog_tree_changed(self):
-		self.prog_to_tree = {}
+		self.prog_to_path = {}
 		self.prog_model.clear()
 		self.build_tree(self.view.model.root_program)
 
@@ -215,7 +215,7 @@ class List(g.VBox):
 		self.prog_model.set(child_iter, 0, prog.name,
 						1, prog.get_path())
 
-		#self.prog_to_tree[prog] = item
+		self.prog_to_path[prog] = self.prog_model.get_path(child_iter)
 		for p in prog.subprograms.values():
 			self.build_tree(p, child_iter)
 	
@@ -302,7 +302,9 @@ class List(g.VBox):
 		self.stack_frames.set_text(text)
 	
 	def show_prog(self, prog):
-		self.tree.select_child(self.prog_to_tree[prog])
+		path = self.prog_to_path[prog]
+		iter = self.prog_model.get_iter(path)
+		self.tree.get_selection().select_iter(iter)
 
 class ChainDisplay(canvas.Canvas):
 	"A graphical display of a chain of nodes."
