@@ -11,8 +11,12 @@ history = {}
 # If 'destroy_return' is true then closing the window does callback(None).
 
 class GetArg(GtkWindow):
-	def __init__(self, text, callback, args, message = None, destroy_return = 0):
+	def __init__(self, text, callback, args, message = None,
+		     destroy_return = 0, init = None):
 		GtkWindow.__init__(self, WINDOW_DIALOG)
+
+		if init:
+			init = init[:]
 
 		self.callback = callback
 		self.text = text
@@ -33,6 +37,9 @@ class GetArg(GtkWindow):
 			arg = GtkEntry()
 			hbox.pack_start(arg, TRUE, TRUE, 0)
 			self.vbox.pack_start(hbox, FALSE, TRUE, 0)
+			if init and init[0]:
+				arg.set_text(init[0])
+				del init[0]
 			if history.has_key(a):
 				arg.set_text(history[a])
 			if not self.args:

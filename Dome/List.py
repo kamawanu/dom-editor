@@ -441,7 +441,14 @@ class ChainDisplay(GnomeCanvas):
 			if op.is_toplevel():
 				return
 		else:
-			text = str(action_to_text(op.action))
+			if op.action[0] == 'Start':
+				text = str(op.parent.comment.replace('\\n', '\n'))
+				text_y = 0
+				text_col = 'blue'
+			else:
+				text = str(action_to_text(op.action))
+				text_y = -8
+				text_col = 'black'
 			
 			group.ellipse = group.add('ellipse',
 						fill_color = self.op_colour(op),
@@ -450,14 +457,14 @@ class ChainDisplay(GnomeCanvas):
 						y1 = -4, y2 = 4,
 						width_pixels = 1)
 			group.ellipse.connect('event', self.op_event, op)
-			if op.action[0] != 'Start':
+			if text:
 				label = group.add('text',
 							x = -8, 
-							y = -8,
+							y = text_y,
 							anchor = ANCHOR_NE,
 							justification = 'right',
 							font = 'fixed',
-							fill_color = 'black',
+							fill_color = text_col,
 							text = text)
 
 				(lx, ly, hx, hy) = label.get_bounds()
@@ -638,8 +645,14 @@ class ChainDisplay(GnomeCanvas):
 	def show_op_menu(self, event, op):
 		if op.action[0] == 'Start':
 			op = op.parent
+			def edit_comment():
+				def set(comment):
+					op.set_comment(comment)
+				GetArg('Comment', set, ['Comment:'],
+					message = '\\n for a newline', init = [op.comment])
 			items = [('Toggle Enter/Leave', lambda: op.toggle_enter()),
-				 ('Toggle Foreach', lambda: op.toggle_foreach())]
+				 ('Toggle Foreach', lambda: op.toggle_foreach()),
+				 ('Edit comment', edit_comment)]
 		else:
 			items = [('Edit node', lambda: self.edit_op(op))]
 

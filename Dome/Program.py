@@ -14,12 +14,14 @@ def load(node, parent):
 	#assert node.localName == 'block'
 
 	block = Block(parent)
+	prev = block.start
 	try:
 		if int(node.getAttributeNS(None, 'foreach')):
 			block.toggle_foreach()
 		if int(node.getAttributeNS(None, 'enter')):
 			block.toggle_enter()
-		prev = block.start
+		comment = node.getAttributeNS(None, 'comment')
+		block.set_comment(comment)
 	except:
 		pass
 
@@ -408,6 +410,7 @@ class Block(Op):
 		self.start.parent = self
 		self.foreach = 0
 		self.enter = 0
+		self.comment = ''
 	
 	def set_start(self, start):
 		assert not start.prev
@@ -427,6 +430,7 @@ class Block(Op):
 		node = doc.createElementNS(DOME_NS, 'block')
 		node.setAttributeNS(None, 'foreach', str(self.foreach))
 		node.setAttributeNS(None, 'enter', str(self.enter))
+		node.setAttributeNS(None, 'comment', str(self.comment))
 		assert not self.start.fail
 		if self.start.next:
 			self.start.next.to_xml_int(node)
@@ -438,4 +442,8 @@ class Block(Op):
 	
 	def toggle_foreach(self):
 		self.foreach = not self.foreach
+		self.changed()
+	
+	def set_comment(self, comment):
+		self.comment = comment
 		self.changed()
