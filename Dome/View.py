@@ -1,4 +1,4 @@
-from gtk import *
+from gtk import idle_add, idle_remove, input_add, input_remove
 import GDK
 from support import *
 from xml.dom import Node, ext, XMLNS_NAMESPACE

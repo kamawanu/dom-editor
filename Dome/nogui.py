@@ -28,11 +28,21 @@ view = View(model, root_program)
 
 code = sys.argv[1]
 
-view.set_exec((view.root_program.start, 'next'))
-try:
-	while 1:
-		view.do_one_step()
-except Done:
-	print "Done!"
+if len(sys.argv) > 2:
+	view.load_xml(sys.argv[2])
 
-ext.PrettyPrint(model.doc)
+print "Starting program", sys.argv[1]
+
+idle_cb = []
+try:
+	view.may_record(['play', sys.argv[1]])
+except InProgress:
+	pass
+
+while idle_cb:
+	for i in idle_cb:
+		i()
+
+print "Done!"
+
+#ext.PrettyPrint(model.doc)
