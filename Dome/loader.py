@@ -1,7 +1,7 @@
 import string
 
-from gtk import *
-from GDK import *
+#from gtk import *
+#from GDK import *
 
 from rox.support import get_local_path
 

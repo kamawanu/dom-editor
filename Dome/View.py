@@ -2,7 +2,6 @@ from __future__ import nested_scopes
 
 import GDK
 from support import *
-from rox import support
 from xml.dom import Node, XMLNS_NAMESPACE
 from Ft.Xml import XPath
 from Ft.Xml.XPath import FT_EXT_NAMESPACE, Context
@@ -149,8 +148,8 @@ class View:
 		self.marked = {}
 		
 		if not callback_handlers:
-			import gtk
-			self.idle_add, self.idle_remove = gtk.idle_add, gtk.idle_remove
+			from rox import g
+			self.idle_add, self.idle_remove = g.idle_add, g.idle_remove
 		else:
 			self.idle_add, self.idle_remove = callback_handlers
 
@@ -298,8 +297,8 @@ class View:
 		except InProgress:
 			pass
 		except Beep:
-			import gtk
-			gtk.gdk_beep()
+			from rox import g
+			g.gdk.beep()
 			(type, val, tb) = sys.exc_info()
 			#if not val.may_record:
 			#	return 0

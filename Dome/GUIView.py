@@ -1,7 +1,7 @@
 from __future__ import nested_scopes
 
-from gtk import *
-from GDK import *
+#from gtk import *
+#from GDK import *
 from xml.dom import Node
 import string
 from loader import make_xds_loader

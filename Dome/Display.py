@@ -1,11 +1,10 @@
 from __future__ import nested_scopes
 
-from gtk import *
-from gnome.ui import *
+from rox import g
+from gnome2.canvas import *
 from GDK import *
 from GDK import _2BUTTON_PRESS
 from GTK import DESTROYED
-from _gtk import *
 from xml.dom import Node
 from constants import *
 
@@ -33,7 +32,7 @@ def wrap(str, width):
 		str = str[i + 1:]
 	return ret + str
 
-import _gnomeui, gtk
+#import _gnomeui, gtk
 fast_set = _gnomeui.gnome_canvas_item_set
 rect_type = _gnomeui.gnome_canvas_rect_get_type()
 group_type = _gnomeui.gnome_canvas_group_get_type()

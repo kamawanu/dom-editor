@@ -2,6 +2,7 @@
 # vi: set syntax=python : */
 
 import findrox
+import rox
 
 no_gui_mode = 0
 
@@ -14,31 +15,12 @@ from os.path import dirname
 
 app_dir = dirname(sys.argv[0])
 
-import gtk
+from rox import g
 from Window import Window
 
-tl_windows = 0
-
-#import signal
-
-#import debug
-#signal.signal(signal.SIGINT, debug.debug_prompt)
-
-sys.argv.append('--disable-crash-dialog')
-import gnome.ui
-sys.argv.pop()
-
-def tl_ref(w = None):
-	global tl_windows
-	tl_windows = tl_windows + 1
-
-def tl_unref(w = None):
-	global tl_windows
-	tl_windows = tl_windows - 1
-	if tl_windows < 1:
-		gtk.mainquit()
-
-docs = []
+#sys.argv.append('--disable-crash-dialog')
+#import gnome.ui
+#sys.argv.pop()
 
 if len(sys.argv) > 1:
 	files = sys.argv[1:]
@@ -47,12 +29,9 @@ if len(sys.argv) > 1:
 else:
 	win = Window()
 
-win.connect('destroy', tl_unref)
-tl_ref()
 win.show()
 
-if tl_windows > 0:
-	#import profile
-	#profile.run('gtk.mainloop()')
+#import profile
+#profile.run('rox.mainloop()')
 
-	gtk.mainloop()
+rox.mainloop()

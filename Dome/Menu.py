@@ -1,4 +1,4 @@
-from gtk import *
+#from gtk import *
 
 class Menu:
 	def __init__(self, items):

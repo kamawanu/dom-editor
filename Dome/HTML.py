@@ -1,5 +1,5 @@
-from gtk import *
-from GDK import *
+#from gtk import *
+#from GDK import *
 from gtkmozembed import GtkMozEmbed
 
 import sys

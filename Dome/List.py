@@ -1,21 +1,19 @@
-from __future__ import nested_scopes
+#from __future__ import nested_scopes
 
-from gtk import *
-from GDK import *
-import GDK
-from gnome.ui import *
+import rox
+from rox import g, TRUE, FALSE
+from gnome2 import canvas
+
 from support import *
 import string
 from StringIO import StringIO
 import math
 
-from rox import support
-from rox.MultipleChoice import MultipleChoice
-from Menu import Menu
-from GetArg import GetArg
+#from Menu import Menu
+#from GetArg import GetArg
 from Program import Program, load, Block
 
-no_cursor = cursor_new(TCROSS)
+no_cursor = g.gdk.Cursor(g.gdk.TCROSS)
 
 def trunc(text):
 	if len(text) < 18:
@@ -85,45 +83,51 @@ def action_to_text(action):
 		text = text + '\n' + details
 	return text
 
-class List(GtkVBox):
+class List(g.VBox):
 	def __init__(self, view):
-		GtkVBox.__init__(self)
+		g.VBox.__init__(self)
 
 		self.view = view
 		self.sub_windows = []
 
-		self.stack_frames = GtkLabel()
+		self.stack_frames = g.Label('')
 		self.pack_start(self.stack_frames, FALSE, TRUE, 0)
 		self.stack_frames.show()
 		self.update_stack(None)
 
-		pane = GtkVPaned()
+		pane = g.VPaned()
 		self.pack_start(pane, expand = 1, fill = 1)
 
-		swin = GtkScrolledWindow()
-		swin.set_policy(POLICY_NEVER, POLICY_AUTOMATIC)
+		swin = g.ScrolledWindow()
+		swin.set_policy(g.POLICY_NEVER, g.POLICY_AUTOMATIC)
 		pane.add1(swin)
 
-		self.tree = GtkTree()
-		self.tree.unset_flags(CAN_FOCUS)
+		self.prog_model = g.TreeStore(str)
+		tree = g.TreeView(self.prog_model)
+		tree.unset_flags(g.CAN_FOCUS)
+		tree.set_headers_visible(FALSE)
+
+		cell = g.CellRendererText()
+		column = g.TreeViewColumn('Program', cell, text = 0)
+		tree.append_column(column)
 
 		self.chains = ChainDisplay(view, view.model.root_program)
 		self.prog_tree_changed()
-		v = GtkViewport()
-		v.add(self.tree)
+		v = g.Viewport()
+		v.add(tree)
 		swin.add(v)
-		v.set_shadow_type(SHADOW_NONE)
+		v.set_shadow_type(g.SHADOW_NONE)
 		v.show_all()
 
-		swin = GtkScrolledWindow()
-		swin.set_policy(POLICY_AUTOMATIC, POLICY_AUTOMATIC)
+		swin = g.ScrolledWindow()
+		swin.set_policy(g.POLICY_AUTOMATIC, g.POLICY_AUTOMATIC)
 		pane.add2(swin)
 		swin.add(self.chains)
 		swin.show_all()
 
 		pane.set_position(200)
 
-		self.tree.show()
+		tree.show()
 		self.view.lists.append(self)
 		self.view.model.root_program.watchers.append(self)
 		
@@ -144,8 +148,9 @@ class List(GtkVBox):
 	
 	def prog_tree_changed(self):
 		self.prog_to_tree = {}
-		self.tree.clear_items(0, -1)
-		self.build_tree(self.tree, self.view.model.root_program)
+		self.prog_model.clear()
+		self.build_tree(self.view.model.root_program)
+		"""
 		# Redraw goes wrong if we don't use a callback...
 		def cb():
 			global expand_history
@@ -160,6 +165,7 @@ class List(GtkVBox):
 
 			return 0
 		idle_add(cb)
+		"""
 
 		# Check for now deleted programs still being displayed
 		root = self.view.model.root_program
@@ -169,11 +175,12 @@ class List(GtkVBox):
 			if x.disp.prog is not root and not x.disp.prog.parent:
 				x.destroy()
 	
-	def build_tree(self, tree, prog):
+	def build_tree(self, prog, iter = None):
+		"""
 		def set_expand_state(state):
 			expand_history[prog] = state
 			print prog, "is now", expand_history[prog]
-		item = GtkTreeItem(prog.name)
+		item = g.TreeItem(prog.name)
 		item.connect('expand', lambda widget: set_expand_state(1))
 		item.connect('collapse', lambda widget: set_expand_state(0))
 		item.connect('button-press-event', self.prog_event, prog)
@@ -181,13 +188,13 @@ class List(GtkVBox):
 							c.switch_to(p))
 		item.show()
 		tree.append(item)
-		self.prog_to_tree[prog] = item
-		if prog.subprograms:
-			subtree = GtkTree()
-			subtree.append(GtkTreeItem('Marker'))
-			for k in prog.subprograms.values():
-				self.build_tree(subtree, k)
-			item.set_subtree(subtree)
+		"""
+		child_iter = self.prog_model.append(iter)
+		self.prog_model.set(child_iter, 0, prog.name)
+
+		#self.prog_to_tree[prog] = item
+		for p in prog.subprograms.values():
+			self.build_tree(p, child_iter)
 	
 	def run_return(self, exit):
 		if exit != 'next':
@@ -281,14 +288,14 @@ class List(GtkVBox):
 	
 	def show_prog(self, prog):
 		self.tree.select_child(self.prog_to_tree[prog])
-	
-class ChainDisplay(GnomeCanvas):
+
+class ChainDisplay(canvas.Canvas):
 	"A graphical display of a chain of nodes."
 	def __init__(self, view, prog):
-		GnomeCanvas.__init__(self)
+		canvas.Canvas.__init__(self)
 		self.connect('destroy', self.destroyed)
 		self.view = view
-		self.unset_flags(CAN_FOCUS)
+		self.unset_flags(g.CAN_FOCUS)
 
 		self.drag_last_pos = None
 
@@ -296,12 +303,12 @@ class ChainDisplay(GnomeCanvas):
 		self.rec_point = None
 
 		s = self.get_style().copy()
-		s.bg[STATE_NORMAL] = self.get_color('light green')
+		s.bg[g.STATE_NORMAL] = g.gdk.color_parse('light green')
 		self.set_style(s)
 
 		self.nodes = None
 		self.subs = None
-		self.set_usize(100, 100)
+		self.set_size_request(100, 100)
 	
 		self.prog = None
 
@@ -367,7 +374,7 @@ class ChainDisplay(GnomeCanvas):
 			else:
 				c = 'yellow'
 				s = 3
-			item = self.root().add('rect',
+			item = self.root().add(canvas.CanvasRect,
 						x1 = -s, x2 = s, y1 = -s, y2 = s,
 						fill_color = c,
 						outline_color = 'black', width_pixels = 1)
@@ -404,7 +411,7 @@ class ChainDisplay(GnomeCanvas):
 			self.nodes.destroy()
 
 		self.op_to_group = {}
-		self.nodes = self.root().add('group', x = 0, y = 0)
+		self.nodes = self.root().add(canvas.CanvasGroup, x = 0, y = 0)
 		self.create_node(self.prog.code, self.nodes)
 		self.update_links()
 		self.update_points()
@@ -441,30 +448,30 @@ class ChainDisplay(GnomeCanvas):
 		self.op_to_group[op] = group
 
 		if isinstance(op, Block):
-			g = group.add('group', x = 0, y = 0)
-			self.create_node(op.start, g)
-			(lx, ly, hx, hy) = g.get_bounds()
+			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
+			self.create_node(op.start, gr)
+			(lx, ly, hx, hy) = gr.get_bounds()
 			minx = lx - 4
 			if op.foreach:
 				minx -= 8
-			border = g.add('rect', x1 = minx, x2 = hx + 4, y1 = ly + 4, y2 = hy + 4,
+			border = gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = ly + 4, y2 = hy + 4,
 					outline_color = 'black', width_pixels = 1)
 			border.lower_to_bottom()
 			if op.foreach:
-				g.add('rect', x1 = minx, x2 = minx + 8, y1 = ly + 4, y2 = hy + 4,
+				gr.add(canvas.CanvasRect, x1 = minx, x2 = minx + 8, y1 = ly + 4, y2 = hy + 4,
 					fill_color = 'blue').lower_to_bottom()
 			if op.enter:
 				colour = 'yellow'
-				g.add('rect', x1 = minx, x2 = hx + 4, y1 = ly + 5, y2 = ly + 13,
+				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = ly + 5, y2 = ly + 13,
 					fill_color = colour).lower_to_bottom()
-				g.add('rect', x1 = minx, x2 = hx + 4, y1 = hy - 3, y2 = hy + 3,
+				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = hy - 3, y2 = hy + 3,
 					fill_color = colour).lower_to_bottom()
 			if op.restore:
 				colour = 'orange'
 				margin = op.enter * 8
-				g.add('rect', x1 = minx, x2 = hx + 4, y1 = ly + 5 + margin, y2 = ly + 13 + margin,
+				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = ly + 5 + margin, y2 = ly + 13 + margin,
 					fill_color = colour).lower_to_bottom()
-				g.add('rect', x1 = minx, x2 = hx + 4, y1 = hy - 3 - margin, y2 = hy + 3 - margin,
+				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = hy - 3 - margin, y2 = hy + 3 - margin,
 					fill_color = colour).lower_to_bottom()
 			next_off_y = 0
 			group.width, group.height = hx, hy
@@ -482,7 +489,7 @@ class ChainDisplay(GnomeCanvas):
 				text_font = '-misc-fixed-medium-r-normal-*-*-120-*-*-c-*-iso8859-1'
 				text_col = 'black'
 			
-			group.ellipse = group.add('ellipse',
+			group.ellipse = group.add(canvas.CanvasEllipse,
 						fill_color = self.op_colour(op),
 						outline_color = 'black',
 						x1 = -4, x2 = 4,
@@ -490,10 +497,10 @@ class ChainDisplay(GnomeCanvas):
 						width_pixels = 1)
 			group.ellipse.connect('event', self.op_event, op)
 			if text:
-				label = group.add('text',
+				label = group.add(canvas.CanvasText,
 							x = -8, 
 							y = text_y,
-							anchor = ANCHOR_NE,
+							anchor = g.ANCHOR_NE,
 							justification = 'right',
 							font = text_font,
 							fill_color = text_col,
@@ -507,9 +514,9 @@ class ChainDisplay(GnomeCanvas):
 
 		if op.next and op.next.prev[0] == op:
 			sx, sy = self.get_arrow_start(op, 'next')
-			g = group.add('group', x = 0, y = 0)
-			self.create_node(op.next, g)
-			(lx, ly, hx, hy) = g.get_bounds()
+			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
+			self.create_node(op.next, gr)
+			(lx, ly, hx, hy) = gr.get_bounds()
 			drop = max(20, next_off_y + 10)
 			y = drop - ly
 			next = op.next
@@ -517,9 +524,9 @@ class ChainDisplay(GnomeCanvas):
 				next = next.start
 			x = next.dx
 			y += next.dy
-			g.move(sx + x, sy + y)
+			gr.move(sx + x, sy + y)
 		
-		group.next_line = group.add('line',
+		group.next_line = group.add(canvas.CanvasLine,
 					fill_color = 'black',
 					points = connect(0, 0, 1, 1),
 					width_pixels = 4,
@@ -533,17 +540,17 @@ class ChainDisplay(GnomeCanvas):
 		if op.fail and op.fail.prev[0] == op:
 			sx, sy = self.get_arrow_start(op, 'fail')
 			y = 46
-			g = group.add('group', x = 0, y = 0)
-			self.create_node(op.fail, g)
-			(lx, ly, hx, hy) = g.get_bounds()
+			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
+			self.create_node(op.fail, gr)
+			(lx, ly, hx, hy) = gr.get_bounds()
 			x = 20 - lx
 			fail = op.fail
 			while isinstance(fail, Block):
 				fail = fail.start
 			x += fail.dx
 			y += fail.dy
-			g.move(sx + x, sy + y)
-		group.fail_line = group.add('line',
+			gr.move(sx + x, sy + y)
+		group.fail_line = group.add(canvas.CanvasLine,
 					fill_color = '#ff6666',
 					points = connect(0, 0, 1, 1),
 					width_pixels = 4,
@@ -585,15 +592,15 @@ class ChainDisplay(GnomeCanvas):
 			print "Done editing!"
 			win.destroy()
 			
-		win = GtkWindow()
+		win = g.Window()
 		win.set_border_width(8)
-		vbox = GtkVBox(TRUE, 8)
+		vbox = g.VBox(TRUE, 8)
 		win.add(vbox)
-		vbox.pack_start(GtkLabel(op.action[0]), TRUE, FALSE, 0)
+		vbox.pack_start(g.Label(op.action[0]), TRUE, FALSE, 0)
 		editables = []	# [ Entry | None ]
 		focus = None
 		for x in op.action[1:]:
-			entry = GtkEntry()
+			entry = g.Entry()
 			entry.set_text(str(x))
 			vbox.pack_start(entry, TRUE, FALSE, 0)
 			if type(x) == str or type(x) == unicode:
@@ -606,14 +613,14 @@ class ChainDisplay(GnomeCanvas):
 				entry.set_editable(FALSE)
 				editables.append(None)
 			
-		hbox = GtkHBox(TRUE, 4)
+		hbox = g.HBox(TRUE, 4)
 		vbox.pack_start(hbox, TRUE, FALSE, 0)
 
-		button = GtkButton("Cancel")
+		button = g.Button("Cancel")
 		hbox.pack_start(button, TRUE, TRUE, 0)
 		button.connect('clicked', lambda b, win = win: win.destroy())
 		
-		button = GtkButton("Modify")
+		button = g.Button("Modify")
 		if focus:
 			button.connect('clicked', modify)
 		else:
@@ -892,10 +899,10 @@ class ChainDisplay(GnomeCanvas):
 		sy = self.get_hadjustment().value
 		return (x + mx + sx , y + my + sy)
 
-class ChainWindow(GtkWindow):
+class ChainWindow(rox.Window):
 	def __init__(self, view, prog):
-		GtkWindow.__init__(self)
-		swin = GtkScrolledWindow()
+		rox.Window.__init__(self)
+		swin = g.ScrolledWindow()
 		self.add(swin)
 		disp = ChainDisplay(view, prog)
 		swin.add(disp)

@@ -1,5 +1,4 @@
-from gtk import *
-import GDK
+#from gtk import *
 import string
 
 # text -> last value

@@ -1,36 +1,34 @@
-from gtk import *
-from GDK import *
-from _gtk import *
-import string
+import rox
+from rox import g, TRUE, FALSE
+
 import os.path
 from Ft.Xml.Domlette import PrettyPrint
 
 import __main__
 
-from support import *
-from rox.SaveBox import SaveBox
-from rox.Toolbar import Toolbar
+#from support import *
+from rox.saving import SaveBox
 
 code = None
 
 from codecs import lookup
 utf8_encoder = lookup('UTF-8')[0]
 
-class Window(GtkWindow):
+class Window(rox.Window):
 	def __init__(self, path = None, data = None):
 		# 'data' is used when 'path' is a stylesheet...
-		GtkWindow.__init__(self)
+		rox.Window.__init__(self)
 
 		# Make it square, to cope with Xinerama
-		size = min(gdk_screen_width(), gdk_screen_height())
+		size = min(g.gdk.screen_width(), g.gdk.screen_height())
 		size = size * 3 / 4
 		
 		self.set_default_size(size, size)
-		self.set_position(WIN_POS_CENTER)
+		self.set_position(g.WIN_POS_CENTER)
 		self.savebox = None
 
 		self.show()
-		gdk_flush()
+		g.gdk.flush()
 
 		if path:
 			import os.path
@@ -39,32 +37,28 @@ class Window(GtkWindow):
 		import Model
 		self.model = Model.Model(path, dome_data = data)
 		self.gui_view = None
-		self.state = ""
+		self.dome_state = ""
 		
-		from GUIView import GUIView
+		#from GUIView import GUIView
 		from List import List
 
-		vbox = GtkVBox(FALSE, 0)
+		vbox = g.VBox(FALSE, 0)
 		self.add(vbox)
 
-		toolbar = Toolbar()
-		for (name, tip) in [
-			('Save', 'Save this document'),
-			('Record', 'Start recording here'),
-			('Stop', 'Stop recording or running program'),
-			('Play', 'Run this program from here'),
-			('Next', 'Run until the next step in this program'),
-			('Step', 'Run one step, stopping in any program'),
-			('Help', "Show Dome's help file"),
-			]:
-			icon = __main__.app_dir + '/icons/%s.xpm' % name
-			b = toolbar.add_button(name, icon, tip)
-			cb = getattr(self, 'tool_%s' % name)
-			b.connect('clicked', lambda b, cb = cb: cb())
+		tools = g.Toolbar()
+		tools.set_style(g.TOOLBAR_ICONS)
+		vbox.pack_start(tools, FALSE, TRUE, 0)
+		tools.show()
 
-		vbox.pack_start(toolbar, FALSE, TRUE, 0)
+		tools.insert_stock(g.STOCK_HELP, 'Help', None, self.tool_help, None, 0)
+		tools.insert_stock(g.STOCK_GO_FORWARD, 'Step', None, self.tool_step, None, 0)
+		tools.insert_stock(g.STOCK_GO_FORWARD, 'Next', None, self.tool_next, None, 0)
+		tools.insert_stock(g.STOCK_GOTO_LAST, 'Play', None, self.tool_play, None, 0)
+		tools.insert_stock(g.STOCK_STOP, 'Stop', None, self.tool_stop, None, 0)
+		tools.insert_stock(g.STOCK_NO, 'Record', None, self.tool_record, None, 0)
+		tools.insert_stock(g.STOCK_SAVE, 'Save', None, self.tool_save, None, 0)
 
-		paned = GtkHPaned()
+		paned = g.HPaned()
 		vbox.pack_start(paned)
 
 		import View
@@ -74,45 +68,43 @@ class Window(GtkWindow):
 		paned.add1(self.list)
 		self.list.show()
 
-		swin = GtkScrolledWindow()
-		swin.set_policy(POLICY_AUTOMATIC, POLICY_ALWAYS)
+		swin = g.ScrolledWindow()
+		swin.set_policy(g.POLICY_AUTOMATIC, g.POLICY_ALWAYS)
 		paned.add2(swin)
 		paned.set_position(200)
 
-		self.gui_view = GUIView(self, view)
-		swin.add(self.gui_view)
-		swin.set_hadjustment(self.gui_view.get_hadjustment())
-		swin.set_vadjustment(self.gui_view.get_vadjustment())
+		#self.gui_view = GUIView(self, view)
+		#swin.add(self.gui_view)
+		#swin.set_hadjustment(self.gui_view.get_hadjustment())
+		#swin.set_vadjustment(self.gui_view.get_vadjustment())
 
 		vbox.show_all()
 	
-		self.gui_view.grab_focus()
+		#self.gui_view.grab_focus()
 		self.update_title()
 
 		def delete(window, event):
 			if self.model.root_program.modified:
-				from rox.MultipleChoice import MultipleChoice
-				box = MultipleChoice('Programs modified -- really quit?',
-						     ('Cancel', 'Quit'))
-				if box.wait() == 1:
+				if rox.confirm('Programs modified -- really quit?',
+						g.STOCK_DELETE):
 					return 0
 				return 1
 			return 0
 		self.connect('delete-event', delete)
 		
 	def set_state(self, state):
-		if state == self.state:
+		if state == self.dome_state:
 			return
 		if state:
-			self.state = " " + state
+			self.dome_state = " " + state
 		else:
-			self.state = ""
+			self.dome_state = ""
 
 		self.update_title()
 
 	def update_title(self):
 		title = self.model.uri
-		self.set_title(title + self.state)
+		self.set_title(title + self.dome_state)
 	
 	def save(self):
 		if self.savebox:
@@ -120,7 +112,7 @@ class Window(GtkWindow):
 		path = self.model.uri
 
 		self.savebox = SaveBox(self, path, 'application/x-dome')
-		toggle = GtkCheckButton("Export XML")
+		toggle = g.CheckButton("Export XML")
 		toggle.show()
 		self.savebox.toggle_export_xml = toggle
 		self.savebox.save_area.pack_start(toggle)
@@ -161,10 +153,10 @@ class Window(GtkWindow):
 
 	# Toolbar bits
 
-	def tool_Save(self):
+	def tool_save(self):
 		self.save()
 	
-	def tool_Stop(self):
+	def tool_stop(self):
 		if self.view.rec_point:
 			self.view.stop_recording()
 		if self.view.running():
@@ -172,7 +164,7 @@ class Window(GtkWindow):
 		else:
 			self.view.run_new()
 
-	def tool_Play(self):
+	def tool_play(self):
 		from View import InProgress, Done
 		# Step first, in case we're on a breakpoint
 		self.view.single_step = 1
@@ -183,7 +175,7 @@ class Window(GtkWindow):
 		self.view.single_step = 0
 		self.view.sched()
 	
-	def tool_Next(self):
+	def tool_next(self):
 		from View import InProgress, Done
 		self.view.single_step = 2
 		try:
@@ -191,7 +183,7 @@ class Window(GtkWindow):
 		except InProgress, Done:
 			pass
 	
-	def tool_Step(self):
+	def tool_step(self):
 		from View import InProgress, Done
 		self.view.single_step = 1
 		try:
@@ -199,12 +191,12 @@ class Window(GtkWindow):
 		except InProgress, Done:
 			pass
 	
-	def tool_Record(self):
+	def tool_record(self):
 		if self.view.rec_point:
 			self.view.stop_recording()
 		else:
 			self.view.record_at_point()
 	
-	def tool_Help(self):
+	def tool_help(self):
 		os.spawnlp(os.P_NOWAIT, "gvim", "gvim",
 			os.path.join(__main__.app_dir, "Help", "README"))
