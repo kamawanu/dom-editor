@@ -87,7 +87,7 @@ class Tree(GtkDrawingArea):
 		self.connect('realize', self.realize)
 		self.connect('destroy', self.destroyed)
 
-		self.recording_macro = None
+		self.recording_where = None
 		self.exec_state = Exec(self, window.macro_list)
 		self.idle_tag = 0
 	
@@ -112,15 +112,7 @@ class Tree(GtkDrawingArea):
 		key = kev.keyval
 
 		if key == q:
-			if self.recording_macro:
-				self.recording_macro = None
-			else:
-				node = self.line_to_node[self.current_line]
-				self.recording_macro = \
-					self.window.macro_list.record_new(node.nodeName)
-				self.last_op_failed = 0
-			
-			self.window.update_title()
+			self.toggle_record()
 			return 1
 
 		if key == F3 or key == Return:
@@ -136,6 +128,23 @@ class Tree(GtkDrawingArea):
 			return 1
 
 		self.may_record(action)
+
+	def toggle_record(self):
+		"Start or stop recording"
+		if self.recording_where:
+			self.recording_where = None
+		else:
+			self.recording_where = self.exec_state.where
+
+			node = self.line_to_node[self.current_line]
+			if self.recording_where:
+				self.recording_exit = self.exec_state.exit
+			else:
+				self.recording_where = \
+					self.window.macro_list.record_new(node.nodeName).start
+				self.recording_exit = 'next'
+		
+		self.window.update_title()
 			
 	def sched_redraw(self):
 		def cb(self = self):
@@ -160,7 +169,7 @@ class Tree(GtkDrawingArea):
 	
 	def may_record(self, action):
 		"Perform, and possibly record, this action"
-		rec = self.recording_macro
+		rec = self.recording_where
 
 		try:
 			self.do_action(action)
@@ -170,8 +179,8 @@ class Tree(GtkDrawingArea):
 		
 		# Only record if we were recording when this action started
 		if rec:
-			self.recording_macro.record(action, self.last_op_failed)
-			self.last_op_failed = 0
+			self.recording_where = rec.record(action, self.recording_exit)
+			self.recording_exit = 'next'
 	
 	def tree_changed(self):
 		cn = self.line_to_node[self.current_line]

@@ -111,7 +111,7 @@ class Window(GtkWindow):
 	
 	def update_title(self):
 		title = self.uri
-		if self.tree.recording_macro:
+		if self.tree.recording_where:
 			title += ' (recording)'
 		self.set_title(title)
 	
@@ -156,7 +156,7 @@ class Window(GtkWindow):
 
 	tools = [
 		('Save', 'Save this macro'),
-		('Record', 'Record a new macro'),
+		('Record', 'Start recording steps'),
 		('Play', 'Run this macro from the start'),
 		('Next', 'Run until the next step in this macro'),
 		('Step', 'Run one step, stopping in any macro'),
@@ -168,17 +168,14 @@ class Window(GtkWindow):
 	def tool_Play(self):
 		self.tree.exec_state.set_step_mode(-1)
 		self.tree.exec_state.sched()
-		pass
 	
 	def tool_Next(self):
 		self.tree.exec_state.set_step_mode(1)
 		self.tree.exec_state.do_one_step()
-		pass
 	
 	def tool_Step(self):
 		self.tree.exec_state.set_step_mode(0)
 		self.tree.exec_state.do_one_step()
-		pass
 	
 	def tool_Record(self):
-		pass
+		self.tree.toggle_record()
