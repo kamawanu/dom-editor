@@ -142,6 +142,7 @@ class View:
 		self.single_step = 1	# 0 = Play   1 = Step-into   2 = Step-over
 		self.model = None
 		self.chroots = []	# (model, node, marked)
+		self.foreach_stack = []	# (block, [nodes])
 		self.current_nodes = []
 		self.clipboard = None
 		self.current_attrib = None
@@ -520,7 +521,8 @@ class View:
 
 		# If we're in a block, try exiting from it...
 		if isinstance(op.parent, Block):
-			self.leave_block(op.parent)
+			if self.start_block_iteration(op.parent):
+				return			# Looping...
 			if not op.parent.is_toplevel():
 				self.set_exec((op.parent, exit))
 				return
@@ -895,26 +897,49 @@ class View:
 		if self.op_in_progress:
 			self.push_stack(self.op_in_progress)
 			self.set_oip(None)
-		self.play_block(self, prog.code)
+		self.play_block(prog.code)
 		self.sched()
 		self.status_changed()
 		raise InProgress
 	
+	def start_block_iteration(self, block):
+		"True if we are going to run the block, False to exit the loop"
+		if not self.foreach_stack:
+			raise Exception("Reached the end of a block we never entered!")
+		stack_block, nodes_list = self.foreach_stack[-1]
+		if stack_block != block:
+			self.foreach_stack = []
+			raise Exception("Reached the end of a block we never entered!")
+		if not nodes_list:
+			self.foreach_stack.pop()
+			return 0	# Nothing left to do
+		nodes = nodes_list[0]
+		del nodes_list[0]
+		self.move_to(nodes)
+
+		if block.enter:
+			self.enter()
+		self.set_exec((block.start, 'next'))
+		return 1
+	
 	def play_block(self, block):
 		assert isinstance(block, Block)
-		self.set_exec((block.start, 'next'))
+		print "Enter Block!"
+		if block.foreach:
+			list = self.current_nodes[:]
+		else:
+			list = [self.current_nodes[:]]	# List of one item, containing everything
+			
+		self.foreach_stack.append((block, list))
+		self.start_block_iteration(block)
 	
 	def Block(self):
-		print "Enter Block!"
 		assert self.op_in_progress
 		oip = self.op_in_progress
 		self.set_oip(None)
 		self.play_block(oip)
+		self.sched()
 		raise InProgress
-	
-	def leave_block(self, block):
-		# Do any tidying up
-		print "Leaving block", block
 	
 	def sched(self):
 		if self.op_in_progress:
@@ -951,7 +976,8 @@ class View:
 			print "Error in do_one_step(): stopping playback"
 			node = self.op_in_progress
 			self.set_oip(None)
-			self.set_exec((node, 'fail'))
+			if node:
+				self.set_exec((node, 'fail'))
 			self.status_changed()
 			return 0
 		if self.op_in_progress or self.single_step:

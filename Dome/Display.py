@@ -110,7 +110,7 @@ class Display(GnomeCanvas):
 			return		# Going to update anyway...
 
 		if self.view.running():
-			self.update_timeout = timeout_add(10000, self.update_callback)
+			self.update_timeout = timeout_add(2000, self.update_callback)
 		else:
 			self.update_timeout = timeout_add(10, self.update_callback)
 	

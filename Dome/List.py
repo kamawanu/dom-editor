@@ -421,8 +421,20 @@ class ChainDisplay(GnomeCanvas):
 			g = group.add('group', x = 0, y = 0)
 			self.create_node(op.start, g)
 			(lx, ly, hx, hy) = g.get_bounds()
-			g.add('rect', x1 = lx - 4, x2 = hx + 4, y1 = ly - 4, y2 = hy + 4,
-				outline_color = 'black', width_pixels = 1)
+			minx = lx - 4
+			if op.foreach:
+				minx -= 8
+			border = g.add('rect', x1 = minx, x2 = hx + 4, y1 = ly + 4, y2 = hy + 4,
+					outline_color = 'black', width_pixels = 1)
+			border.lower_to_bottom()
+			if op.foreach:
+				g.add('rect', x1 = minx, x2 = minx + 8, y1 = ly + 4, y2 = hy + 4,
+					fill_color = 'blue').lower_to_bottom()
+			if op.enter:
+				g.add('rect', x1 = minx, x2 = hx + 4, y1 = ly + 5, y2 = ly + 13,
+					fill_color = 'yellow').lower_to_bottom()
+				g.add('rect', x1 = minx, x2 = hx + 4, y1 = hy - 3, y2 = hy + 3,
+					fill_color = 'yellow').lower_to_bottom()
 			next_off_y = 0
 			group.width, group.height = hx, hy
 			if op.is_toplevel():
@@ -437,17 +449,20 @@ class ChainDisplay(GnomeCanvas):
 						y1 = -4, y2 = 4,
 						width_pixels = 1)
 			group.ellipse.connect('event', self.op_event, op)
-			label = group.add('text',
-						x = -8, 
-						y = -8,
-						anchor = ANCHOR_NE,
-						justification = 'right',
-						font = 'fixed',
-						fill_color = 'black',
-						text = text)
+			if op.action[0] != 'Start':
+				label = group.add('text',
+							x = -8, 
+							y = -8,
+							anchor = ANCHOR_NE,
+							justification = 'right',
+							font = 'fixed',
+							fill_color = 'black',
+							text = text)
 
-			(lx, ly, hx, hy) = label.get_bounds()
-			next_off_y = hy
+				(lx, ly, hx, hy) = label.get_bounds()
+				next_off_y = hy
+			else:
+				next_off_y = 0
 			group.width, group.height = 0, 0
 
 		if op.next and op.next.prev[0] == op:
@@ -583,24 +598,29 @@ class ChainDisplay(GnomeCanvas):
 			self.update_points()
 
 	def show_op_menu(self, event, op):
+		if op.action[0] == 'Start':
+			op = op.parent
+			items = [('Toggle Enter/Leave', lambda: op.toggle_enter()),
+				 ('Toggle Foreach', lambda: op.toggle_foreach())]
+		else:
+			items = [('Edit node', lambda: self.edit_op(op))]
+
 		del_node = None
-		
-		def swap_nf(self = self, op = op):
-			op.swap_nf()
-				
 		if not (op.next and op.fail):
 			def del_node(self = self, op = op):
 				self.clipboard = op.del_node()
-		items = [('Edit node', lambda: self.edit_op(op)),
-			 ('Swap next/fail', swap_nf),
-			 ('Remove node', del_node)]
+
+		items += [('Swap next/fail', lambda: op.swap_nf()), ('Remove node', del_node)]
 		Menu(items).popup(event.button, event.time)
 
 	def paste_chain(self, op, exit):
 		print "Paste", self.clipboard
 		doc = self.clipboard
 		new = load(doc.documentElement, op.parent)
-		op.link_to(new, exit)
+		start = new.start.next
+		new.start.unlink('next', may_delete = 0)
+		start.set_parent(None)
+		op.link_to(start, exit)
 	
 	def end_link_drag(self, item, event, src_op, exit):
 		# Scan all the nodes looking for one nearby...
@@ -724,9 +744,14 @@ class ChainDisplay(GnomeCanvas):
 		x1, y1 = self.get_arrow_start(op, exit)
 
 		if op2:
-			group = self.op_to_group[op2]
-			x2, y2 = group.i2w(0, 0)
-			x2, y2 = prev_group.w2i(x2, y2)
+			try:
+				group = self.op_to_group[op2]
+			except:
+				x2 = x1 + 50
+				y2 = y1 + 50
+			else:
+				x2, y2 = group.i2w(0, 0)
+				x2, y2 = prev_group.w2i(x2, y2)
 		elif exit == 'next':
 			x2, y2 = DEFAULT_NEXT
 			x2 += x1

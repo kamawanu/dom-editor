@@ -14,7 +14,14 @@ def load(node, parent):
 	#assert node.localName == 'block'
 
 	block = Block(parent)
-	prev = block.start
+	try:
+		if int(node.getAttributeNS(None, 'foreach')):
+			block.toggle_foreach()
+		if int(node.getAttributeNS(None, 'enter')):
+			block.toggle_enter()
+		prev = block.start
+	except:
+		pass
 
 	id_hash = {}		# id from file -> Op
 	to_link = []
@@ -214,7 +221,7 @@ class Op:
 	def set_parent(self, parent):
 		if self.parent == parent:
 			return
-		if self.parent:
+		if parent and self.parent:
 			raise Exception('Already got a parent!')
 		nearby = self.prev[:]
 		if self.next:
@@ -225,17 +232,16 @@ class Op:
 		[x.set_parent(parent) for x in nearby if x.parent is not parent]
 	
 	def changed(self, op = None):
-		if self.parent:
-			self.parent.changed(op or self)
+		self.parent.changed(op or self)
 	
 	def swap_nf(self):
+		assert self.action[0] != 'Start'
 		self.next, self.fail = (self.fail, self.next)
 		self.changed()
 	
 	def link_to(self, child, exit):
 		# Create a link from this exit to this child Op
 		assert self.action[0] != 'Start' or exit == 'next'
-		print child.action
 		assert child.action[0] != 'Start'
 
 		print "Link %s:%s -> %s" % (self, exit, child)
@@ -390,7 +396,9 @@ class Block(Op):
 		self.parent = parent
 		self.start = Op()
 		self.start.parent = self
-
+		self.foreach = 0
+		self.enter = 0
+	
 	def set_start(self, start):
 		assert not start.prev
 
@@ -407,7 +415,17 @@ class Block(Op):
 	
 	def to_xml(self, doc):
 		node = doc.createElementNS(DOME_NS, 'block')
+		node.setAttributeNS(None, 'foreach', str(self.foreach))
+		node.setAttributeNS(None, 'enter', str(self.enter))
 		assert not self.start.fail
 		if self.start.next:
 			self.start.next.to_xml_int(node)
 		return node
+	
+	def toggle_enter(self):
+		self.enter = not self.enter
+		self.changed()
+	
+	def toggle_foreach(self):
+		self.foreach = not self.foreach
+		self.changed()
