@@ -384,7 +384,6 @@ class View:
 			raise Exception('Current node not in view!')
 		self.chroots.append((self.model, node))
 		self.set_model(self.model.lock_and_copy(node))
-		self.move_to([node])
 	
 	def leave(self):
 		"""Undo the effect of the last chroot()."""
