@@ -2,6 +2,7 @@ from __future__ import nested_scopes
 
 from rox import alert
 
+import support
 from support import *
 from xml.dom import Node, XMLNS_NAMESPACE
 from Ft.Xml import XPath
@@ -23,7 +24,6 @@ import traceback
 from constants import *
 
 import re
-entrefpattern = re.compile('&(\D\S+);')
 
 def elements(node):
 	out = []
@@ -1334,7 +1334,10 @@ class View:
 		
 		print "parsing...",
 
-		root = support.parse_data(data, uri)
+		try:
+			root = support.parse_data(data, uri)
+		except:
+			raise Beep
 		
 		new = node.ownerDocument.importNode(root.documentElement, 1)
 		new.setAttributeNS(None, 'uri', uri)
@@ -1821,11 +1824,13 @@ class View:
 		nodes = map(self.model.remove_ns, nodes)
 		self.move_to(nodes)
 	
-	def convert_to_text(self):
+	def convert_to(self, fn):
 		nodes = self.current_nodes[:]
 		self.move_to([])
-		nodes = map(self.model.convert_to_text, nodes)
+		nodes = map(fn, nodes)
 		self.move_to(nodes)
+	def convert_to_text(self): self.convert_to(self.model.convert_to_text)
+	def convert_to_comment(self): self.convert_to(self.model.convert_to_comment)
 
 class StrGrab:
 	data = ''

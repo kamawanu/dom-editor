@@ -97,7 +97,8 @@ menu = Menu('main', [
 		('/Process/XPath expression', 'menu_show_xpath', '', ''),
 		('/Process/Normalise', 'do_normalise', '', ''),
 		('/Process/Remove default namespaces', 'do_remove_ns', '', 'r'),
-		('/Process/Comment to text', 'do_convert_to_text', '', ''),
+		('/Process/Convert to text', 'do_convert_to_text', '', ''),
+		('/Process/Convert to comment', 'do_convert_to_comment', '', ''),
 
 		('/Program', None, '<Branch>', ''),
 		('/Program/Input', 'menu_show_ask', '', 'question'),
@@ -583,6 +584,8 @@ class GUIView(Display, XDSLoader):
 	do_again = make_do('again')
 	do_normalise = make_do('normalise')
 	do_convert_to_text = make_do('convert_to_text')
+	do_convert_to_comment = make_do('convert_to_comment')
+	do_convert_to_pi = make_do('convert_to_pi')
 	do_remove_ns = make_do('remove_ns')
 
 	do_clear_mark = make_do('clear_mark')

@@ -9,6 +9,9 @@ from Ft.Xml.Lib.Nss import GetAllNs
 from string import find, lower, join
 from socket import gethostbyaddr, gethostname
 
+import re
+entrefpattern = re.compile('&(\D\S+);')
+
 def node_to_xml(node):
 	"Takes an XML node and returns an XML documentElement suitable for saving."
 	root = implementation.createDocument(None, 'root', None)
@@ -122,7 +125,7 @@ def parse_data(data, path):
 		print "Data was:"
 		print data
 		#rox.report_exception()
-		raise Beep
+		raise
 	else:
 		print "parse OK...",
 	return doc

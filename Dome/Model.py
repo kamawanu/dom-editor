@@ -207,8 +207,16 @@ class Model:
 		self.update_all(node)
 	
 	def convert_to_text(self, node):
-		assert node.nodeType == Node.COMMENT_NODE
+		assert node.nodeType in (Node.COMMENT_NODE, Node.PROCESSING_INSTRUCTION_NODE,
+					 Node.TEXT_NODE)
 		new = self.doc.createTextNode(node.data)
+		self.replace_node(node, new)
+		return new
+	
+	def convert_to_comment(self, node):
+		assert node.nodeType in (Node.COMMENT_NODE, Node.PROCESSING_INSTRUCTION_NODE,
+					 Node.TEXT_NODE)
+		new = self.doc.createComment(node.data)
 		self.replace_node(node, new)
 		return new
 	
