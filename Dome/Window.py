@@ -8,15 +8,16 @@ from xml.dom import ext
 from xml.dom import implementation
 from xml.dom.ext.reader import PyExpat
 
+import choices
 import Html
 from loader import make_xds_loader
 from support import *
 from SaveBox import SaveBox
-from List import List
 from Toolbar import Toolbar
 
 from Model import Model
 from View import View
+from List import List
 from GUIView import GUIView
 
 import Exec
@@ -36,7 +37,7 @@ class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
 		
-		self.model = Model(List(self))
+		self.model = Model()
 		self.gui_view = None
 		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
@@ -52,8 +53,12 @@ class Window(GtkWindow):
 		hbox = GtkHBox(FALSE, 0)
 		vbox.pack_start(hbox)
 
-		self.model.macro_list.load_all()
-		hbox.pack_start(self.model.macro_list, FALSE, TRUE, 0)
+		code = choices.load('Dome', 'RootProgram')
+		if code:
+			self.model.load_program(code)
+		list = List(self.model)
+		hbox.pack_start(list, FALSE, TRUE, 0)
+		list.show()
 		
 		self.uri = "Document"
 

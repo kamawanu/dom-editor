@@ -1,7 +1,7 @@
 # An model contains:
 # - A DOM document
 # - The undo history
-# - All macro list
+# - A root program
 # All changes to the DOM must go through here.
 # Notification to views of changes is done.
 
@@ -13,14 +13,20 @@ import string
 import Html
 import Change
 from Beep import Beep
+from Program import Program, load_dome_program
 
 from support import html_to_xml
 
 class Model:
-	def __init__(self, macro_list):
+	def __init__(self):
 		self.doc = implementation.createDocument('', 'root', None)
 		self.views = []		# Notified when something changes
-		self.macro_list = macro_list
+		self.root_program = Program('root')
+	
+	def load_program(self, path):
+		reader = PyExpat.Reader()
+		doc = reader.fromUri(path)
+		self.root_program = load_dome_program(doc.documentElement)
 	
 	def get_root(self):
 		"Return the true root node (not a view root)"

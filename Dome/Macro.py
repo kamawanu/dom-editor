@@ -51,6 +51,13 @@ def action_to_text(action):
 	return text
 
 class Macro(GtkWindow):
+	"A graphical view onto a macro."
+	def __init__(self, view):
+		GtkWindow.__init__(self)
+		self.view = view
+		
+
+class Macro(GtkWindow):
 	def __init__(self, uri, parent):
 		GtkWindow.__init__(self)
 		self.uri = uri
