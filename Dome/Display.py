@@ -348,18 +348,19 @@ class Display(GnomeCanvas):
 				y = y + hy + 4
 			diag = min(top, indent)
 
-			if lowest_child - top > 30000:
-				mid_y = top + 30000
-			else:
-				mid_y = lowest_child
-			points = [4, 4, diag, diag, indent, top, indent, mid_y]
-			while mid_y < lowest_child:
-				mid_y = min(mid_y + 30000, lowest_child)
-				points += [indent, mid_y]
+			max_segment = 16000
+			points = (4, 4, diag, diag, indent, top, indent,
+					min(lowest_child, top + max_segment))
 			group.lines.append(group.add('line',
 					points = points, fill_color = 'black', width_pixels = 1))
-				
 			group.lines[-1].lower_to_bottom()
+			while points[-1] < lowest_child:
+				old_y = points[-1]
+				points = (indent, old_y, indent,
+					  min(old_y + max_segment, lowest_child))
+				group.lines.append(group.add('line',
+					points = points, fill_color = 'black', width_pixels = 1))
+				group.lines[-1].lower_to_bottom()
 
 
 	def get_text(self, node):
