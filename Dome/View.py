@@ -642,7 +642,8 @@ class View:
 		a = self.current_attrib
 		if a:
 			new = re.sub(replace, with, a.value)
-			self.model.set_attrib(self.get_current(), a.name, new)
+			a = self.model.set_attrib(nodes[0], a.name, new)
+			self.move_to(nodes[0], a)
 		else:
 			self.move_to([])
 			final = []
@@ -1218,6 +1219,7 @@ class View:
 			else:
 				value = self.clipboard.data
 			a = self.current_attrib
+			value = value.replace('\n', ' ')
 			self.model.set_attrib(node, a.name, value)
 			return
 		if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
