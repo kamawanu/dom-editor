@@ -17,10 +17,24 @@ class Exec:
 		self.sched_tag = 0
 		self.stack = []
 		self.clean()
+	
+	def freeze(self):
+		self.frozen = 1
+	
+	def unfreeze(self, exit):
+		self.frozen = 0
+		if not self.frozen:
+			node = getattr(self.where, self.exit)
+			if exit == 'fail':
+				self.last_fail_node = node
+			self.set_pos(node, exit)
+			if self.stop_after < 0 or self.stop_after > 1:
+				self.sched()
 
 	def clean(self):
 		"Return to a clean state (empty stack; no point)"
 		self.doing_node = None	# Node being executed right now
+		self.frozen = 0
 		self.set_pos(None)
 		self.unstack_n(len(self.stack))
 
@@ -35,7 +49,9 @@ class Exec:
 	#  0  -  stop after one operation
 	#  1  -  stop after one operation, increment on play
 	#  n  -  decrement on return
+	# Also unfreezes...
 	def set_step_mode(self, stop_after):
+		self.frozen = 0
 		self.stop_after = stop_after
 
 	def rec_cb(self, choice):
@@ -44,6 +60,8 @@ class Exec:
 			self.where.macro.show_all()
 	
 	def play(self, macro_name):
+		self.frozen = 0
+
 		m = self.macro_list.macro_named(macro_name)
 		if not m:
 			raise Exception('No macro named `' + macro_name + "'!")
@@ -81,9 +99,14 @@ class Exec:
 		self.sched_tag = idle_add(self.idle_cb)
 	
 	def idle_cb(self):
-		self.do_one_step()
-		if self.where and (self.stop_after < 0 or self.stop_after > 1):
+		if not self.frozen:
+			self.do_one_step()
+
+		if self.where and \
+		  (self.stop_after < 0 or self.stop_after > 1) and \
+		  not self.frozen:
 			return 1
+
 		self.sched_tag = 0
 		return 0
 	
@@ -113,7 +136,7 @@ class Exec:
 		finally:
 			self.doing_node = None
 
-		if current != self.where:
+		if current != self.where or self.frozen:
 			return	# Something has moved us already ('playback'?)
 
 		self.set_pos(next, dir)

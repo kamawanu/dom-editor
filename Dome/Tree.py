@@ -686,6 +686,21 @@ class Tree(GtkDrawingArea):
 			self.may_record(action)
 		GetArg('Substitute:', do_subst, ('Replace:', 'With:'))
 
+	def ask(self, node, q):
+		def ask_cb(result, self = self):
+			if result == 0:
+				self.exec_state.unfreeze('next')
+			elif result == 1:
+				self.exec_state.unfreeze('fail')
+		self.exec_state.freeze()
+		get_choice(q, "Question:", ('Yes', 'No'), ask_cb)
+
+	def show_ask(self):
+		def do_ask(q, self = self):
+			action = ["ask", q]
+			self.may_record(action)
+		GetArg('Ask:', do_ask, ('Question:',))
+
 	def delete_node(self, cur):
 		"Delete"
 		if cur is self.display_root:
@@ -803,6 +818,10 @@ class Tree(GtkDrawingArea):
 
 		slash	: search,
 		n	: ["search_next"],
+
+		# Interaction
+
+		question: show_ask,
 
 		# Changes
 		I	: insert_element,
