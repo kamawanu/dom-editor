@@ -987,6 +987,8 @@ class View:
 			ext.StripHtml(root)
 		except:
 			print "parsing failed"
+			print "Data was:"
+			print data
 			support.report_exception()
 			raise Beep
 		
