@@ -6,7 +6,7 @@ from rox import support
 from xml.dom import Node, ext, XMLNS_NAMESPACE
 from Ft.Xml import XPath
 from Ft.Xml.XPath import FT_EXT_NAMESPACE, Context
-from xml.dom.ext.reader import PyExpat
+from xml.dom.ext.reader import PyExpat		# XXX
 from Ft.Xml.cDomlette import implementation
 
 import os, re, string, types, sys
@@ -1277,51 +1277,6 @@ class View:
 		print "Loaded."
 		return new
 	
-	def dom_from_command(self, command, callback = None, old_md5 = None):
-		"""Execute shell command 'command' in the background.
-		Parse the output as XML. When done, call callback(doc_root, md5).
-		If old_md5 is given, compare the MD5 of the document with it,
-		and do callback(None, "Same") if they match.
-		"""
-		#print command
-		cout = os.popen(command)
-	
-		all = ["", None]
-		def got_all(data, cb = callback, m5 = old_md5):
-			import md5
-			new_md5 = md5.new(data).hexdigest()
-			
-			if m5 and new_md5 == m5:
-				cb(None, "Same")
-				return
-			
-			reader = PyExpat.Reader()
-			print "Parsing..."
-
-			try:
-				root = reader.fromStream(StringIO(data))
-				ext.StripHtml(root)
-			except:
-				print "dom_from_command: parsing failed"
-				support.report_exception()
-				root = None
-			cb(root, new_md5)
-
-		# XXX: only for nogui...
-		got_all(cout.read())
-		return
-
-		def got_html(src, cond, all = all, got_all = got_all):
-			data = src.read(100)
-			if data:
-				all[0] += data
-				return
-			input_remove(all[1])
-			src.close()
-			got_all(all[0])
-			
-		all[1] = input_add(cout, GDK.INPUT_READ, got_html)
-	
 	def put_before(self):
 		node = self.get_current()
 		if self.clipboard == None:
@@ -1508,19 +1463,14 @@ class View:
 		a = self.model.set_attrib(node, name, value)
 		self.move_to(node, a)
 	
-	def load_html(self, path):
-		"Replace root with contents of this HTML file."
-		print "Reading HTML..."
-		data = file(path).read()
-		data = to_html(data)
-		
+	def parse_data(self, data, path):
+		"""Convert and XML document into a DOM Document."""
 		from Ft.Xml.InputSource import InputSourceFactory
 		from Ft.Xml.cDomlette import nonvalParse
 		isrc = InputSourceFactory()
 
 		try:
-			root = nonvalParse(isrc.fromString(data, path))
-			ext.StripHtml(root)
+			doc = nonvalParse(isrc.fromString(data, path))
 		except:
 			type, val, tb = sys.exc_info()
 			traceback.print_exception(type, val, tb)
@@ -1531,8 +1481,10 @@ class View:
 			raise Beep
 		else:
 			print "parse OK...",
+		return doc
 		
-		new = self.root.ownerDocument.importNode(root.documentElement, 1)
+	def set_root_from_doc(self, doc):
+		new = self.root.ownerDocument.importNode(doc.documentElement, 1)
 
 		if self.root:
 			self.model.unlock(self.root)
@@ -1542,11 +1494,21 @@ class View:
 		self.root = new
 		self.move_to(self.root)
 
+	def load_html(self, path):
+		"Replace root with contents of this HTML file."
+		print "Reading HTML..."
+		data = file(path).read()
+		data = to_html(data)
+		doc = self.parse_data(data, path)
+		doc = ext.StripHtml(doc)
+		self.set_root_from_doc(doc)
+		
 	def load_xml(self, path):
 		"Replace root with contents of this XML (or Dome) file."
-		reader = PyExpat.Reader()
-		new_doc = reader.fromUri(path)
-		self.load_node(new_doc.documentElement)
+		print "Reading XML..."
+		data = file(path).read()
+		doc = self.parse_data(data, path)
+		self.set_root_from_doc(doc)
 
 	def load_node(self, root):
 		new = self.model.doc.importNode(root, 1)
@@ -1695,7 +1657,7 @@ class View:
 		reply = conn.getfile().read()
 		print "Got:\n", reply
 
-		reader = PyExpat.Reader()
+		reader = PyExpat.Reader()		# XXX
 		new_doc = reader.fromString(reply)
 		print new_doc
 
