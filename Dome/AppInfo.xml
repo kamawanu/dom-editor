@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<AppInfo>
+  <Summary>View and edit XML files graphically</Summary>
+  <About>
+    <Purpose>Visual programming</Purpose>
+    <Version>0.1.1 PREVIEW</Version>
+    <Author>Thomas Leonard</Author>
+  </About>
+</AppInfo>
