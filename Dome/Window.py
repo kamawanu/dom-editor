@@ -128,6 +128,7 @@ class Window(GtkWindow):
 	
 	def get_xml(self, export_xml = TRUE):
 		print "Saving", self.view.root
+		self.view.model.strip_space()
 		if export_xml:
 			doc = self.view.model.doc
 		else:
