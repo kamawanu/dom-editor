@@ -55,6 +55,8 @@ def calc_node(display, node, pos):
 	return bbox, draw_fn
 
 class Display(g.EventBox):
+	visible = 1		# Always visible
+
 	def __init__(self, window, view):
 		g.EventBox.__init__(self)
 		self.set_app_paintable(True)

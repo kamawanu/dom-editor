@@ -125,6 +125,7 @@ class GUIView(Display, XDSLoader):
 					  'application/xml'])
 		window.connect('key-press-event', self.key_press)
 		self.cursor_node = None
+		self.edit_dialog = None
 		self.update_state()
 
 		menu.attach(window, self)
@@ -316,7 +317,6 @@ class GUIView(Display, XDSLoader):
 		eb.show()
 	
 	def get_edit_text(self):
-		node = self.cursor_node
 		if node.nodeType == Node.ELEMENT_NODE:
 			if self.cursor_attrib:
 				return str(self.cursor_attrib.value)
@@ -364,10 +364,51 @@ class GUIView(Display, XDSLoader):
 		g.idle_add(cb)
 
 	def toggle_edit(self):
-		if self.cursor_node:
-			self.hide_editbox()
+		node = self.view.get_current()
+		attrib = self.view.current_attrib
+
+		if self.edit_dialog:
+			self.edit_dialog.destroy()
+		self.edit_dialog = rox.Dialog()
+		eb = self.edit_dialog
+
+		entry = g.Entry()
+		if node.nodeType == Node.ELEMENT_NODE:
+			if attrib:
+				text = str(attrib)
+			text = node.nodeName
 		else:
-			self.show_editbox()
+			text = node.nodeValue
+		entry.set_text(text)
+		eb.vbox.pack_start(entry, TRUE, FALSE, 0)
+
+		eb.add_button(g.STOCK_CANCEL, g.RESPONSE_CANCEL)
+		eb.add_button(g.STOCK_APPLY, g.RESPONSE_OK)
+		eb.set_default_response(g.RESPONSE_OK)
+		entry.grab_focus()
+		entry.set_activates_default(True)
+		def destroy(eb):
+			self.edit_dialog = None
+		eb.connect('destroy', destroy)
+		def response(eb, resp):
+			if resp == g.RESPONSE_CANCEL:
+				eb.destroy()
+			elif resp == g.RESPONSE_OK:
+				new = entry.get_text()
+				if new != text:
+					if attrib:
+						self.view.may_record(['set_attrib', new])
+					else:
+						self.view.may_record(['change_node', new])
+				eb.destroy()
+		eb.connect('response', response)
+
+		eb.show_all()
+		
+		#if self.cursor_node:
+		#	self.hide_editbox()
+		#else:
+		#	self.show_editbox()
 
 	def menu_select_attrib(self):
 		def do_attrib(name):
