@@ -66,4 +66,8 @@ shutil.copyfile(source, source + '.bak')
 doc = view.export_all()
 ext.PrettyPrint(doc, stream = open(source, 'w'))
 
-ext.PrettyPrint(view.model.doc, stream = open(source + '.xml', 'w'))
+if source[-5:] == '.dome':
+	xml = source[:-5] + '.xml'
+else:
+	xml = source + '.xml'
+ext.PrettyPrint(view.model.doc, stream = open(xml, 'w'))
