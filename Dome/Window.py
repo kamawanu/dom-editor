@@ -160,13 +160,16 @@ class Window(rox.Window, saving.Saveable):
 			self.savebox.save_area.entry.set_text(name)
 
 		for radio, ext, mime, fn in self.save_radios:
+			if path.endswith('.' + ext):
+				radio.set_active(True)
+				break
+		else:
+			self.save_radios[1][0].set_active(True)
+
+		for radio, ext, mime, fn in self.save_radios:
 			self.savebox.vbox.pack_start(radio, False, True, 0)
 			radio.connect('toggled', changed)
 
-		for radio, ext, mime, fn in self.save_radios:
-			if path.endswith('.' + ext):
-				radio.set_active(True)
-	
 		self.savebox.vbox.show_all()
 		self.savebox.show()
 	
