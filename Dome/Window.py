@@ -11,7 +11,6 @@ from xml.dom.ext.reader import PyExpat
 
 import choices
 import Html
-from loader import make_xds_loader
 from support import *
 from SaveBox import SaveBox
 from Toolbar import Toolbar
@@ -77,7 +76,6 @@ class Window(GtkWindow):
 
 		vbox.show_all()
 		self.connect('key-press-event', self.key)
-		make_xds_loader(self, self)
 	
 		self.gui_view.grab_focus()
 		self.update_title()
@@ -88,7 +86,7 @@ class Window(GtkWindow):
 		if path:
 			if path != '-':
 				self.uri = path
-			self.load_file(path)
+			self.gui_view.load_file(path)
 	
 	def destroyed(self, widget):
 		path = choices.save('Dome', 'RootProgram')
@@ -108,18 +106,6 @@ class Window(GtkWindow):
 		print "Saved to ", path
 
 
-	def load_file(self, path):
-		if path[-5:] == '.html':
-			self.model.load_html(path)
-			self.uri = path[:-5] + '.xml'
-		else:
-			self.model.load_xml(path)
-			self.uri = path
-		self.update_title()
-
-	def load_data(self, data):
-		report_error("Can only load files for now - sorry")
-	
 	def update_title(self):
 		title = self.uri
 		self.set_title(title)
@@ -190,7 +176,7 @@ class Window(GtkWindow):
 		]
 	
 	def tool_Save(self):
-		self.save()
+		self.save('xml')
 	
 	def tool_Stop(self):
 		Exec.exec_state.stop()

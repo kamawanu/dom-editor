@@ -131,6 +131,13 @@ class SaveBox(GtkWindow):
 		entry.realize()
 		entry.set_position(-1)
 		entry.select_region(i, -1)
+
+		self.connect('key-press-event', self.key_press)
+	
+	def key_press(self, window, event):
+		if event.keyval == Escape:
+			self.destroy()
+			return 1
 	
 	def cancel(self, widget):
 		self.destroy()

@@ -72,16 +72,16 @@ class Model:
 		for v in self.views:
 			v.update_replace(old, new)
 
-	def strip_space(self):
-		def cb(node, cb):
-			if node.nodeType == Node.TEXT_NODE:
-				node.data = string.strip(node.data)
-				if node.data == '':
-					node.parentNode.removeChild(node)
-			else:
-				for k in node.childNodes[:]:
-					cb(k, cb)
-		cb(self.doc.documentElement, cb)
+	def strip_space(self, node = None):
+		if not node:
+			node = self.doc.documentElement
+		if node.nodeType == Node.TEXT_NODE:
+			node.data = string.strip(node.data)
+			if node.data == '':
+				node.parentNode.removeChild(node)
+		else:
+			for k in node.childNodes[:]:
+				self.strip_space(k)
 
 	# Changes
 	

@@ -2,6 +2,7 @@ from gtk import *
 from support import *
 from xml.dom import Node, ext
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
+from xml.dom.ext.reader import PyExpat
 import os, re, string, types
 import urlparse
 import Html
@@ -273,6 +274,31 @@ class View:
 		if new:
 			self.move_to(new)
 	
+	def do_one_step(self, done = None):
+		"Execute the next op after exec_point, then position the point "
+		"on one of the exits and call done(). May return before the operation"
+		"is complete."
+		if self.op_in_progress:
+			report_error("Already executing something.")
+			return
+		if not self.exec_point:
+			report_error("No current playback point.")
+			return
+		(op, exit) = self.exec_point
+		next = getattr(op, exit)
+		if not next:
+			report_error("Nothing more to do.")
+			return
+		self.set_oip(next)
+		self.do_action(next.action)
+
+	def set_oip(self, op):
+		if op:
+			self.set_exec(None)
+		self.op_in_progress = op
+		for l in self.lists:
+			l.set_oip()
+
 	# Actions...
 
 	def do_global(self, pattern):
@@ -369,7 +395,7 @@ class View:
 			return list
 		return self.model.doc.createTextNode(str(data))
 	
-	def yank(self):
+	def yank(self, deep = 1):
 		if self.current_attrib:
 			a = self.current_attrib
 			self.clipboard = self.model.doc.createElementNS(DOME_NS, 'attribute')
@@ -385,9 +411,12 @@ class View:
 		else:
 			self.clipboard = self.model.doc.createDocumentFragment()
 			for n in self.current_nodes:
-				self.clipboard.appendChild(n.cloneNode(deep = 1))
+				self.clipboard.appendChild(n.cloneNode(deep = deep))
 		
 		print "Clip now", self.clipboard
+	
+	def shallow_yank(self):
+		self.yank(deep = 0)
 	
 	def delete_node(self):
 		nodes = self.current_nodes[:]
@@ -646,28 +675,21 @@ class View:
 		# 'name' must include the prefix if namespaceURI is not ''
 		self.model.set_attrib(self.current, namespaceURI, name, value)
 		self.move_to(self.current, self.current.getAttributeNodeNS(namespaceURI, name))
+	
+	def load_xml(self, path):
+		"Replace root with contents of this HTML file."
+		print "Reading HTML..."
+		reader = Html.Reader()
+		root = reader.fromUri(path)
+		new = html_to_xml(self.model.doc, root)
+		self.model.replace_node(self.root, new)
 
-	def do_one_step(self, done = None):
-		"Execute the next op after exec_point, then position the point "
-		"on one of the exits and call done(). May return before the operation"
-		"is complete."
-		if self.op_in_progress:
-			report_error("Already executing something.")
-			return
-		if not self.exec_point:
-			report_error("No current playback point.")
-			return
-		(op, exit) = self.exec_point
-		next = getattr(op, exit)
-		if not next:
-			report_error("Nothing more to do.")
-			return
-		self.set_oip(next)
-		self.do_action(next.action)
+	def load_xml(self, path):
+		"Replace root with contents of this XML file."
+		reader = PyExpat.Reader()
+		new_doc = reader.fromUri(path)
 
-	def set_oip(self, op):
-		if op:
-			self.set_exec(None)
-		self.op_in_progress = op
-		for l in self.lists:
-			l.set_oip()
+		new = self.model.doc.importNode(new_doc.documentElement, deep = 1)
+		
+		self.model.strip_space(new)
+		self.model.replace_node(self.root, new)

@@ -2,6 +2,7 @@ from gtk import *
 from GDK import *
 from xml.dom import Node
 import string
+from loader import make_xds_loader
 
 from support import report_exception
 
@@ -18,7 +19,20 @@ class GUIView(Display):
 		Display.__init__(self, window, view)
 		window.connect('key-press-event', self.key_press)
 		self.cursor_node = None
+		make_xds_loader(self, self)
 
+	def load_file(self, path):
+		if path[-5:] == '.html':
+			self.view.load_html(path)
+		else:
+			self.view.load_xml(path)
+		if self.view.root == self.view.model.get_root():
+			self.window.uri = path
+			self.window.update_title()
+
+	def load_data(self, data):
+		report_error("Can only load files for now - sorry")
+	
 	def key_press(self, widget, kev):
 		if self.cursor_node:
 			return 1
@@ -86,6 +100,8 @@ class GUIView(Display):
 			('Yank attrib value', do('yank_value')),
 			(None, None),
 			('Cut', do('delete_node')),
+			('Yank', do('yank')),
+			('Shallow yank', do('shallow_yank')),
 			('Paste (replace)', do('put_replace')),
 			('Paste (inside)', do('put_as_child')),
 			('Paste (before)', do('put_before')),
