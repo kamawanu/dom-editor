@@ -1074,15 +1074,21 @@ class View:
 
 		print "Sucking", uri
 
-		if post_data is not None:
-			print "POSTING", post_data
-		stream = urllib.urlopen(uri, post_data)
-		headers = stream.info().headers
-		last_mod = None
-		for x in headers:
-			if x.lower().startswith('last-modified:'):
-				last_mod = x[14:].strip()
-				break
+		if uri.startswith('file:///'):
+			assert not post_data
+			stream = open(uri[7:])
+			# (could read the mod time here...)
+			last_mod = None
+		else:
+			if post_data is not None:
+				print "POSTING", post_data
+			stream = urllib.urlopen(uri, post_data)
+			headers = stream.info().headers
+			last_mod = None
+			for x in headers:
+				if x.lower().startswith('last-modified:'):
+					last_mod = x[14:].strip()
+					break
 		
 		current_last_mod = node.getAttributeNS(None, 'last-modified')
 		if current_last_mod and last_mod:

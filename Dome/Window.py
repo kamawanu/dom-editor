@@ -13,6 +13,9 @@ from rox.Toolbar import Toolbar
 
 code = None
 
+from codecs import lookup
+utf8_encoder = lookup('UTF-8')[0]
+
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
@@ -113,19 +116,21 @@ class Window(GtkWindow):
 			doc = self.view.model.doc
 		else:
 			doc = self.view.export_all()
-		self.output_data = u''
+
+		from cStringIO import StringIO
+		self.output_data = StringIO()
 		print "Getting data..."
 
 		PrettyPrint(doc, stream = self)
-		d = self.output_data
+		d = self.output_data.getvalue()
 		del self.output_data
 		print "Got data... saving..."
 		return d
 	
 	def write(self, text):
-		if type(text) == str:
-			text = unicode(text, encoding = 'UTF-8')
-		self.output_data = self.output_data + text
+		if type(text) == unicode:
+			text = utf8_encoder(text)[0]
+		self.output_data.write(text)
 
 	def save_get_data(self):
 		export = self.savebox.toggle_export_xml
