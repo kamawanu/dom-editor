@@ -38,7 +38,7 @@ class Display(GnomeCanvas):
 		self.window = window
 		self.root_group = None
 		self.update_timeout = 0
-		self.update_nodes = []			# List of nodes to update on update_timeout
+		self.update_nodes = {}			# Set of nodes to update on update_timeout
 		self.current_attrib = None		# Canvas group
 		self.node_to_group = {}
 
@@ -96,11 +96,11 @@ class Display(GnomeCanvas):
 			node = self.view.model.doc
 
 		if node == self.view.root:
-			self.update_nodes = [node]
-		elif node not in self.update_nodes:
+			self.update_nodes = {node: None}
+		elif not self.update_nodes.has_key(node):
 			# Note: we don't eliminate duplicates (parent and child) nodes
 			# here because it takes *ages*
-			self.update_nodes.append(node)
+			self.update_nodes[node] = None
 
 		if self.update_timeout or not self.visible:
 			return		# Going to update anyway...
@@ -122,7 +122,7 @@ class Display(GnomeCanvas):
 		set_busy(self)
 		try:
 			#XXX: self.node_to_group = {}
-			for node in self.update_nodes:
+			for node in self.update_nodes.keys():
 				root = self.view.root
 				if node is not root and self.view.has_ancestor(node, root):
 					# The root is OK - the change is inside...
@@ -151,7 +151,7 @@ class Display(GnomeCanvas):
 				self.scroll_to_show(self.view.current_nodes[0])
 		finally:
 			set_busy(self, FALSE)
-			self.update_nodes = []
+			self.update_nodes = {}
 		return 0
 	
 	def child_group_resized(self, node):

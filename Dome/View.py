@@ -28,6 +28,10 @@ def elements(node):
 			out.append(x)
 	return out
 
+normal_chars = string.letters + string.digits + "-"
+
+fast_global = re.compile('//([-A-Za-z][-A-Za-z0-9]*:)?[-A-Za-z][-A-Za-z0-9]*$')
+
 # An view contains:
 # - A ref to a DOM document
 # - A set of current nodes
@@ -275,6 +279,7 @@ class View:
 		return TRUE
 	
 	def update_all(self, node):
+		"""
 		# Is the root node still around?
 		if not self.has_ancestor(self.root, self.model.get_root()):
 			# No - reset everything
@@ -293,6 +298,7 @@ class View:
 		if not (self.has_ancestor(node, self.root) or self.has_ancestor(self.root, node)):
 			#print "[ change to %s doesn't affect us (root %s) ]" % (node, self.root)
 			return
+		"""
 
 		for display in self.displays:
 			display.update_all(node)
@@ -409,6 +415,7 @@ class View:
 		"'action' is a tuple (function, arg1, arg2, ...)"
 		"Performs the action. Returns if action completes, or raises "
 		"InProgress if not (will call resume() later)."
+		print action
 		if action[0] in record_again:
 			self.last_action = action
 		elif action[0] == 'again':
@@ -494,11 +501,37 @@ class View:
 		for l in self.lists:
 			l.update_points()
 
+	def fast_global(self, name):
+		"Search for nodes with this name anywhere under the root (//name)"
+		print "Fast global", name
+		if ':' in name:
+			(prefix, localName) = string.split(name, ':', 1)
+		else:
+			(prefix, localName) = (None, name)
+		if self.current_nodes:
+			src = self.current_nodes[-1]
+		else:
+			src = self.root
+		namespaceURI = self.model.prefix_to_namespace(src, prefix)
+		select = []
+		def add(node):
+			if node.nodeType != Node.ELEMENT_NODE:
+				return
+			if node.localName == name and node.namespaceURI == namespaceURI:
+				select.append(node)
+			map(add, node.childNodes)
+		add(self.root)
+		self.move_to(select)
+
 	# Actions...
 
 	def do_global(self, pattern):
 		if len(self.current_nodes) != 1:
 			self.move_to(self.root)
+		if pattern[:2] == '//':
+			if fast_global.match(pattern):
+				self.fast_global(pattern[2:])
+				return
 		ns = {}
 		if not ns:
 			ns = ext.GetAllNs(self.current_nodes[0])
@@ -885,16 +918,26 @@ class View:
 		return prog
 
 	def change_node(self, new_data):
-		for node in self.current_nodes:
-			if node.nodeType == Node.TEXT_NODE or node.nodeType == Node.COMMENT_NODE:
-				self.model.set_data(node, new_data)
+		nodes = self.current_nodes
+		if not nodes:
+			return
+		self.move_to([])
+		print "Start"
+		if nodes[0].nodeType == Node.ELEMENT_NODE:
+			# Slow, so do this here, even if vaguely incorrect...
+			if ':' in new_data:
+				(prefix, localName) = string.split(new_data, ':', 1)
 			else:
-				if ':' in new_data:
-					(prefix, localName) = string.split(new_data, ':', 1)
-				else:
-					(prefix, localName) = (None, new_data)
-				namespaceURI = self.model.prefix_to_namespace(node, prefix)
-				self.model.set_name(node, namespaceURI, new_data)
+				(prefix, localName) = (None, new_data)
+			namespaceURI = self.model.prefix_to_namespace(nodes[0], prefix)
+			example = nodes[0].ownerDocument.createElementNS(namespaceURI, new_data)
+			for node in nodes:
+				self.model.set_name(node, namespaceURI, new_data, example = example)
+		else:
+			for node in nodes:
+				self.model.set_data(node, new_data)
+		print "End"
+		self.move_to(nodes)
 
 	def add_node(self, where, data):
 		cur = self.get_current()

@@ -177,16 +177,18 @@ class Model:
 
 	# Changes
 	
-	def set_name(self, node, namespace, name):
+	def set_name(self, node, namespace, name, example = None):
+		"example can be used to optimise..."
 		old_name = node.nodeName
 		self.add_undo(lambda: self.set_name(node, namespace, old_name))
 	
 		# XXX: Hack!
-		tmp = node.ownerDocument.createElementNS(namespace, name)
-		node.__dict__['__nodeName'] = tmp.__dict__['__nodeName']
-		node.__dict__['__namespaceURI'] = tmp.__dict__['__namespaceURI']
-		node.__dict__['__prefix'] = tmp.__dict__['__prefix']
-		node.__dict__['__localName'] = tmp.__dict__['__localName']
+		if not example:
+			example = node.ownerDocument.createElementNS(namespace, name)
+		node.__dict__['__nodeName'] = example.__dict__['__nodeName']
+		node.__dict__['__namespaceURI'] = example.__dict__['__namespaceURI']
+		node.__dict__['__prefix'] = example.__dict__['__prefix']
+		node.__dict__['__localName'] = example.__dict__['__localName']
 
 		self.update_all(node)
 
