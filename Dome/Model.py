@@ -14,7 +14,7 @@ import Html
 import Change
 from Beep import Beep
 
-from support import html_to_xml, remove_namespaces
+from support import html_to_xml, import_xml, my_GetAllNs
 
 class Model:
 	def __init__(self, macro_list):
@@ -40,8 +40,7 @@ class Model:
 		reader = PyExpat.Reader()
 		new_doc = reader.fromUri(path)
 
-		new = self.doc.importNode(new_doc.documentElement, deep = 1)
-		remove_namespaces(new)
+		new = import_xml(self.doc, new_doc.documentElement)
 		
 		self.doc.replaceChild(new, self.doc.documentElement)
 		self.strip_space()
@@ -130,3 +129,15 @@ class Model:
 		"Set an attribute's value. If value is None, remove the attribute."
 		Change.set_attrib(node, name, value)
 		self.update_all(node)
+
+	def prefix_to_namespace(self, node, prefix):
+		"Use the xmlns attributes to workout the namespace."
+		nss = my_GetAllNs(node)
+		if nss.has_key(prefix):
+			return nss[prefix]
+		if prefix:
+			if prefix == 'xmlns':
+				return XMLNS_NAMESPACE
+			raise Exception("No such namespace prefix '%s'" % prefix)
+		else:
+			return ''

@@ -415,7 +415,12 @@ class View:
 	def add_node(self, where, data):
 		cur = self.current
 		if where[1] == 'e':
-			new = self.model.doc.createElement(data)
+			if ':' in data:
+				(prefix, localName) = string.split(data, ':', 1)
+			else:
+				(prefix, localName) = ('', data)
+			namespaceURI = self.model.prefix_to_namespace(self.current, prefix)
+			new = self.model.doc.createElementNS(namespaceURI, data)
 		else:
 			new = self.model.doc.createTextNode(data)
 		
