@@ -85,12 +85,13 @@ class Window(rox.Window, saving.Saveable):
 
 		def delete(window, event):
 			if self.model.root_program.modified:
-				if rox.confirm('Programs modified -- really quit?',
-						g.STOCK_DELETE):
-					return 0
+				self.save(discard = 1)
 				return 1
 			return 0
 		self.connect('delete-event', delete)
+	
+	def discard(self):
+		self.destroy()
 		
 	def set_state(self, state):
 		if state == self.dome_state:
@@ -106,12 +107,13 @@ class Window(rox.Window, saving.Saveable):
 		title = self.model.uri
 		self.set_title(title + self.dome_state)
 	
-	def save(self):
+	def save(self, discard = 0):
 		if self.savebox:
 			self.savebox.destroy()
 		path = self.model.uri
 
-		self.savebox = saving.SaveBox(self, path, 'application/x-dome')
+		self.savebox = saving.SaveBox(self, path,
+					'application/x-dome', discard = discard)
 		toggle = g.CheckButton("Export XML")
 		toggle.show()
 		self.savebox.toggle_export_xml = toggle
