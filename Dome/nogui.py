@@ -6,7 +6,7 @@ no_gui_mode = 1
 
 from Beep import Beep
 
-#import gc
+import gc
 #gc.set_debug(gc.DEBUG_LEAK)
 
 try:
@@ -44,8 +44,14 @@ if len(sys.argv) > 1 and sys.argv[1] == '--xmlonly':
 else:
 	xmlonly = 0
 
+if len(sys.argv) > 1 and sys.argv[1] == '--leaks':
+	show_leaks = True
+	del sys.argv[1]
+else:
+	show_leaks = False
+
 if len(sys.argv) < 2:
-	print "Usage: python nogui.py [--profile] [--xmlonly] <document>"
+	print "Usage: python nogui.py [--profile] [--xmlonly] [--leaks] <document>"
 	sys.exit(0)
 
 idle_list = []
@@ -94,12 +100,29 @@ def run_nogui():
 
 	print "Done!"
 
+if show_leaks:
+	gc.collect()
+	old = {}
+	for x in gc.get_objects():
+		old[id(x)] = None
+
 if profiling:
 	import profile
 	print "Profiling..."
 	profile.run('run_nogui()')
 else:
 	run_nogui()
+
+if show_leaks:
+	gc.collect()
+	for x in gc.get_objects():
+		if id(x) not in old:
+			print "New", type(x)
+			print `x`[:80]
+			for y in gc.get_referrers(x):
+				if id(y) in old and y is not globals():
+					print "\t%s" % `y`[:60]
+	sys.exit(0)
 
 if view.chroots:
 	raise Exception("Processing stopped in a chroot! -- not saving")
