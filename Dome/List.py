@@ -911,7 +911,7 @@ class ChainDisplay(canvas.Canvas):
 					width = 0
 				item.set(points = connect(sx, sy, x, y))
 		elif event.type == g.gdk.ENTER_NOTIFY:
-			item.set(fill_color = 'white')
+			item.set(fill_color = '#339900')
 		elif event.type == g.gdk.LEAVE_NOTIFY:
 			if exit == 'next':
 				item.set(fill_color = 'black')

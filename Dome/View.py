@@ -309,7 +309,6 @@ class View:
 			raise
 		except:
 			rox.report_exception()
-			raise
 	
 	def add_display(self, display):
 		"Calls move_from(old_node) when we move and update_all() on updates."
