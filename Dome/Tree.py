@@ -41,7 +41,6 @@ def get_text(node):
 # Return a string that will match this node in an XPath.
 # ns is updated with any new namespace required.
 def match_name(node, ns):
-	print "match_name", node, ns
 	if node.nodeType == Node.TEXT_NODE:
 		return 'text()'
 	elif node.nodeType == Node.COMMENT_NODE:

@@ -10,6 +10,7 @@ from StringIO import StringIO
 from support import *
 
 from SaveBox import SaveBox
+from Menu import Menu
 
 class Macro(GtkWindow):
 	def __init__(self, uri, parent):
@@ -264,10 +265,10 @@ class MacroNode:
 					width_pixels = 4)
 		self.fail_line.connect('event', self.line_event, self, 'fail')
 	
-	def reparent(self, new_parent):
+	def reparent(self, new_parent, exit = 'next'):
 		self.prev = new_parent
 		self.group.reparent(new_parent.group)
-		new_parent.link_to(self, 'next')
+		new_parent.link_to(self, exit)
 	
 	def highlight(self, colour):
 		self.circle.set(fill_color = colour)
@@ -276,17 +277,29 @@ class MacroNode:
 		# Create a line from this exit to this child
 		setattr(self, exit, child)
 		self.child_moved(child)
-				
-	def kill_child(self, child):
+	
+	def forget_child(self, child):
+		if child.prev != self:
+			raise Exception('forget_child: not my child!')
+		child.prev = None
+
 		if child == self.next:
 			exit = 'next'
+			points = (6, 0, 20, 0)
 		else:
 			exit = 'fail'
-		child.group.destroy()
+			points = (6, 6, 16, 16)
 		setattr(self, exit, None)
-		self.macro.set_bounds()
+		getattr(self, '%s_line' % exit).set(points = points)
+
 		exec_state = self.macro.parent.window.tree.exec_state
 		exec_state.set_pos(None)
+		self.macro.set_bounds()
+				
+	def kill_child(self, child):
+		child.group.destroy()
+
+		self.forget_child(child)
 	
 	def add_child(self, action, exit):
 		new = MacroNode(self.macro, action, x = 0, y = 0, p_node = self)
@@ -316,10 +329,43 @@ class MacroNode:
 		return new
 	
 	def line_event(self, line, event, prev, exit):
-		if event.type == BUTTON_PRESS:
+		if event.type == BUTTON_PRESS and event.button == 1:
 			exec_state = self.macro.parent.window.tree.exec_state
 			exec_state.set_pos(prev, exit, 0.5)
 		return 1
+	
+	def show_menu(self, event):
+		if self.next and self.fail:
+			del_node = None
+			del_chain = None
+		else:
+			del_node = self.del_node
+			del_chain = self.del_chain
+
+		if not self.prev:
+			del_node = None
+			del_chain = None
+
+		items = [('Delete chain', del_chain),
+			('Remove node', del_node)]
+		Menu(items).popup(event.button, event.time)
+	
+	def del_node(self):
+		prev = self.prev
+		if prev.next == self:
+			exit = 'next'
+		else:
+			exit = 'fail'
+		prev.forget_child(self)
+		if self.next:
+			self.next.reparent(prev, exit)
+		elif self.fail:
+			self.fail.reparent(prev, exit)
+		self.group.destroy()
+		#self.prev.kill_child(self)
+	
+	def del_chain(self):
+		self.prev.kill_child(self)
 	
 	def event(self, group, event):
 		if event.type == BUTTON_PRESS:
@@ -333,10 +379,9 @@ class MacroNode:
 						exec_state.set_pos(self.prev, 'fail')
 				else:
 					exec_state.set_pos(self, 'next', how_far = 0.1)
-			elif event.button == 3 and self.prev:
-				if get_choice('Really delete?', 'Macro step', ('Delete', 'Cancel')) == 0:
-					self.prev.kill_child(self)
-					return
+			elif event.button == 3:
+				self.show_menu(event)
+				return 1
 					
 			self.drag_last_x = event.x
 			self.drag_last_y = event.y
