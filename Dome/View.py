@@ -415,10 +415,12 @@ class View:
 			raise Beep		# Locking problems if this happens...
 		if self.model.doc is not node.ownerDocument:
 			raise Exception('Current node not in view!')
-		self.chroots.append((self.model, node, self.marked))
-		self.set_marked([])
 		self.move_to([])
-		self.set_model(self.model.lock_and_copy(node))
+		self.set_marked([])
+
+		new_model = self.model.lock_and_copy(node)
+		self.chroots.append((self.model, node, self.marked))
+		self.set_model(new_model)
 	
 	def leave(self):
 		"""Undo the effect of the last chroot()."""
@@ -1325,6 +1327,7 @@ class View:
 	def put_replace(self):
 		node = self.get_current()
 		if self.clipboard == None:
+			print "No clipboard!"
 			raise Beep
 		if self.current_attrib:
 			if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
@@ -1338,6 +1341,7 @@ class View:
 			return
 		if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
 			if len(self.clipboard.childNodes) != 1:
+				print "Multiple nodes in clipboard!"
 				raise Beep
 			new = self.clipboard.childNodes[0].cloneNode(1)
 		else:
@@ -1357,6 +1361,9 @@ class View:
 				self.model.replace_node(node, new)
 			self.move_to(new)
 		except:
+			type, val, tb = sys.exc_info()
+			traceback.print_exception(type, val, tb)
+			print "Replace failed!"
 			raise Beep
 
 	def put_as_child(self):
