@@ -46,17 +46,12 @@ def send_to_file(data, path):
 	return 1
 
 def import_with_ns(doc, node):
-	print "Import"
 	nss = GetAllNs(node)
-	print "nss", nss
-	print "node, doc", node, doc
 	
 	node = doc.importNode(node, 1)
-	print "node", node
 	for ns in nss.keys():
 		if ns == 'xml':
 			continue
-		print "Set namespace:", ns, "->", nss[ns]
 		uri = nss[ns]
 		if ns or uri:
 			if ns is None:
@@ -64,5 +59,4 @@ def import_with_ns(doc, node):
 			else:
 				ns = 'xmlns:' + ns
 			node.setAttributeNS(XMLNS_NAMESPACE, ns, uri)
-	print "Dome"
 	return node

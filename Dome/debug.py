@@ -1,6 +1,4 @@
-import signal
-
-def int_handler(signum, frame):
+def debug_prompt(signum, frame):
 	import readline, traceback
 	print "Debug mode! 'view' and 'model' are the last created View and Models."
 	while 1:
@@ -14,5 +12,3 @@ def int_handler(signum, frame):
 				exec line
 		except:
 			traceback.print_exc()
-	
-signal.signal(signal.SIGINT, int_handler)

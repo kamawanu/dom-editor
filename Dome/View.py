@@ -1021,12 +1021,12 @@ class View:
 		if current_last_mod and last_mod:
 			if current_last_mod == last_mod:
 				self.model.set_attrib(node, 'modified', None)
-				print "Not modified => not sucking!\n"
+				print "not modified => not sucking!\n"
 				return
 
-		print "Fetching page contents..."
+		print "Fetching page contents...",
 		data = stream.read()
-		print "Got data... tidying..."
+		print "got data... tidying...",
 
 		(r, w) = os.pipe()
 		child = os.fork()
@@ -1053,11 +1053,11 @@ class View:
 		
 		if old_md5 and new_md5 == old_md5:
 			self.model.set_attrib(node, 'modified', None)
-			print "MD5 sums match => not parsing!\n"
+			print "MD5 sums match => not parsing!"
 			return
 		
 		reader = PyExpat.Reader()
-		print "Parsing..."
+		print "Parsing...",
 
 		from Ft.Xml.InputSource import InputSourceFactory
 		from Ft.Xml.cDomlette import nonvalParse
@@ -1067,13 +1067,13 @@ class View:
 			root = nonvalParse(isrc.fromString(data, uri))
 			ext.StripHtml(root)
 		except:
-			print "parsing failed"
+			print "parsing failed!"
 			print "Data was:"
 			print data
 			support.report_exception()
 			raise Beep
 		else:
-			print "Parse OK"
+			print "Parse OK...",
 		
 		new = node.ownerDocument.importNode(root.documentElement, 1)
 		new.setAttributeNS(None, 'uri', uri)
