@@ -223,19 +223,19 @@ class Op:
 		if current:
 			if child.next:
 				raise Exception('%s already has a next exit' % child)
+			self.unlink(exit, may_delete = 0)
 			child.link_to(current, 'next')
-			self.unlink(exit)
 		child.prev.append(self)
 		setattr(self, exit, child)
 		self.changed()
 	
-	def unlink(self, exit):
+	def unlink(self, exit, may_delete = 1):
 		"Remove link from us to child"
 		assert exit in ['next', 'fail']
-		self._unlink(exit)
+		self._unlink(exit, may_delete)
 		self.changed()
 	
-	def _unlink(self, exit):
+	def _unlink(self, exit, may_delete = 1):
 		child = getattr(self, exit)
 		print "break %s:%s -> %s" % (self, exit, child)
 		if not child:
@@ -249,7 +249,7 @@ class Op:
 		print "Prev:"
 		for x in child.prev: print x
 
-		if not child.prev:
+		if may_delete and not child.prev:
 			# There is no way to reach this child now, so unlink its children.
 			print "rec %s, %s" % (child.next, child.fail)
 			child.program = None
@@ -283,7 +283,7 @@ class Op:
 				raise Exception("Deleted node-chain must have a single link in")
 			prev = self.prev[0]
 			preserve = getattr(self, exit)
-			self.unlink(exit)
+			self.unlink(exit, may_delete = 0)
 
 		# Remove all links to us
 		for p in self.prev:
