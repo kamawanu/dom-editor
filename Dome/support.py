@@ -32,6 +32,13 @@ def node_to_xml(node):
 	root.replaceChild(new, root.documentElement)
 	return root
 
+def node_to_html(node):
+	"Takes an XML node and returns an HTML documentElement suitable for saving."
+	root = implementation.createHTMLDocument('HTML document')
+	new = root.importNode(node, deep = 1)
+	root.replaceChild(new, root.documentElement)
+	return root
+
 def set_default_namespace(node):
 	"Attributes get a namespace of ''."
 	if node.nodeType == Node.ELEMENT_NODE:

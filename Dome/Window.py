@@ -2,6 +2,7 @@ from gtk import *
 from GDK import *
 from _gtk import *
 import string
+import os.path
 
 from xml.dom import Node
 from xml.dom import ext
@@ -72,6 +73,7 @@ class Window(GtkWindow):
 		hbox.pack_start(swin, TRUE, TRUE, 0)
 
 		Exec.exec_state = Exec.Exec(view)
+		self.view = view
 		self.gui_view = GUIView(self, view)
 		swin.add(self.gui_view)
 		swin.set_hadjustment(self.gui_view.get_hadjustment())
@@ -92,7 +94,7 @@ class Window(GtkWindow):
 			print "Not saving macros..."
 			return
 
-		print "Saving macros..."
+		print "Saving %d macros..." % len(self.model.root_program.subprograms)
 		data = self.model.root_program.to_xml()
 
 		file = open(path, 'wb')
@@ -123,20 +125,39 @@ class Window(GtkWindow):
 	def key(self, widget, kev):
 		if kev.keyval == F3:
 			if kev.state & SHIFT_MASK:
-				self.model.macro_list.save_all()
+				self.save('html')
 			else:
-				self.save()
+				self.save('xml')
 		return 1
 	
-	def save(self):
+	def save(self, type):
 		if self.savebox:
 			self.savebox.destroy()
-		self.savebox = SaveBox(self, 'text', 'xml')
+		self.savebox = SaveBox(self, 'text', type)
+		path = self.savebox.entry.get_chars(0, -1)
+		dir, file = os.path.split(path)
+		i = string.rfind(file, '.')
+		if i != -1:
+			file = file[:i + 1] + type
+		else:
+			file += '.' + type
+		if dir[:1] == '/':
+			dir += '/'
+		else:
+			dir = ''
+		self.savebox.entry.set_text(dir + file)
+		self.savetype = type
 		self.savebox.show()
 	
 	def get_xml(self):
+		if self.savetype == 'xml':
+			doc = node_to_xml(self.gui_view.view.root)
+		elif self.savetype == 'html':
+			doc = node_to_html(self.gui_view.view.root)
+		else:
+			raise Exception('Unknown save type', self.savetype)
 		self.output_data = ''
-		ext.PrettyPrint(node_to_xml(self.gui_view.view.root), stream = self)
+		ext.PrettyPrint(doc, stream = self)
 		d = self.output_data
 		self.output_data = ''
 		return d
@@ -181,8 +202,7 @@ class Window(GtkWindow):
 		Exec.exec_state.do_one_step()
 	
 	def tool_Step(self):
-		Exec.exec_state.set_step_mode(0)
-		Exec.exec_state.do_one_step()
+		self.view.do_one_step()
 	
 	def tool_Record(self):
 		self.gui_view.view.toggle_record()

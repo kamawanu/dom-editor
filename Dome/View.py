@@ -50,6 +50,7 @@ class View:
 
 		self.exec_point = None		# None, or (Op, Exit)
 		self.rec_point = None		# None, or (Op, Exit)
+		self.op_in_progress = None
 	
 	def __getattr__(self, attr):
 		if attr == 'current':
@@ -59,6 +60,9 @@ class View:
 		raise Exception('Bad View attribute "%s"' % attr)
 
 	def set_exec(self, pos):
+		if self.op_in_progress:
+			report_error("Operation in progress...")
+			return
 		self.exec_point = pos
 		for l in self.lists:
 			l.update_points()
@@ -629,3 +633,26 @@ class View:
 		# 'name' must include the prefix if namespaceURI is not ''
 		self.model.set_attrib(self.current, namespaceURI, name, value)
 		self.move_to(self.current, self.current.getAttributeNodeNS(namespaceURI, name))
+
+	def do_one_step(self, done = None):
+		"Execute the next op after exec_point, then position the point "
+		"on one of the exits and call done(). May return before the operation"
+		"is complete."
+		if self.op_in_progress:
+			report_error("Already executing something.")
+			return
+		if not self.exec_point:
+			report_error("No current playback point.")
+			return
+		(op, exit) = self.exec_point
+		next = getattr(op, exit)
+		if not next:
+			report_error("Nothing more to do.")
+			return
+		self.set_oip(next)
+
+	def set_oip(self, op):
+		self.set_exec(None)
+		self.op_in_progress = op
+		for l in self.lists:
+			l.set_oip()

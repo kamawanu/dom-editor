@@ -61,8 +61,9 @@ def load_dome_program(prog):
 
 	print "Loading '%s'..." % new.name
 
-	for node in prog.getElementsByTagNameNS('', 'dome-program'):
-		new.add_sub(load_dome_program(node))
+	for node in prog.childNodes:
+		if node.localName == 'dome-program':
+			new.add_sub(load_dome_program(node))
 		
 	return new
 
@@ -94,6 +95,19 @@ class Program:
 			raise Exception('%s already has a parent program!' % prog)
 		prog.parent = self
 		self.subprograms.append(prog)
+		self.changed(None)
+		prog.changed(None)
+	
+	def remove_sub(self, prog):
+		if prog.parent != self:
+			raise Exception('%s is no child of mime!' % prog)
+		prog.parent = None
+		self.subprograms.remove(prog)
+		self.changed(None)
+		prog.changed(None)
+	
+	def rename(self, name):
+		self.name = name
 		self.changed(None)
 	
 	def to_xml(self):

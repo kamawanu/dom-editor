@@ -5,6 +5,9 @@ from support import *
 import string
 
 import choices
+from Menu import Menu
+from GetArg import GetArg
+from Program import Program
 
 def action_to_text(action):
 	text = action[0]
@@ -49,6 +52,7 @@ class List(GnomeCanvas):
 
 		self.exec_point = None		# CanvasItem, or None
 		self.rec_point = None
+		self.oip = None
 
 		s = self.get_style().copy()
 		s.bg[STATE_NORMAL] = self.get_color('light green')
@@ -62,10 +66,27 @@ class List(GnomeCanvas):
 		self.prog = None
 		self.switch_to(view.model.root_program)
 	
+	def new_prog(self):
+		def create(name, self = self):
+			new = Program(name)
+			self.prog.add_sub(new)
+		GetArg('New program', create, ['Program name:'])
+	
 	def update_points(self):
 		print "update_points"
 		self.put_point('rec_point')
 		self.put_point('exec_point')
+	
+	def set_oip(self):
+		"Set the operation-in-progress marker."
+		if self.oip:
+			self.oip.ellipse.set(fill_color = 'blue')
+			self.oip = None
+		try:
+			self.oip = self.op_to_group[self.view.op_in_progress]
+		except KeyError:
+			return
+		self.oip.ellipse.set(fill_color = 'yellow')
 	
 	def put_point(self, point):
 		item = getattr(self, point)
@@ -146,61 +167,88 @@ class List(GnomeCanvas):
 		if self.nodes:
 			self.nodes.destroy()
 
+		if self.oip:
+			self.oip = None
+
 		y = 0
 		self.prog_to_group = {}
 		for p in [self.prog.parent, self.prog] + self.prog.subprograms:
 			if not p:
 				continue
-			g = self.subs.add('group', x = 0, y = y)
-			self.prog_to_group[p] = g
-			t = g.add('text', fill_color = 'black', x = 0, y = 0, anchor = ANCHOR_CENTER,
-								text = p.name, font = 'fixed')
-			(lx, ly, hx, hy) = t.get_bounds()
-			if -lx > hx:
-				w = -lx
-			else:
-				w = hx
-			g.move(0, -ly)
-			m = 4
 
+			g = self.subs.add('group', x = 0, y = y)
 			if p == self.prog:
 				c = 'yellow'
 			else:
 				c = 'grey80'
-			rect = g.add('rect', fill_color = c,
-						outline_color = 'black',
-						x1 = -w - m , y1 = ly - m,
-						x2 = w + m , y2 = hy + m)
-			t.raise_to_top()
-			g.connect('event', self.subprog_event, rect, p)
+			height = self.create_prog(p.name, g, c)
+			self.prog_to_group[p] = g
+			g.connect('event', self.subprog_event, g.rect, p)
 
-			y += (hy - ly) + 12
+			y += height + 12
+
+		g = self.subs.add('group', x = 0, y = y)
+		y += self.create_prog('<new>', g, 'white') + 12
 
 		self.op_to_group = {}
 		self.nodes = self.root().add('group', x = 0, y = y + 32)
 		self.create_node(self.prog.start, self.nodes)
 		self.update_points()
+		self.set_oip()
 
 		self.set_bounds()
+	
+	def create_prog(self, name, g, colour):
+		t = g.add('text', fill_color = 'black', x = 0, y = 0, anchor = ANCHOR_CENTER,
+							text = name, font = 'fixed')
+		(lx, ly, hx, hy) = t.get_bounds()
+		if -lx > hx:
+			w = -lx
+		else:
+			w = hx
+		g.move(0, -ly)
+
+		m = 4
+		g.rect = g.add('rect', fill_color = colour,
+					outline_color = 'black',
+					x1 = -w - m , y1 = ly - m,
+					x2 = w + m , y2 = hy + m)
+		t.raise_to_top()
+		return hy - ly
 	
 	def subprog_event(self, group, event, rect, sub):
 		if event.type == ENTER_NOTIFY:
 			rect.set(width_pixels = 2)
 		elif event.type == LEAVE_NOTIFY:
 			rect.set(width_pixels = 1)
-		elif event.type == BUTTON_PRESS and event.button == 1:
-			self.switch_to(sub)
+		elif event.type == BUTTON_PRESS:
+			if event.button == 1:
+				self.switch_to(sub)
+			elif event.button == 3:
+				def del_prog(prog = sub):
+					prog.parent.remove_sub(prog)
+				def rename_prog(prog = sub):
+					def rename(name, prog = prog):
+						prog.rename(name)
+					GetArg('Rename program', rename, ['Program name:'])
+				items = [
+					('Delete', del_prog),
+					('Rename', rename_prog),
+					]
+				menu = Menu(items)
+				menu.popup(event.button, event.time)
+		return 1
 	
 	def create_node(self, op, group):
-		text = action_to_text(op.action)
+		text = str(action_to_text(op.action))
 		
-		circle = group.add('ellipse',
+		group.ellipse = group.add('ellipse',
 					fill_color = 'blue',
 					outline_color = 'black',
 					x1 = -4, x2 = 4,
 					y1 = -4, y2 = 4,
 					width_pixels = 1)
-		circle.connect('event', self.op_event, op)
+		group.ellipse.connect('event', self.op_event, op)
 		label = group.add('text',
 					x = -8, 
 					y = 0,
@@ -262,131 +310,19 @@ class List(GnomeCanvas):
 				item.set(fill_color = '#ff6666')
 	
 	def set_bounds(self):
-		m = 8
-
 		min_x, min_y, max_x, max_y = self.root().get_bounds()
-		min_x -= m
-		min_y -= m
-		max_x += m
-		max_y += m
+		min_x -= 8
+		max_x += 8
+		min_y -= 8
+		max_y += 8
 		self.set_scroll_region(min_x, min_y, max_x, max_y)
 		self.root().move(0, 0) # Magic!
 		self.set_usize(max_x - min_x, -1)
 	
-class Unused:
-	def record_new(self, i_name):
-		c = 1
-		name = i_name
-		while 1:
-			m = self.macro_named(name)
-			if not m:
-				break
-			c += 1
-			name = i_name + '_' + `c`
-		
-		item = GtkButton(name)
-		item.set_flags(CAN_DEFAULT)
-		item.unset_flags(CAN_FOCUS)
-		self.pack_start(item, FALSE, FALSE, 0)
-		item.show()
-		macro = Macro(name, self)
-		macro.connect('destroy', self.macro_died, item)
-		item.set_data('macro', macro)
-		item.connect('clicked', self.click)
-		item.connect('button-press-event', self.press)
-		item.connect('button-release-event', self.release)
-		item.add_events(BUTTON_RELEASE_MASK)
-		return macro
-	
-	def macro_died(self, macro, button):
-		button.destroy()
-	
-	def add_from_tree(self, tree):
-		# Tree is a DOM 'macro' element
-		name = tree.attributes[('', 'name')].value
-		print "Load", name
-		new = self.record_new(str(name))
-		for node in tree.childNodes:
-			if node.nodeName == 'node':
-				new.start.load(node)
-				return
-	
-	def macro_named(self, name):
-		"Return the Macro with this name."
-		for button in self.children():
-			macro = button.get_data('macro')
-			if macro.uri == name:
-				return macro
-		return None
-	
-	def remove(self, macro):
-		for button in self.children():
-			m = button.get_data('macro')
-			if m == macro:
-				button.destroy()
-				return
-		raise Exception('Macro ' + `macro` + ' not found!')
-	
-	def click(self, item):
-		macro = item.get_data('macro')
-		item.grab_default()
-
-		if self.button == 1:
-			self.window.gui_view.playback(macro, self.shift)
-		elif self.button == 2:
-			macro.edit()
-		else:
-			macro.show_all()
-	
-	def press(self, button, event):
-		b = event.button
-		if (b == 2 or b == 3) and self.other_button == 0:
-			self.other_button = b
-			grab_add(button)
-			button.pressed()
-		return TRUE
-	
-	def release(self, button, event):
-		self.button = event.button
-		self.shift = event.state & SHIFT_MASK
-		if event.button == self.other_button:
-			self.other_button = 0
-			grab_remove(button)
-			button.released()
-		return TRUE
-	
-	def save_all(self):
-		path = choices.save('Dome', 'Macros')
-
-		file = open(path, 'wb')
-		file.write('<?xml version="1.0"?>\n<macro-list>\n')
-		
-		for button in self.children():
-			macro = button.get_data('macro')
-			file.write(macro.get_data(header = FALSE))
-			file.write('\n\n')
-
-		file.write('</macro-list>\n')
-		file.close()
-
-		print "Saved to ", path
-	
-	def load_all(self):
-		path = choices.load('Dome', 'Macros')
-		if not path:
-			return
-
-		reader = PyExpat.Reader()
-		doc = reader.fromUri(path)
-
-		for macro in doc.documentElement.childNodes:
-			if macro.nodeName == 'macro':
-				self.add_from_tree(macro)
-	
-	def child_name_changed(self, child):
-		for button in self.children():
-			macro = button.get_data('macro')
-
-			if macro == child:
-				button.children()[0].set_text(child.uri)
-				return
+	def canvas_to_world(self, (x, y)):
+		"Canvas routine seems to be broken..."
+		mx, my, maxx, maxy = self.get_scroll_region()
+		sx = self.get_hadjustment().value
+		sy = self.get_hadjustment().value
+		print sy
+		return (x + mx + sx , y + my + sy)

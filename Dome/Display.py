@@ -71,15 +71,6 @@ class Display(GnomeCanvas):
 		self.set_scroll_region(min_x - m, min_y - m, max_x + m, max_y + m)
 		self.root().move(0, 0) # Magic!
 
-		width = max_x - min_x + 50
-		height = max_y - min_y + 50
-		max_w = screen_width() * 3 / 4
-		max_h = screen_height() * 3 / 4
-		if width > max_w:
-			width = max_w
-		if height > max_h:
-			height = max_h
-
 	def update_record_state(self):
 		self.window.update_title()
 
