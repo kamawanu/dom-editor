@@ -101,6 +101,8 @@ else:
 if view.chroots:
 	raise Exception("Processing stopped in a chroot! -- not saving")
 
+view.model.strip_space()
+
 import shutil
 
 if not xmlonly:
