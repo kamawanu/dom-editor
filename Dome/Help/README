@@ -1,0 +1,77 @@
+Instructions for using Dome:
+
+The main area shows the XML/HTML document you are editing.
+
+To move to a node, just click on it. Hold down Ctrl to select multiple
+nodes. Double-click a node to collapse/expand it.
+
+There is a right-click popup menu with many operations.
+The following keys can also be used to move around.
+
+[ some operations are only available from the keyboard, or only from the menu ]
+
+		Up	: Move to previous sibling
+		Down	: Move to next sibling
+		Left	: Move to parent node
+		Right	: Move to first child node
+		End	: Move to last child node
+		
+		Home	: Move to root node
+		
+Entering a node makes that node appear to be the root. Useful if you want
+to concentrate on a subtree for a while (allows Home to be used easily).
+
+		>	: Enter node
+		<	: Leave node
+		
+		t	: Search for some text
+		slash	: Search by XPath
+
+		#	: Select by XPath (use to select multiple nodes)
+
+Use # to select multiple nodes. For example, the XPath 'li' will select every
+child node of the current node which is a 'li' element. Useful with map.
+
+Making changes:
+		I	: Insert element (before the current node)
+		A	: Append element (after the current node)
+		O	: Create a child element inside the current node
+		
+		i	: Like I, but creates a text node
+		a	: Like A, but creates a text node
+		o	: Like O, but creates a text node
+
+		y	: Yank (copy selected nodes to clipboard)
+		Y	: Yank attributes (useful to get all attributes,
+			  otherwise just select the attribute and do 'y')
+		P	: Paste clipboard before current node
+		p	: Paste clipboard after current node
+		bracketright : Paste clipboard inside current node
+		R	: Replace current node with clipboard
+
+		^	: Replace current node with page sucked from the web.
+			  The URI is taken from the selected attribute, or
+			  any 'uri' attribute if an element is selected.
+
+		Tab	: Edit the current node (press again to finish).
+		Return	: Same as Tab.
+		@	: Select attribute by name (same as clicking the
+			  attribute).
+		+	: Add a new attribute.
+		!	: Replace current node with result of python expression.
+		s	: Regexp search and replace on selected nodes.
+
+		x	: Delete current node (to clipboard).
+		X	: Delete attribute by name (or click attribute and
+			  use 'x').
+
+		.	: Repeat last operation
+
+		u	: Undo (unlimited number of undos)
+		r	: Redo
+
+When writing programs, these two can be useful:
+
+		?	: Get input from user (stored on clipboard).
+		=	: Compare selected nodes (recursive tree comparison).
+
