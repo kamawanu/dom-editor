@@ -41,16 +41,13 @@ docs = []
 if len(sys.argv) > 1:
 	files = sys.argv[1:]
 	del sys.argv[1:]		# GnomeCanvas can't cope with -
-	for file in files:
-		win = Window(file)
-		win.connect('destroy', tl_unref)
-		tl_ref()
-		win.show()
+	win = apply(Window, files)
 else:
 	win = Window()
-	win.connect('destroy', tl_unref)
-	tl_ref()
-	win.show()
+
+win.connect('destroy', tl_unref)
+tl_ref()
+win.show()
 
 if tl_windows > 0:
 	#import profile

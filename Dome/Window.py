@@ -17,7 +17,8 @@ from codecs import lookup
 utf8_encoder = lookup('UTF-8')[0]
 
 class Window(GtkWindow):
-	def __init__(self, path = None):
+	def __init__(self, path = None, data = None):
+		# 'data' is used when 'path' is a stylesheet...
 		GtkWindow.__init__(self)
 		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
@@ -33,7 +34,7 @@ class Window(GtkWindow):
 			path = os.path.abspath(path)
 			
 		import Model
-		self.model = Model.Model(path)
+		self.model = Model.Model(path, xslt_data = data)
 		self.gui_view = None
 		self.state = ""
 		

@@ -91,18 +91,31 @@ class List(GtkVBox):
 		self.stack_frames.show()
 		self.update_stack(None)
 
+		pane = GtkVPaned()
+		self.pack_start(pane, expand = 1, fill = 1)
+
+		swin = GtkScrolledWindow()
+		swin.set_policy(POLICY_NEVER, POLICY_AUTOMATIC)
+		pane.add1(swin)
+
 		self.tree = GtkTree()
 		self.tree.unset_flags(CAN_FOCUS)
+
 		self.chains = ChainDisplay(view, view.model.root_program)
 		self.prog_tree_changed()
-
-		self.pack_start(self.tree, expand = 0, fill = 1)
+		v = GtkViewport()
+		v.add(self.tree)
+		swin.add(v)
+		v.set_shadow_type(SHADOW_NONE)
+		v.show_all()
 
 		swin = GtkScrolledWindow()
 		swin.set_policy(POLICY_AUTOMATIC, POLICY_AUTOMATIC)
-		self.pack_start(swin, expand = 1, fill = 1)
+		pane.add2(swin)
 		swin.add(self.chains)
 		swin.show_all()
+
+		pane.set_position(200)
 
 		self.tree.show()
 		self.view.lists.append(self)

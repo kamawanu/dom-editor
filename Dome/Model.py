@@ -17,8 +17,17 @@ import Html
 import support
 from Beep import Beep
 
+def get_xslt_source(doc, file):
+	src = doc.createElementNS(None, 'Source')
+	if file:
+		from Ft.Xml.InputSource import InputSourceFactory
+		isrc = InputSourceFactory()
+		xslt_source = nonvalParse(isrc.fromUri(file))
+		src.appendChild(support.import_with_ns(doc, xslt_source.documentElement))
+	return src
+
 class Model:
-	def __init__(self, path, root_program = None):
+	def __init__(self, path, root_program = None, xslt_data = None):
 		"If root_program is given, then no data is loaded (used for lock_and_copy)."
 		self.uri = 'Document'
 
@@ -66,8 +75,9 @@ class Model:
 			self.root_program = xslt.import_sheet(doc)
 			x = implementation.createDocument(None, 'xslt', None)
 			data_to_load = x.documentElement
+			src = get_xslt_source(x, xslt_data)
 			data_to_load.appendChild(x.createElementNS(None, 'Result'))
-			data_to_load.appendChild(x.createElementNS(None, 'Source'))
+			data_to_load.appendChild(src)
 		else:
 			data_to_load = root
 
