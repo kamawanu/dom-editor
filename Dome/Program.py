@@ -94,15 +94,18 @@ class Program:
 		self.changed(None)
 
 	def changed(self, op = None):
-		for w in self.watchers:
-			w.program_changed(self)
+		if self.parent:
+			self.parent.changed(op)
+		else:
+			for w in self.watchers:
+				w.program_changed(op)
 	
 	def tree_changed(self):
 		if self.parent:
 			self.parent.tree_changed()
 		else:
 			for w in self.watchers:
-				w.prog_tree_changed(self)
+				w.prog_tree_changed()
 	
 	def add_sub(self, prog):
 		if prog.parent:

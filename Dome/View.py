@@ -1357,7 +1357,7 @@ class View:
 		self.model.replace_node(old, new)
 		self.move_to(new)
 	
-	def program_changed(self, prog):
+	def program_changed(self, changed_op):
 		print "Check points..."
 		if self.rec_point:
 			(op, exit) = self.rec_point
@@ -1373,7 +1373,7 @@ class View:
 			l.update_points()
 		self.status_changed()
 		
-	def prog_tree_changed(self, prog):
+	def prog_tree_changed(self):
 		pass
 	
 	def export_all(self):

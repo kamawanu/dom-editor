@@ -91,7 +91,7 @@ class List(GtkVBox):
 		self.tree = GtkTree()
 		self.tree.unset_flags(CAN_FOCUS)
 		self.chains = ChainDisplay(view, view.model.root_program)
-		self.prog_tree_changed(self.view.model.root_program)
+		self.prog_tree_changed()
 
 		self.pack_start(self.tree, expand = 0, fill = 1)
 
@@ -117,20 +117,26 @@ class List(GtkVBox):
 		for x in self.sub_windows:
 			x.update_points()
 	
-	def program_changed(self, prog):
+	def program_changed(self, op):
 		pass
 	
-	def prog_tree_changed(self, prog = None):
+	def prog_tree_changed(self):
 		self.prog_to_tree = {}
 		self.tree.clear_items(0, -1)
 		self.build_tree(self.tree, self.view.model.root_program)
 		# Redraw goes wrong if we don't use a callback...
-		def cb(self = self, prog = prog):
-			while prog:
-				self.prog_to_tree[prog].expand()
-				prog = prog.parent
+		def cb():
+			self.prog_to_tree[self.view.model.root_program].expand()
 			return 0
 		idle_add(cb)
+
+		# Check for deleted programs still being displayed
+		root = self.view.model.root_program
+		if self.chains and not self.chains.prog.parent and self.chains.prog is not root:
+			self.chains.switch_to(self.view.model.root_program)
+		for x in self.sub_windows:
+			if x.disp.prog is not root and not x.disp.prog.parent:
+				x.destroy()
 	
 	def build_tree(self, tree, prog):
 		item = GtkTreeItem(prog.name)
@@ -249,6 +255,7 @@ class ChainDisplay(GnomeCanvas):
 	"A graphical display of a chain of nodes."
 	def __init__(self, view, prog):
 		GnomeCanvas.__init__(self)
+		self.connect('destroy', self.destroyed)
 		self.view = view
 		self.unset_flags(CAN_FOCUS)
 
@@ -266,6 +273,9 @@ class ChainDisplay(GnomeCanvas):
 		self.set_usize(100, 100)
 	
 		self.prog = None
+
+		self.view.model.root_program.watchers.append(self)
+
 		self.switch_to(prog)
 	
 	def update_points(self):
@@ -350,18 +360,23 @@ class ChainDisplay(GnomeCanvas):
 					(x2, y2) = (x1, y1)
 				item.move((x1 + x2) / 2, (y1 + y2) / 2)
 	
+	def destroyed(self, widget):
+		p = self.prog
+		while p.parent:
+			p = p.parent
+		self.view.model.root_program.watchers.remove(self)
+		print "(ChainDisplay destroyed)"
+	
 	def switch_to(self, prog):
-		if self.prog:
-			self.prog.watchers.remove(self)
 		self.prog = prog
-		self.prog.watchers.append(self)
 		self.update_all()
 	
-	def prog_tree_changed(self, prog = None):
+	def prog_tree_changed(self):
 		pass
 	
 	def program_changed(self, op):
-		self.update_all()
+		if (not op) or op.program == self.prog:
+			self.update_all()
 	
 	def update_all(self):
 		if self.nodes:
