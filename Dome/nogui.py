@@ -98,17 +98,32 @@ def run_nogui():
 	print "Done!"
 
 if show_leaks:
-	`[]`	# Load repr stuff
-	from Ft.Xml.XPath import XPathParser	# Load XPath stuff
-	XPathParser.new().parse('/')
-	import urllib2
-	r = urllib2.Request('http://www.ecs.soton.ac.uk')	# HTTP
-	stream = urllib2.urlopen(r)
+	def run():
+		model = Model(source, dome_data = xml_data)
+		view = View(model, callback_handlers = (idle_add, idle_remove))
+		del view, model
+		gc.collect()
 
-	gc.collect()
+	print "First, run, to init everything..."
+	run()
 	old = {}
 	for x in gc.get_objects():
 		old[id(x)] = None
+	old_len = len(gc.get_objects())
+
+	print "Second run, to check for leaks"
+	run()
+	for x in gc.get_objects():
+		if id(x) not in old:
+			print "New", type(x)
+			print `x`[:80]
+			for y in gc.get_referrers(x):
+				if id(y) in old and y is not globals():
+					print "\t%s" % `y`[:60]
+	print "No. objects after first run:", old_len
+	print "No. objects after second run:", len(gc.get_objects())
+	
+	sys.exit(0)
 
 model = Model(source, dome_data = xml_data)
 view = View(model, callback_handlers = (idle_add, idle_remove))
@@ -119,18 +134,6 @@ if profiling:
 	profile.run('run_nogui()')
 else:
 	run_nogui()
-
-if show_leaks:
-	del view, model, idle_list
-	gc.collect()
-	for x in gc.get_objects():
-		if id(x) not in old:
-			print "New", type(x)
-			print `x`[:80]
-			for y in gc.get_referrers(x):
-				if id(y) in old and y is not globals():
-					print "\t%s" % `y`[:60]
-	sys.exit(0)
 
 if view.chroots:
 	raise Exception("Processing stopped in a chroot! -- not saving")

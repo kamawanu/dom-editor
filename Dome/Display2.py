@@ -111,12 +111,12 @@ class Display(g.HBox):
 		s.fg[g.STATE_PRELIGHT] = g.gdk.color_parse('red')	# Hidden
 		self.surface.set_style(s)
 
-		self.connect('destroy', self.destroyed)
+		self.signals = [self.connect('destroy', self.destroyed)]
 		self.surface.connect('button-press-event', self.bg_event)
 		self.surface.connect('button-release-event', self.bg_event)
 
-		# Display is relative to this node, which is the highest displayed node (possibly
-		# off the top of the screen)
+		# Display is relative to this node, which is the highest
+		# displayed node (possibly off the top of the screen)
 		self.ref_node = view.root
 		self.ref_pos = (0, 0)
 
@@ -131,6 +131,21 @@ class Display(g.HBox):
 	
 	def destroyed(self, widget):
 		self.view.remove_display(self)
+		for s in self.signals:
+			self.disconnect(s)
+		if self.update_timeout:
+			g.timeout_remove(self.update_timeout)
+			self.update_timeout = 0
+
+		del self.selection
+		del self.view
+		del self.parent_window
+		del self.ref_node
+		del self.surface_layout
+		del self.surface
+		del self.scroll_adj
+		del self.drawn
+		del self.pm
 	
 	def size_allocate(self, alloc):
 		new = (alloc.width, alloc.height)
@@ -142,13 +157,21 @@ class Display(g.HBox):
 		pm = g.gdk.Pixmap(self.surface.window, alloc.width, alloc.height, -1)
 		self.surface.window.set_back_pixmap(pm, False)
 		self.pm = pm
+
+		if self.update_timeout:
+			g.timeout_remove(self.update_timeout)
+			self.update_timeout = 0
 		self.update()
 
 	def update(self):
-		if not self.pm: return
-		#print "update"
+		# Must be called either:
+		# - With no update_timeout running, or
+		# - From the timeout callback
 
 		self.update_timeout = 0
+
+		if not self.pm: return 0
+		print "update"
 
 		self.pm.draw_rectangle(self.surface.style.bg_gc[g.STATE_NORMAL], True,
 				  0, 0, self.last_alloc[0], self.last_alloc[1])
@@ -258,6 +281,7 @@ class Display(g.HBox):
 		# Update now, if we need to
 		if self.update_timeout:
 			g.timeout_remove(self.update_timeout)
+			self.update_timeout = 0
 			self.update()
 
 	def update_all(self, node = None):
@@ -333,7 +357,7 @@ class Display(g.HBox):
 
 		self.backup_ref_node()
 
-		self.update()
+		self.do_update_now()
 		
 		return 1
 	

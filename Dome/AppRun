@@ -51,33 +51,17 @@ while len(sys.argv) > 1 and sys.argv[1].startswith('--'):
 	else:
 		raise Exception("Unknown option", option)
 
-def go():
-	if len(sys.argv) > 1:
-		files = sys.argv[1:]
-		del sys.argv[1:]		# GnomeCanvas can't cope with -
-		win = apply(Window, files)
-	else:
-		win = Window()
+files = sys.argv[1:]
+del sys.argv[1:]		# GnomeCanvas can't cope with -
 
-	win.show()
+def go():
+	apply(Window, files)
 
 if show_leaks:
-	`[]`	# Load repr stuff
-	from Ft.Xml.XPath import XPathParser	# Load XPath stuff
-	XPathParser.new().parse('/')
-	import urllib2, urllib
-	r = urllib2.Request('http://www.ecs.soton.ac.uk')	# HTTP
-	urllib2.urlopen(r).read(1)
-	del r
-	from encodings import ascii
-	from codecs import lookup
-	import random
-	lookup('ascii')
-	
-	w = Window()
-	w.save()
-	w.destroy()	# Init everything
-	del w
+	# Run twice, once to make sure everything is initialised, and
+	# again to make sure the memory use doesn't grow further.
+	go()
+	rox.mainloop()
 
 	log = file('leak-log', 'w')
 
@@ -92,10 +76,6 @@ go()
 rox.mainloop()
 
 if show_leaks:
-	import GUIView
-	GUIView.menu.__dict__ = {}
-	del GUIView.menu
-	urllib.urlcleanup()
 	gc.collect()
 	for x in gc.get_objects():
 		if id(x) not in old:

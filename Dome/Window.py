@@ -40,6 +40,7 @@ class Window(rox.Window, saving.Saveable):
 		self.dome_state = ""
 		
 		from GUIView import GUIView
+		#from Display2 import Display as GUIView
 		from List import List
 
 		vbox = g.VBox(FALSE, 0)

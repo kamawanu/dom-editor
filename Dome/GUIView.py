@@ -131,6 +131,11 @@ class GUIView(Display, XDSLoader):
 
 		menu.attach(window, self)
 	
+	def destroyed(self, widget):
+		print "GUIView destroyed!"
+		Display.destroyed(self, widget)
+		del self.cursor_node
+	
 	def update_state(self):
 		if self.view.rec_point:
 			state = "(recording)"

@@ -332,6 +332,15 @@ class List(g.VBox):
 		iter = self.prog_model.get_iter(path)
 		self.tree.get_selection().select_iter(iter)
 
+class ChainDummy(g.TreeView):
+	def __init__(self, view, prog = None):
+		g.TreeView.__init__(self)
+		self.prog = prog
+	def switch_to(self, prog):
+		self.prog = prog
+	def update_points(self):
+		pass
+
 class ChainDisplay(canvas.Canvas):
 	"A graphical display of a chain of nodes."
 	def __init__(self, view, prog = None):
