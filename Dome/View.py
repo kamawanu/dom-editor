@@ -334,6 +334,7 @@ class View:
 		self.model = None
 	
 	# 'nodes' may be either a node or a list of nodes.
+	# (duplicates will be removed)
 	# If it's a single node, then an 'attrib' node may also be specified
 	def move_to(self, nodes, attrib = None):
 		if self.current_nodes == nodes:
@@ -349,14 +350,12 @@ class View:
 		if len(nodes) > 1:
 			# Remove duplicates
 			map = {}
-			last = nodes[-1]
-			for n in nodes:
-				if n is not last:
-					map[n] = None
 			old = nodes
-			nodes = map.keys()
-			nodes.append(last)
-			
+			nodes = []
+			for n in old:
+				if n not in map:
+					map[n] = None
+					nodes.append(n)
 			if len(old) != len(nodes):
 				print "(move_to: attempt to set duplicate nodes)"
 
@@ -821,12 +820,7 @@ class View:
 		if self.root in nodes:
 			raise Beep
 		self.move_to([])
-		new = []
-		for x in nodes:
-			p = x.parentNode
-			#print "Delete %s, parent %s" % (x, p)
-			if p not in new:
-				new.append(p)
+		new = [x.parentNode for x in nodes]
 		self.move_to(new)
 		self.model.delete_nodes(nodes)
 	
