@@ -147,6 +147,9 @@ class Program:
 
 		return node
 	
+	def __str__(self):
+		return "Program(%s)" % self.name
+	
 class Op:
 	"Each node in a chain is an Op. There is no graphical stuff in here."
 
@@ -166,7 +169,7 @@ class Op:
 			return
 		if self.program:
 			raise Exception('Already got a program!')
-		nearby = self.prev
+		nearby = self.prev[:]
 		if self.next:
 			nearby.append(self.next)
 		if self.fail:
@@ -184,38 +187,52 @@ class Op:
 		self.changed()
 	
 	def link_to(self, child, exit):
+		print "Link %s->%s->%s" % (self, exit, child)
 		# Create a link from this exit to this child Op
 		if child.program and child.program is not self.program:
-			raise Exception('%s is from a different program!' % child)
+			raise Exception('%s is from a different program (%s)!' % (child, child.program))
 		# If we already have something on this exit, and the new node has a
 		# clear next exit, move the rest of the chain there.
+		child.set_program(self.program)
 		current = getattr(self, exit)
 		if current:
 			if child.next:
 				raise Exception('%s already has a next exit' % child)
-			self.unlink(exit)
 			child.link_to(current, 'next')
+			self.unlink(exit)
 		child.prev.append(self)
-		child.set_program(self.program)
+		print "%s.prev = %s" % (child, map(str, child.prev))
 		setattr(self, exit, child)
 		self.changed()
 	
 	def unlink(self, exit):
 		"Remove link from us to child"
 		assert exit in ['next', 'fail']
+		self._unlink(exit)
+		self.changed()
+	
+	def _unlink(self, exit):
 		child = getattr(self, exit)
+		print "break %s:%s -> %s" % (self, exit, child)
 		if not child:
 			raise Exception('%s has no child on exit %s' % (self, exit))
 		if self not in child.prev:
 			raise Exception('Internal error: %s not my child!' % child)
 
 		child.prev.remove(self)	# Only remove one copy
-		if not child.prev:
-			child.program = None
-
 		setattr(self, exit, None)
 
-		self.changed()
+		print "Prev:"
+		for x in child.prev: print x
+
+		if not child.prev:
+			# There is no way to reach this child now, so unlink its children.
+			print "rec %s, %s" % (child.next, child.fail)
+			child.program = None
+			if child.next:
+				child._unlink('next')
+			if child.fail:
+				child._unlink('fail')
 
 	def del_node(self):
 		"""Remove this node. It there is exactly one out-going arc and one incoming one,

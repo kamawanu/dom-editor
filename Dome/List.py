@@ -388,6 +388,7 @@ class ChainDisplay(GnomeCanvas):
 		self.op_to_group = {}
 		self.nodes = self.root().add('group', x = 0, y = 0)
 		self.create_node(self.prog.start, self.nodes)
+		self.update_links()
 		self.update_points()
 
 		self.set_bounds()
@@ -398,6 +399,23 @@ class ChainDisplay(GnomeCanvas):
 		if op in self.view.exec_stack:
 			return 'cyan'
 		return 'blue'
+	
+	def update_links(self, op = None):
+		"""Walk through all nodes in the tree-version of the op graph,
+		making all the links (which already exist as stubs) point to
+		the right place."""
+		if not op:
+			op = self.prog.start
+		if op.next:
+			if op.next.prev[0] == op:
+				self.update_links(op.next)
+			else:
+				self.join_nodes(op, 'next')
+		if op.fail:
+			if op.fail.prev[0] == op:
+				self.update_links(op.fail)
+			else:
+				self.join_nodes(op, 'fail')
 	
 	def create_node(self, op, group):
 		text = str(action_to_text(op.action))
@@ -490,19 +508,23 @@ class ChainDisplay(GnomeCanvas):
 		win.show_all()
 	
 	def join_nodes(self, op, exit):
-		op2 = getattr(op, exit)
+		try:
+			op2 = getattr(op, exit)
 
-		prev_group = self.op_to_group[op]
-		line = getattr(prev_group, exit + '_line')
+			prev_group = self.op_to_group[op]
+			line = getattr(prev_group, exit + '_line')
 
-		group = self.op_to_group[op2]
+			group = self.op_to_group[op2]
 
-		x, y = group.i2w(0, 0)
-		x, y = prev_group.w2i(x, y)
-		line.set(points = connect(0, 0, x, y))
+			x, y = group.i2w(0, 0)
+			x, y = prev_group.w2i(x, y)
+			line.set(points = connect(0, 0, x, y))
+		except:
+			print "*** ERROR setting arc from %s:%s" % (op, exit)
 	
 	def op_event(self, item, event, op):
 		if event.type == BUTTON_PRESS:
+			print "Prev %s = %s" % (op, map(str, op.prev))
 			if event.button == 1:
 				if op != op.program.start:
 					self.drag_last_pos = (event.x, event.y)
@@ -534,6 +556,7 @@ class ChainDisplay(GnomeCanvas):
 					self.join_nodes(p, 'next')
 				if p.fail == op:
 					self.join_nodes(p, 'fail')
+			self.update_links()
 			#self.create_node(self.prog.start, self.nodes)
 			self.update_points()
 
