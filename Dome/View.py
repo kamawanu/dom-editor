@@ -924,7 +924,7 @@ class View:
 	
 	def play_block(self, block):
 		assert isinstance(block, Block)
-		print "Enter Block!"
+		#print "Enter Block!"
 		if block.foreach:
 			list = self.current_nodes[:]
 		else:
@@ -1446,7 +1446,7 @@ class View:
 	
 	def add_attrib(self, UNUSED, name, value = ''):
 		if name.startswith('xmlns:'):
-			print "*** SET NS ATTRIB ***", self.op_in_progress.program
+			print "*** SET NS ATTRIB ***", self.op_in_progress.get_program()
 
 		node = self.get_current()
 		a = self.model.set_attrib(node, name, value)

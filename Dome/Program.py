@@ -244,7 +244,7 @@ class Op:
 		assert self.action[0] != 'Start' or exit == 'next'
 		assert child.action[0] != 'Start'
 
-		print "Link %s:%s -> %s" % (self, exit, child)
+		#print "Link %s:%s -> %s" % (self, exit, child)
 		
 		if child.parent and child.parent is not self.parent:
 			raise Exception('%s is from a different parent (%s vs %s)!' %
