@@ -80,6 +80,11 @@ class Window(GtkWindow):
 	
 		self.gui_view.grab_focus()
 		self.update_title()
+		self.connect('destroy', self.destroyed)
+	
+	def destroyed(self, widget):
+		print "Saving macros..."
+		self.model.macro_list.save_all()
 
 	def load_file(self, path):
 		if path[-5:] == '.html':

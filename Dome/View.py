@@ -4,6 +4,7 @@ from xml.dom.Node import Node
 from xml.dom import ext
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
 import os, re, string, types
+import urlparse
 import Html
 
 from Beep import Beep
@@ -16,6 +17,21 @@ import Exec
 # - A chroot stack
 # It does not have any display code. It does contain code to perform actions
 # (actions affect the document AND the view state).
+
+def same(a, b):
+	"Recursivly compare two nodes."
+	if a.nodeType != b.nodeType or a.nodeName != b.nodeName:
+		return FALSE
+	if a.nodeValue != b.nodeValue:
+		return FALSE
+	aks = a.childNodes
+	bks = b.childNodes
+	if len(aks) != len(bks):
+		return FALSE
+	for (ak, bk) in map(None, aks, bks):
+		if not same(ak, bk):
+			return FALSE
+	return TRUE
 
 class View:
 	def __init__(self, model):
@@ -47,7 +63,7 @@ class View:
 
 			self.recording_exit = Exec.exec_state.exit
 		else:
-			node = self.current
+			node = self.current_nodes[0]
 			self.recording_where = self.model.macro_list.record_new(node.nodeName).start
 			self.recording_exit = 'next'
 		
@@ -58,16 +74,20 @@ class View:
 		"Perform and, possibly, record this action"
 		rec = self.recording_where
 
+		exit = 'next'
 		try:
 			self.do_action(action)
 		except Beep:
 			gdk_beep()
-			return 0
+			(type, val, tb) = sys.exc_info()
+			if not val.may_record:
+				return 0
+			exit = 'fail'
 
 		# Only record if we were recording when this action started
 		if rec:
 			self.recording_where = rec.record(action, self.recording_exit)
-			self.recording_exit = 'next'
+			self.recording_exit = exit
 			# XXX: Setting point stops background ops (eg playback)
 			#Exec.exec_state.set_pos(self.recording_where, self.recording_exit)
 	
@@ -227,16 +247,18 @@ class View:
 		self.global_set = path.select(c)
 		self.move_to(self.global_set)
 		
-	def do_search(self, pattern, ns = None):
+	def do_search(self, pattern, ns = None, toggle = FALSE):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 
 		if not ns:
 			ns = {}
 		ns['ext'] = FT_EXT_NAMESPACE
-		if len(self.current_nodes) != 1:
-			self.move_to(self.root)
-		c = Context.Context(self.current, [self.current], processorNss = ns)
+		if len(self.current_nodes) == 0:
+			src = self.root
+		else:
+			src = self.current_nodes[-1]
+		c = Context.Context(src, [src], processorNss = ns)
 		rt = path.select(c)
 		node = None
 		for x in rt:
@@ -251,7 +273,15 @@ class View:
 		if not node:
 			print "*** Search for '%s' failed" % pattern
 			raise Beep
-		self.move_to(node)
+		if toggle:
+			new = self.current_nodes[:]
+			if node in new:
+				new.remove(node)
+			else:
+				new.append(node)
+			self.move_to(new)
+		else:
+			self.move_to(node)
 
 	def subst(self, replace, with):
 		"re search and replace on the current node"
@@ -322,8 +352,13 @@ class View:
 	def redo(self):
 		self.model.redo(self.root)
 
-	def playback(self, macro_name):
-		print "Playback", macro_name
+	def play(self, macro_name):
+		print "Play", macro_name
+		self.exec_state = Exec.exec_state	# XXX
+		self.exec_state.play(macro_name)
+
+	def map(self, macro_name):
+		print "Map", macro_name
 
 		nodes = self.current_nodes[:]
 		inp = [nodes, None]
@@ -374,11 +409,26 @@ class View:
 			uri = None
 			for attr in node.attributes:
 				uri = attr.value
-				if uri.find('//') != -1:
+				if uri.find('//') != -1 or uri.find('.htm') != -1:
 					break
 		if not uri:
 			print "Can't suck", node
 			raise Beep
+		if uri.find('//') == -1:
+			print "Relative URI..."
+			p = node
+			base = None
+			while p:
+				if p.hasAttribute('uri'):
+					base = p.getAttribute('uri')
+					break
+				p = p.parentNode
+			if base:
+				print "Base URI is:", base
+				uri = urlparse.urljoin(base, uri)
+			else:
+				print "Warning: Can't find 'uri' attribute!"
+
 		command = "lynx -source '%s' | tidy" % uri
 		print command
 		cout = os.popen(command)
@@ -388,6 +438,7 @@ class View:
 		cout.close()
 		ext.StripHtml(root)
 		new = html_to_xml(node.ownerDocument, root)
+		new.setAttribute('uri', uri)
 		self.model.replace_node(node, new)
 	
 	def put_before(self):
@@ -454,3 +505,15 @@ class View:
 			self.yank_attrib(name)
 		for n in self.current_nodes:
 			self.model.set_attrib(n, name, None)
+	
+	def compare(self):
+		"Ensure that all selected nodes have the same value."
+		if len(self.current_nodes) < 2:
+			raise Beep		# Not enough nodes!
+		base = self.current_nodes[0]
+		for n in self.current_nodes[1:]:
+			if not same(base, n):
+				raise Beep(may_record = 1)
+	
+	def fail(self):
+		raise Beep(may_record = 1)

@@ -47,13 +47,16 @@ class GUIView(Display):
 		return 1
 	
 	def node_clicked(self, node, bev):
-		if node and node not in self.view.current_nodes:
-			if len(self.view.current_nodes) != 1:
-				self.view.move_to(self.view.root)
+		if node:
+			if len(self.view.current_nodes) == 0:
+				src = self.view.root
+			else:
+				src = self.view.current_nodes[-1]
 			lit = bev.state & SHIFT_MASK
+			add = bev.state & CONTROL_MASK
 			ns = {}
-			path = make_relative_path(self.view.current, node, lit, ns)
-			self.view.may_record(["do_search", path, ns])
+			path = make_relative_path(src, node, lit, ns)
+			self.view.may_record(["do_search", path, ns, add])
 
 	def show_menu(self, bev):
 		items = [
@@ -70,6 +73,7 @@ class GUIView(Display):
 			('Process', self.show_pipe),
 			(None, None),
 			('Question', self.show_ask),
+			('Fail', lambda self = self: self.view.may_record(['fail'])),
 			(None, None),
 			('Undo', lambda self = self: self.view.may_record(['undo'])),
 			('Redo', lambda self = self: self.view.may_record(['redo'])),
@@ -79,10 +83,13 @@ class GUIView(Display):
 			]
 		Menu(items).popup(bev.button, bev.time)
 	
-	def playback(self, macro):
+	def playback(self, macro, map):
 		"Called when the user clicks on a macro button."
 		Exec.exec_state.clean()
-		self.view.may_record(['playback', macro.uri])
+		if map:
+			self.view.may_record(['map', macro.uri])
+		else:
+			self.view.may_record(['play', macro.uri])
 
 	def show_ask(self):
 		def do_ask(q, self = self):
@@ -193,9 +200,10 @@ class GUIView(Display):
 		ord('#'): show_global,
 		#n	: ["search_next"],
 
-		# Interaction
+		# Tests
 
 		question: show_ask,
+		ord('='): ["compare"],
 
 		# Changes
 		I	: insert_element,

@@ -18,6 +18,9 @@ class Exec:
 		self.stack = []
 		self.clean()
 	
+	def running(self):
+		return self.sched_tag != 0
+	
 	def freeze(self):
 		self.frozen = 1
 	
@@ -168,7 +171,10 @@ class Exec:
 			self.unstack_n(1)
 			print "Up to", new
 			if callable(new):
-				new()
+				if self.exit == 'next':
+					new()
+				else:
+					return self.up_the_stack()
 			else:
 				self.set_pos(new, self.exit)
 			return

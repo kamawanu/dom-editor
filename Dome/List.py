@@ -72,7 +72,7 @@ class List(GtkVBox):
 		item.grab_default()
 
 		if self.button == 1:
-			self.window.gui_view.playback(macro)
+			self.window.gui_view.playback(macro, self.shift)
 		elif self.button == 2:
 			macro.edit()
 		else:
@@ -88,6 +88,7 @@ class List(GtkVBox):
 	
 	def release(self, button, event):
 		self.button = event.button
+		self.shift = event.state & SHIFT_MASK
 		if event.button == self.other_button:
 			self.other_button = 0
 			grab_remove(button)

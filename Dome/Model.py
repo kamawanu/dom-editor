@@ -119,8 +119,7 @@ class Model:
 		if not parent:
 			parent = node.parentNode
 		if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
-			for n in new.childNodes:
-				print "Insert", n
+			for n in new.childNodes[:]:
 				Change.insert_before(node, n, parent)
 		else:
 			Change.insert_before(node, new, parent)

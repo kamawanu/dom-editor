@@ -75,8 +75,6 @@ class Macro(GtkWindow):
 
 		self.start = MacroNode(self, ['Start'])
 
-		self.connect('show', __main__.tl_ref)
-		self.connect('hide', __main__.tl_unref)
 		def del_cb(self, win):
 			self.hide()
 			return 1
@@ -163,15 +161,12 @@ class Macro(GtkWindow):
 		def action(node):
 			attr = node.attributes[('', 'action')]
 			action = eval(str(attr.value))
-			if action[0] == 'do_search' and len(action) == 4:
-				print 'Fixing', `action`
-				action[2] = action[3]
-				del action[3]
-				print 'To', `action`
 			if action[0] == 'chroot':
 				action[0] = 'enter'
 			elif action[0] == 'unchroot':
 				action[0] = 'leave'
+			elif action[0] == 'playback':
+				action[0] = 'map'
 			return action
 			
 		next = None
@@ -386,8 +381,21 @@ class MacroNode:
 			del_chain = None
 
 		items = [('Delete chain', del_chain),
-			('Remove node', del_node)]
+			('Remove node', del_node),
+			('Swap next/fail', self.swap_nf)]
 		Menu(items).popup(event.button, event.time)
+
+	def swap_nf(self):
+		next = self.next
+		fail = self.fail
+		if next:
+			self.forget_child(next)
+		if fail:
+			self.forget_child(fail)
+		if next:
+			next.reparent(self, 'fail')
+		if fail:
+			fail.reparent(self, 'next')
 	
 	def del_node(self):
 		prev = self.prev

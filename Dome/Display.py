@@ -5,6 +5,7 @@ from _gtk import *
 from xml.dom.Node import Node
 
 import string
+import Exec
 
 def wrap(str, width):
 	ret = ''
@@ -22,7 +23,7 @@ class Display(GnomeCanvas):
 		self.view = None
 		self.window = window
 		self.root_group = None
-		self.update_idle = 0
+		self.update_timeout = 0
 
 		s = self.get_style().copy()
 		s.bg[STATE_NORMAL] = self.get_color('old lace')
@@ -59,18 +60,22 @@ class Display(GnomeCanvas):
 		self.window.update_title()
 
 	def update_all(self):
-		if self.update_idle:
+		if self.update_timeout:
 			return		# Going to update anyway...
-		self.update_idle = idle_add(self.update_callback)
+
+		if Exec.exec_state.running():
+			self.update_timeout = timeout_add(200, self.update_callback)
+		else:
+			self.update_callback()
 	
 	def do_update_now(self):
 		# Update now, if we need to
-		if self.update_idle:
-			idle_remove(self.update_idle)
+		if self.update_timeout:
+			timeout_remove(self.update_timeout)
 			self.update_callback()
 	
 	def update_callback(self):
-		self.update_idle = 0
+		self.update_timeout = 0
 		print "Update..."
 		if self.root_group:
 			self.root_group.destroy()
@@ -195,7 +200,7 @@ class Display(GnomeCanvas):
 					self.hilight(self.node_to_group[n], FALSE)
 				except KeyError:
 					pass
-		if self.update_idle:
+		if self.update_timeout:
 			return		# We'll highlight on the callback...
 		# We can update without structural problems...
 		if self.view.current_nodes:
