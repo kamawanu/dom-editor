@@ -48,9 +48,12 @@ print "Starting root program of", source
 view.run_new(None)
 
 try:
-	view.may_record(['play', model.root_program.name])
+	self.do_action(['play', model.root_program.name])
 except InProgress:
 	pass
+except Beep:
+	print "*** BEEP ***"
+	raise
 
 while idle_list:
 	for i in idle_list[:]:

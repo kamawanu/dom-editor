@@ -722,7 +722,6 @@ class View:
 				display.update_state()
 
 	def map(self, name):
-		# XXX - doesn't work always from a macro?
 		print "Map", name
 
 		nodes = self.current_nodes[:]
