@@ -14,12 +14,15 @@ try:
 except:
 	print "(no GUI, but that's OK)"
 
-from rox import choices, support
+import rox
+from rox import choices
 
 def error(message, title = 'Error'):
 	print "*********", title
 	print message, "\n"
-support.report_error = error
+rox.report_error = error
+def exc(): raise
+rox.report_exception = exc
 
 import sys
 #from xml.dom import ext

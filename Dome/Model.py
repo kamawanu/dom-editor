@@ -33,16 +33,8 @@ class Model:
 			isrc = InputSourceFactory()
 			dome_data = nonvalParse(isrc.fromUri(dome_data))
 
-		# Pop an (op_number, function) off one of these and call the function to
-		# move forwards or backwards in the undo history.
-		self.undo_stack = []
-		self.redo_stack = []
-		self.doing_undo = 0
+		self.clear_undo()
 
-		# Each series of suboperations in an undo stack which are part of a single
-		# user op will have the same number...
-		self.user_op = 1
-		
 		doc = None
 		if path:
 			if path != '-':
@@ -100,6 +92,21 @@ class Model:
 		
 		self.views = []		# Notified when something changes
 		self.locks = {}		# Node -> number of locks
+	
+	def clear_undo(self):
+		# Pop an (op_number, function) off one of these and call the function to
+		# move forwards or backwards in the undo history.
+		self.undo_stack = []
+		self.redo_stack = []
+		self.doing_undo = 0
+
+		# Each series of suboperations in an undo stack which are part of a single
+		# user op will have the same number...
+		self.user_op = 1
+
+		#import gc
+		#print "GC freed:", gc.collect()
+		#print "Garbage", gc.garbage
 
 	def lock(self, node):
 		"""Prevent removal of this node (or any ancestor)."""
@@ -162,6 +169,8 @@ class Model:
 		#print "Removing view", view
 		self.views.remove(view)
 		#print "Now:", self.views
+		if not self.views:
+			self.clear_undo()
 	
 	def update_all(self, node):
 		"Called when 'node' has been updated."

@@ -18,6 +18,7 @@ menu = Menu('main', [
 		('/File', None, '<Branch>', ''),
 		('/File/Save', 'menu_save', '', 'F3'),
 		('/File/Blank document', 'do_blank_all', '', '<Ctrl>N'),
+		('/File/Clear undo buffer', 'menu_clear_undo', '', ''),
 
 		('/Edit', None, '<Branch>', ''),
 		('/Edit/Yank attributes', 'do_yank_attributes', '', ''),
@@ -478,6 +479,11 @@ class GUIView(Display, XDSLoader):
 	
 	def menu_options(self):
 		rox.edit_options()
+	
+	def menu_clear_undo(self):
+		if rox.confirm('Really clear the undo buffer?',
+				g.STOCK_CLEAR):
+			self.view.model.clear_undo()
 
 	do_blank_all = make_do('blank_all')
 	do_enter = make_do('enter')

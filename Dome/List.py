@@ -148,8 +148,7 @@ class List(g.VBox):
 		column = g.TreeViewColumn('Program', cell, text = 0)
 		tree.append_column(column)
 
-		sel = tree.get_selection()
-		def change_prog(tree, sel = sel, self = self):	# Huh?
+		def change_prog(sel):
 			selected = sel.get_selected()
 			if not selected:
 				return
@@ -160,6 +159,7 @@ class List(g.VBox):
 			else:
 				self.chains.switch_to(None)
 
+		sel = tree.get_selection()
 		sel.connect('changed', change_prog)
 
 		self.chains = ChainDisplay(view)
@@ -185,6 +185,7 @@ class List(g.VBox):
 		tree.show()
 		self.view.lists.append(self)
 		self.view.model.root_program.watchers.append(self)
+		del sel
 		
 	def set_innermost_failure(self, op):
 		self.show_prog(op.get_program())
@@ -521,16 +522,18 @@ class ChainDisplay(canvas.Canvas):
 			if op.is_toplevel():
 				return
 		else:
+			text_font = 'verdana 10'
+			text_col = 'black'
 			if op.action[0] == 'Start':
 				text = str(op.parent.comment.replace('\\n', '\n'))
 				text_y = 0
-				#text_font = '-misc-fixed-bold-r-normal-*-*-120-*-*-c-*-iso8859-1'
-				text_col = 'dark blue'
+				if mono:
+					text_font = 'verdana bold 10'
+				else:
+					text_col = 'dark blue'
 			else:
 				text = str(action_to_text(op.action))
 				text_y = -8
-				#text_font = '-misc-fixed-medium-r-normal-*-*-120-*-*-c-*-iso8859-1'
-				text_col = 'black'
 			
 			group.ellipse = group.add(canvas.CanvasEllipse,
 						fill_color = self.op_colour(op),
@@ -546,6 +549,7 @@ class ChainDisplay(canvas.Canvas):
 							anchor = g.ANCHOR_NE,
 							justification = 'right',
 							fill_color = text_col,
+							font = text_font,
 							text = text)
 
 				#self.update_now()	# GnomeCanvas bug?
