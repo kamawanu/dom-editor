@@ -179,10 +179,10 @@ class List(GtkVBox):
 		else:
 			dp = None
 		name = self.prog_to_name(prog)
-		def do(play, view = view, name = name):
-			def ret(play = play, view = view, name = name):
+		def do(play, self = self, name = name):
+			def ret(play = play, self = self, name = name):
 				self.view.run_new(self.run_return)
-				view.may_record([play, name])
+				self.view.may_record([play, name])
 			return ret
 		items = [
 			('Play', do('play')),
