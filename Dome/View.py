@@ -37,10 +37,11 @@ fast_global = re.compile('//([-A-Za-z][-A-Za-z0-9]*:)?[-A-Za-z][-A-Za-z0-9]*$')
 def fix_broken_html(data):
 	"""Pre-parse the data before sending to tidy to fix really really broken
 stuff (eg, MS Word output). Returns None if data is OK"""
-	if data.find('<o:p>') == -1:
+	if data.find('<o:p>') == -1 and data.find('<I-N-OVA>') == -1:
 		return 		# Doesn't need fixing?
 	import re
 	data = data.replace('<o:p></o:p>', '')
+	data = data.replace('<I-N-OVA>', '*** BROKEN HTML ***')
 	data = re.sub('<!\[[^]]*\]>', '', data)
 	return data
 
@@ -55,9 +56,9 @@ def to_html(data):
 			os.dup2(w, 1)
 			os.close(w)
 			if fixed:
-				tin = os.popen('tidy -utf8 -asxml 2>/dev/null', 'w')
+				tin = os.popen('tidy -q -utf8 -asxml', 'w')
 			else:
-				tin = os.popen('tidy -asxml 2>/dev/null', 'w')
+				tin = os.popen('tidy -q -asxml', 'w')
 			tin.write(fixed or data)
 			tin.close()
 		finally:
