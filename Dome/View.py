@@ -1004,8 +1004,14 @@ class View:
 	def suck(self):
 		nodes = self.current_nodes[:]
 		self.move_to([])
-		nodes = [x for x in map(self.suck_node, nodes) if x]
-		self.move_to(nodes)
+		final = []
+		for x in nodes:
+			try:
+				new = self.suck_node(x)
+			finally:
+				self.move_to(x)
+			final.append(new)
+		self.move_to(final)
 		
 	def suck_node(self, node, post_data = None):
 		uri = None
@@ -1099,7 +1105,7 @@ class View:
 			print "parsing failed!"
 			print "Data was:"
 			print data
-			support.report_exception()
+			#support.report_exception()
 			raise Beep
 		else:
 			print "parse OK...",
@@ -1331,6 +1337,9 @@ class View:
 		self.move_to(node, a)
 	
 	def add_attrib(self, UNUSED, name, value = ''):
+		if name.startswith('xmlns:'):
+			print "*** SET NS ATTRIB ***", self.op_in_progress.program
+
 		node = self.get_current()
 		a = self.model.set_attrib(node, name, value)
 		self.move_to(node, a)
