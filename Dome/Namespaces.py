@@ -61,6 +61,8 @@ class Namespaces(g.GenericTreeModel):
 		assert prefix
 		if prefix in fixed_ns:
 			raise Exception('That namespace prefix cannot be changed')
+		if uri in self.prefix:
+			raise Exception('That namespace already has a prefix (%s)' % self.prefix[uri])
 
 		modifed = prefix in self.uri
 
@@ -199,13 +201,8 @@ class GUI(rox.Dialog):
 			if d.run() != g.RESPONSE_OK:
 				d.destroy()
 				return
-			uri_text = uri.get_text()
-			if uri_text in ns.prefix:
-				rox.alert('That namespace already has a prefix (%s)'
-						% ns.prefix[uri_text])
-				continue
 			try:
-				ns[prefix.get_text()] = uri_text
+				ns[prefix.get_text()] = uri.get_text()
 				break
 			except:
 				rox.report_exception()
