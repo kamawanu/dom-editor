@@ -464,6 +464,10 @@ class Model:
 		Returns the new attribute node, or None if removing."""
 		namespaceURI, localName = self.split_qname(node, name)
 
+		if namespaceURI == XMLNS_NAMESPACE:
+			raise Exception("Attempt to set namespace attribute '%s'.\n\n"
+					"Use View->Show Namespaces to edit namespaces." % name)
+
 		if node.hasAttributeNS(namespaceURI, localName):
 			old = node.getAttributeNS(namespaceURI, localName)
 		else:
