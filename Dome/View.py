@@ -7,7 +7,7 @@ import os, re, string, types
 import Html
 
 from Beep import Beep
-from Exec import Exec
+import Exec
 
 # An view contains:
 # - A ref to a DOM document
@@ -26,7 +26,6 @@ class View:
 		self.root = self.current
 		self.clipboard = None
 		model.add_view(self)
-		self.exec_state = Exec(self)
 	
 	def add_display(self, display):
 		"Calls move_from(old_node) when we move and update_all() on updates."
@@ -169,14 +168,19 @@ class View:
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(self.current, [self.current], processorNss = ns)
 		rt = path.select(c)
-		if len(rt) == 0:
-			print "*** Search for '%s' failed" % pattern
-			raise Beep
-		node = rt[0]
-		#for x in rt:
+		node = None
+		for x in rt:
+			if not self.has_ancestor(x, self.root):
+				print "[ skipping search result above root ]"
+				continue
+			if not node:
+				node = x
 			#if self.node_to_line[x] > self.current_line:
 				#node = x
 				#break
+		if not node:
+			print "*** Search for '%s' failed" % pattern
+			raise Beep
 		self.move_to(node)
 
 	def subst(self, replace, with):
@@ -234,6 +238,7 @@ class View:
 		self.model.redo(self.root)
 
 	def playback(self, macro_name):
+		self.exec_state = Exec.exec_state	# XXX
 		self.exec_state.play(macro_name)
 
 	def change_node(self, new_data):

@@ -20,6 +20,8 @@ from Model import Model
 from View import View
 from GUIView import GUIView
 
+import Exec
+
 def strip_space(doc):
 	def cb(node, cb):
 		if node.nodeType == Node.TEXT_NODE:
@@ -67,6 +69,7 @@ class Window(GtkWindow):
 			self.load_file(path)
 
 		view = View(self.model)
+		Exec.exec_state = Exec.Exec(view)
 		self.gui_view = GUIView(self, view)
 		self.swin.add_with_viewport(self.gui_view)
 
@@ -149,19 +152,19 @@ class Window(GtkWindow):
 		self.save()
 	
 	def tool_Stop(self):
-		self.tree.exec_state.stop()
+		Exec.exec_state.stop()
 
 	def tool_Play(self):
-		self.tree.exec_state.set_step_mode(-1)
-		self.tree.exec_state.sched()
+		Exec.exec_state.set_step_mode(-1)
+		Exec.exec_state.sched()
 	
 	def tool_Next(self):
-		self.tree.exec_state.set_step_mode(1)
-		self.tree.exec_state.do_one_step()
+		Exec.exec_state.set_step_mode(1)
+		Exec.exec_state.do_one_step()
 	
 	def tool_Step(self):
-		self.tree.exec_state.set_step_mode(0)
-		self.tree.exec_state.do_one_step()
+		Exec.exec_state.set_step_mode(0)
+		Exec.exec_state.do_one_step()
 	
 	def tool_Record(self):
 		self.tree.toggle_record()

@@ -9,6 +9,7 @@ from StringIO import StringIO
 
 from support import *
 
+import Exec
 from SaveBox import SaveBox
 from Menu import Menu
 
@@ -300,9 +301,14 @@ class MacroNode:
 		setattr(self, exit, None)
 		getattr(self, '%s_line' % exit).set(points = points)
 
-		exec_state = self.macro.parent.window.tree.exec_state
+		exec_state = self.get_exec_state()
 		exec_state.set_pos(None)
 		self.macro.set_bounds()
+	
+	def get_exec_state(self):
+		# This is a bit dodgy, since there could be several states
+		# using a single macro in the future...
+		return Exec.exec_state
 				
 	def kill_child(self, child):
 		child.group.destroy()
@@ -338,8 +344,7 @@ class MacroNode:
 	
 	def line_event(self, line, event, prev, exit):
 		if event.type == BUTTON_PRESS and event.button == 1:
-			exec_state = self.macro.parent.window.tree.exec_state
-			exec_state.set_pos(prev, exit, 0.5)
+			self.get_exec_state().set_pos(prev, exit, 0.5)
 		return 1
 	
 	def show_menu(self, event):
@@ -378,7 +383,7 @@ class MacroNode:
 	def event(self, group, event):
 		if event.type == BUTTON_PRESS:
 			if event.button == 1:
-				exec_state = self.macro.parent.window.tree.exec_state
+				exec_state = self.get_exec_state()
 				exec_state.clean()
 				if self.prev:
 					if self.prev.next == self:

@@ -112,7 +112,7 @@ class Tree(GtkDrawingArea):
 		self.connect('destroy', self.destroyed)
 
 		self.recording_where = None
-		self.exec_state = Exec(self, window.macro_list)
+		self.exec_state = Exec.exec_state # XXX: Exec(self, window.macro_list)
 		self.idle_tag = 0
 		self.chroots = []	# Number of levels to go out on an unchroot...
 	
