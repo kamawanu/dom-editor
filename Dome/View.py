@@ -157,7 +157,6 @@ class View:
 		self.status_changed()
 
 	def push_stack(self, op):
-		print "Push", op
 		if not isinstance(op, Op):
 			raise Exception('push_stack: not an Op', op)
 		self.exec_stack.append(op)
@@ -166,7 +165,6 @@ class View:
 
 	def pop_stack(self):
 		op = self.exec_stack.pop()
-		print "Pop", op
 		for l in self.lists:
 			l.update_stack(op)
 
@@ -384,7 +382,6 @@ class View:
 			raise Beep		# Locking problems if this happens...
 		if self.model.doc is not node.ownerDocument:
 			raise Exception('Current node not in view!')
-		print "Enter", self.model.doc, node.ownerDocument
 		self.chroots.append((self.model, node))
 		self.set_model(self.model.lock_and_copy(node))
 	
@@ -395,10 +392,6 @@ class View:
 
 		(old_model, old_node) = self.chroots.pop()
 
-		print "Return to", old_model
-		print "Replacing node", old_node
-		print "(doc = %s or %s)" % (old_model.doc, old_node.ownerDocument)
-		
 		copy = old_model.doc.importNode(self.model.get_root(), deep = 1)
 		self.set_model(old_model)
 		old_model.unlock(old_node)
