@@ -16,6 +16,9 @@ from SaveBox import SaveBox
 from List import List
 from Toolbar import Toolbar
 
+from Model import Model
+from GUIView import GUIView
+
 def strip_space(doc):
 	def cb(node, cb):
 		if node.nodeType == Node.TEXT_NODE:
@@ -30,6 +33,9 @@ def strip_space(doc):
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
+		
+		self.model = Model()
+		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
 				      gdk_screen_height() * 2 / 3)
 		self.set_position(WIN_POS_CENTER)
@@ -57,46 +63,26 @@ class Window(GtkWindow):
 		if path:
 			if path != '-':
 				self.uri = path
-			root = self.root_from_file(path)
-		else:
-			root = implementation.createDocument('', 'root', None)
+			self.load_file(path)
 
-		self.set_root(root)
+		self.gui_view = GUIView(self.model)
+		self.swin.add_with_viewport(self.gui_view)
+
 		vbox.show_all()
 		self.connect('key-press-event', self.key)
 		make_xds_loader(self, self)
 	
-	def set_root(self, root):
-		self.tree = Tree(self, root, self.swin.get_vadjustment())
-		self.tree.show()
-		self.swin.add_with_viewport(self.tree)
-		self.tree.grab_focus()
+		self.gui_view.grab_focus()
 		self.update_title()
 
-	def root_from_file(self, path):
-		# Also sets uri attribute (call update_title yourself)
-		self.set_title('Loading...')
-		while events_pending():
-			mainiteration(FALSE)
+	def load_file(self, path):
 		if path[-5:] == '.html':
-			print "Reading HTML..."
-			reader = Html.Reader()
-			root = reader.fromUri(path)
-			ext.StripHtml(root)
+			self.model.load_html(path)
 			self.uri = path[:-5] + '.xml'
-			return html_to_xml(root)
 		else:
-			print "Reading XML..."
-			reader = PyExpat.Reader()
-			root = reader.fromUri(path)
-			strip_space(root)
+			self.model.load_xml(path)
 			self.uri = path
-			return root
-
-	def load_file(self, file):
-		root = self.root_from_file(file)
-		self.tree.destroy()
-		self.set_root(root)
+		self.uri = path
 		self.update_title()
 
 	def load_data(self, data):
@@ -104,8 +90,8 @@ class Window(GtkWindow):
 	
 	def update_title(self):
 		title = self.uri
-		if self.tree.recording_where:
-			title += ' (recording)'
+		#if self.tree.recording_where:
+			#title += ' (recording)'
 		self.set_title(title)
 	
 	def key(self, widget, kev):

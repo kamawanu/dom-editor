@@ -3,7 +3,7 @@ from support import *
 
 import Tree
 
-# An exec represents an executing macro, including the stack
+# An exec represents an executing macro, including the stack, root and cursor position
 
 class Exec:
 	def __init__(self, tree, macro_list):

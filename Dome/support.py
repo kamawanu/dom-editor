@@ -32,14 +32,12 @@ def node_to_xml(node):
 	root.replaceChild(new, root.documentElement)
 	return root
 
-def html_to_xml(html):
+def html_to_xml(doc, html):
 	"Takes an HTML DOM and creates a corresponding XML DOM."
 	print html
 	old_root = html.documentElement
-	root = implementation.createDocument('', 'root', None)
-	node = root.importNode(old_root, deep = 1)
-	root.replaceChild(node, root.documentElement)
-	return root
+	node = doc.importNode(old_root, deep = 1)
+	return node
 
 def load_pixmap(window, path):
 	try:
