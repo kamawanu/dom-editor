@@ -250,6 +250,7 @@ class View:
 	
 	def update_replace(self, old, new):
 		if old == self.root:
+			print "Changing view root node"
 			self.root = new
 		if old in self.current_nodes:
 			self.model.lock(new)
@@ -680,11 +681,19 @@ class View:
 	
 	def undo(self):
 		self.move_to([])
-		self.model.undo()
+		self.model.unlock(self.root)
+		try:
+			self.model.undo()
+		finally:
+			self.model.lock(self.root)
 
 	def redo(self):
 		self.move_to([])
-		self.model.redo()
+		self.model.unlock(self.root)
+		try:
+			self.model.redo()
+		finally:
+			self.model.lock(self.root)
 	
 	def default_done(self, exit):
 		"Called when execution of a program returns. op_in_progress has been "

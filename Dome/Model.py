@@ -254,15 +254,14 @@ class Model:
 		assert not self.doing_undo
 
 		uop = self.undo_stack[-1][0]
-		ops = []
-		while self.undo_stack and self.undo_stack[-1][0] == uop:
-			ops.append(self.undo_stack.pop()[1])
 
 		# Swap stacks so that the undo actions will populate the redo stack...
 		(self.undo_stack, self.redo_stack) = (self.redo_stack, self.undo_stack)
 		self.doing_undo = 1
 		try:
-			map(apply, ops)
+			while self.redo_stack and self.redo_stack[-1][0] == uop:
+				self.redo_stack[-1][1]()
+				self.redo_stack.pop()
 		finally:
 			(self.undo_stack, self.redo_stack) = (self.redo_stack, self.undo_stack)
 			self.doing_undo = 0
@@ -275,7 +274,8 @@ class Model:
 		self.doing_undo = 1
 		try:
 			while self.redo_stack and self.redo_stack[-1][0] == uop:
-				self.redo_stack.pop()[1]()
+				self.redo_stack[-1][1]()
+				self.redo_stack.pop()
 		finally:
 			self.doing_undo = 0
 	
