@@ -1,8 +1,23 @@
 from gtk import *
 
-from loader import load_xml
+from xml.dom import ext
+from xml.dom import implementation
+from xml.dom.ext.reader import PyExpat
+from xml.dom import Node
+
 from Tree import *
 from SaveBox import SaveBox
+
+def strip_space(doc):
+	def cb(node, cb):
+		if node.nodeType == Node.TEXT_NODE:
+			node.data = string.strip(node.data)
+			if node.data == '':
+				node.parentNode.removeChild(node)
+		else:
+			for k in node.childNodes[:]:
+				cb(k, cb)
+	cb(doc.documentElement, cb)
 
 def send_to_file(data, path):
 	try:
@@ -34,9 +49,11 @@ class Window(GtkWindow):
 		if path:
 			if path != '-':
 				self.uri = path
-			root = load_xml(path)
+			reader = PyExpat.Reader()
+			root = reader.fromUri(path)
+			strip_space(root)
 		else:
-			root = TagNode('Document')
+			root = implementation.createDocument('', 'root', None)
 
 		self.update_title()
 		
@@ -63,7 +80,14 @@ class Window(GtkWindow):
 		self.savebox.show()
 	
 	def get_xml(self):
-		return '<?xml version="1.0"?>\n' + self.tree.root.to_xml()
+		self.output_data = ''
+		ext.PrettyPrint(self.tree.root, stream = self)
+		d = self.output_data
+		self.output_data = ''
+		return d
+	
+	def write(self, text):
+		self.output_data = self.output_data + text
 
 	def save_as(self, path):
 		return send_to_file(self.get_xml(), path)

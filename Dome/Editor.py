@@ -3,8 +3,6 @@ from GDK import *
 from _gtk import gdk_screen_width
 import string
 
-from Node import *
-
 def edit_node(tree, node):
 	if isinstance(node, DataNode):
 		DataEditor(node, tree)

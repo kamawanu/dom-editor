@@ -1,21 +1,24 @@
 from gtk import *
 from GDK import *
 from _gtk import *
+from xml.dom import Node
 
 from support import *
 
-from Node import *
 from Editor import *
 from Search import Search
+import Change
 
 # Graphical tree widget
+
+def get_text(node, line):
+	return string.split(node.nodeValue, '\n')[line]
 
 class Tree(GtkDrawingArea):
 	vmargin = 4
 
 	def __init__(self, root, vadj):
 		GtkDrawingArea.__init__(self)
-		TagNode('BaseRoot').add(root)
 		self.vadj = vadj
 		self.set_events(BUTTON_PRESS_MASK)
 		self.set_flags(CAN_FOCUS)
@@ -23,7 +26,7 @@ class Tree(GtkDrawingArea):
 		self.connect('button-press-event', self.button_press)
 		self.connect('key-press-event', self.key_press)
 		self.root = root
-		self.display_root = root
+		self.display_root = root.documentElement
 		self.current_line = 0
 		self.clipboard = None
 		self.left_hist = []
@@ -48,13 +51,14 @@ class Tree(GtkDrawingArea):
 			return 0
 		
 		if key == I or key == A or key == O:
-			if not isinstance(cur, DataNode):
-				new = TagNode(cur.type)
+			if cur.nodeType == Node.TEXT_NODE:
+				new = self.doc.createElement(
+						cur.parentNode.nodeName)
 			else:
-				new = TagNode(cur.parent.type)
+				new = self.doc.createElement(cur.nodeName)
 			edit = 1
 		elif key == i or key == a or key == o:
-			new = DataNode('')
+			new = self.doc.createTextNode('')
 			edit = 1
 		else:
 			edit = 0
@@ -94,65 +98,65 @@ class Tree(GtkDrawingArea):
 			self.display_root = self.display_root.parent
 			new = cur
 		elif key == Prior and cur is not self.display_root:
-			self.move_to_node(cur.prev_sibling())
+			self.move_to_node(cur.previousSibling)
 		elif key == Next and cur is not self.display_root:
-			self.move_to_node(cur.next_sibling())
+			self.move_to_node(cur.nextSibling)
 		elif key == y:
-			self.clipboard = cur.copy()
+			self.clipboard = cur.cloneNode(deep = 1)
 		elif key == p:
-			new = self.clipboard.copy()
+			new = self.clipboard.cloneNode(deep = 1)
 			key = a
 		elif key == bracketright:
-			new = self.clipboard.copy()
+			new = self.clipboard.cloneNode(deep = 1)
 			key = o
 		elif key == P:
-			new = self.clipboard.copy()
+			new = self.clipboard.cloneNode(deep = 1)
 			key = i
-		elif key == Tab:
-			edit_node(self, cur)
-		elif key == u and self.display_root.can_undo():
-			self.display_root.do_undo()
-			new = cur
-		elif key == r and self.display_root.can_redo():
-			self.display_root.do_redo()
-			new = cur
-		elif key == J:
-			cur.join()
-			new = cur
-		elif key == S and cur != self.display_root:
-			cur.split(self.current_line - self.node_to_line[cur])
-			new = cur.next_sibling()
-		elif key == D and cur != self.display_root:
-			new = cur.kids[0]
-			if new:
-				cur.parent.flatten(cur)
-			else:
-				key = x
-		elif key == slash:
-			Search(self)
+#		elif key == Tab:
+#			edit_node(self, cur)
+#		elif key == u and self.display_root.can_undo():
+#			self.display_root.do_undo()
+#			new = cur
+#		elif key == r and self.display_root.can_redo():
+#			self.display_root.do_redo()
+#			new = cur
+#		elif key == J:
+#			cur.join()
+#			new = cur
+#		elif key == S and cur != self.display_root:
+#			cur.split(self.current_line - self.node_to_line[cur])
+#			new = cur.next_sibling()
+#		elif key == D and cur != self.display_root:
+#			new = cur.kids[0]
+#			if new:
+#				cur.parent.flatten(cur)
+#			else:
+#				key = x
+#		elif key == slash:
+#			Search(self)
 
 		if new and (key == o or key == O):
-			cur.add(new, index = 0)
+			Change.insert(cur, new, index = 0)
 		elif cur != self.display_root:
 			if new and (key == I or key == i):
-				cur.parent.add(new, before = cur)
+				Change.insert_before(cur, new)
 			elif new and (key == a or key == A):
-				cur.parent.add(new, after = cur)
+				Change.insert_after(cur, new)
 			elif key == X:
-				cur, new = cur.prev_sibling(), cur
+				cur, new = cur.previousSibling, cur
 				if cur:
-					self.clipboard = cur.copy()
-					cur.parent.remove(cur)
+					self.clipboard = cur.cloneNode(deep = 1)
+					Change.delete(cur)
 				else:
 					new = None
 			elif key == x:
-				new = cur.next_sibling()
+				new = cur.nextSibling
 				if not new:
 					self.move_to(self.current_line - 1)
 					new = self.line_to_node[ \
 							self.current_line]
-				self.clipboard = cur.copy()
-				cur.parent.remove(cur)
+				self.clipboard = cur.cloneNode(deep = 1)
+				Change.delete(cur)
 		if new:
 			self.build_index()
 			if not self.node_to_line.has_key(new):
@@ -231,9 +235,9 @@ class Tree(GtkDrawingArea):
 		def build(self, node, build):
 			self.node_to_line[node] = len(self.line_to_node)
 
-			for x in range(0, node.get_lines()):
+			for x in range(0, self.get_lines(node)):
 				self.line_to_node.append(node)
-			for k in node.kids:
+			for k in node.childNodes:
 				build(self, k, build)
 		
 		self.node_to_line = {}
@@ -269,7 +273,7 @@ class Tree(GtkDrawingArea):
 		font = self.st.font
 		y = line * self.row_height + self.vmargin
 
-		if isinstance(node, DataNode):
+		if node.nodeType == Node.TEXT_NODE:
 			gc = self.st.fg_gc[STATE_INSENSITIVE]
 		else:
 			gc = self.st.fg_gc[STATE_NORMAL]
@@ -284,17 +288,17 @@ class Tree(GtkDrawingArea):
 		parents = []
 		p = node
 		while p != self.display_root:
-			p = p.parent
+			p = p.parentNode
 			parents.append(p)
 
 		x = len(parents) * 32 + 8
-		if isinstance(node, DataNode):
+		if node.nodeType == Node.TEXT_NODE:
 			gdk_draw_string(self.win, self.st.font, gc,
 				x, y + font.ascent,
-				node.text[line - self.node_to_line[node]])
+				get_text(node, line - self.node_to_line[node]))
 		else:
 			gdk_draw_string(self.win, self.st.font, gc,
-				x, y + font.ascent, str(node))
+				x, y + font.ascent, node.nodeName)
 
 		ly = y + self.row_height / 2
 		if self.node_to_line[node] == line:
@@ -303,7 +307,7 @@ class Tree(GtkDrawingArea):
 		
 		x = x - 24
 		for p in parents:
-			lc = self.node_to_line[p.kids[-1]]
+			lc = self.node_to_line[p.childNodes[-1]]
 
 			if lc > line:
 				gdk_draw_line(self.win, self.st.black_gc,
@@ -333,3 +337,10 @@ class Tree(GtkDrawingArea):
 	
 	def current_node(self):
 		return self.line_to_node[self.current_line]
+	
+	# How many lines do we need to display this node (excluding
+	# children)?
+	def get_lines(self, node):
+		if node.nodeType == Node.TEXT_NODE:
+			return len(string.split(node.nodeValue, '\n'))
+		return 1
