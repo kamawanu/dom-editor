@@ -14,10 +14,13 @@ watch_cursor = cursor_new(WATCH)
 no_cursor = cursor_new(TCROSS)
 
 def set_busy(widget, busy = TRUE):
+	w = widget.get_window()
+	if not w:
+		return
 	if busy:
-		widget.get_window().set_cursor(watch_cursor)
+		w.set_cursor(watch_cursor)
 	else:
-		widget.get_window().set_cursor(no_cursor)
+		w.set_cursor(no_cursor)
 
 def wrap(str, width):
 	ret = ''
@@ -107,7 +110,7 @@ class Display(GnomeCanvas):
 			return		# Going to update anyway...
 
 		if self.view.running():
-			self.update_timeout = timeout_add(5000, self.update_callback)
+			self.update_timeout = timeout_add(10000, self.update_callback)
 		else:
 			self.update_timeout = timeout_add(10, self.update_callback)
 	

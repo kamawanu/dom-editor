@@ -112,6 +112,7 @@ class GUIView(Display):
 		else:
 			state = ""
 		self.window.set_state(state)
+		self.do_update_now()
 
 	def load_file(self, path):
 		if path[-5:] == '.html':

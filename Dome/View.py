@@ -997,7 +997,7 @@ class View:
 			if ns is None:
 				post.append((str(name),
 					     str(attrs[(ns, name)].value)))
-		node = self.suck_node(post_data = urllib.urlencode(post))
+		node = self.suck_node(node, post_data = urllib.urlencode(post))
 		if node:
 			self.move_to(node)
 	
