@@ -142,6 +142,12 @@ def make_template(op, temp):
 			block.toggle_restore()
 			sub = block.start
 
+			if child._select:
+				match = child._select.pprint()
+			else:
+				match = '*|text()'
+
+			print "MATCH:", match
 			sub = add(sub, 'mark_switch')
 			sub = add(sub, 'do_global', '*|text()')	# XXX
 			sub = add(sub, 'map', 'XSLT/Default mode')

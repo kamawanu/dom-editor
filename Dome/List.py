@@ -14,7 +14,7 @@ from rox.Menu import Menu
 prog_menu = Menu('programs', [
 		('/Play', 'menu_play', '', ''),
 		('/Map', 'menu_map', '', ''),
-		('/View', 'menu_view', '', ''),
+		('/View', 'menu_new_view', '', ''),
 		('/', '', '', '<separator>'),
 		('/New program', 'menu_new_prog', '', ''),
 		('/Rename', 'menu_rename', '', ''),
@@ -153,8 +153,11 @@ class List(g.VBox):
 			if not selected:
 				return
 			model, iter = selected
-			path = model.get_value(iter, 1)
-			self.chains.switch_to(self.view.name_to_prog(path))
+			if iter:
+				path = model.get_value(iter, 1)
+				self.chains.switch_to(self.view.name_to_prog(path))
+			else:
+				self.chains.switch_to(None)
 
 		sel.connect('changed', change_prog)
 
@@ -249,41 +252,48 @@ class List(g.VBox):
 					self.view.may_record(['play', path])
 		return 0
 	
-	def show_menu(self, event, prog):
-		def del_prog(self = self, prog = prog):
-			parent = prog.parent
-			prog.parent.remove_sub(prog)
-		def rename_prog(prog = prog):
-			def rename(name, prog = prog):
-				prog.rename(name)
-			GetArg('Rename program', rename, ['Program name:'])
-		def new_prog(model = self.view.model, prog = prog):
-			def create(name, model = model, prog = prog):
-				new = Program(name)
-				prog.add_sub(new)
-			GetArg('New program', create, ['Program name:'])
-			
-		view = self.view
-		if prog.parent:
-			dp = del_prog
-		else:
-			dp = None
-		name = prog.get_path()
-		def do(play, self = self, name = name):
-			def ret(play = play, self = self, name = name):
-				self.view.run_new(self.run_return)
-				self.view.may_record([play, name])
-			return ret
+	def menu_delete(self):
+		prog = self.prog_menu_prog
+		if not prog.parent:
+			rox.alert("Can't delete the root program!")
+			return
+		prog.parent.remove_sub(prog)
+		
+	def menu_rename(self):
+		prog = self.prog_menu_prog
+		def rename(name, prog = prog):
+			prog.rename(name)
+		GetArg('Rename program', rename, ['Program name:'])
 
-		def new_view(self = self, view = view, prog = prog):
-			cw = ChainWindow(view, prog)
-			cw.show()
-			self.sub_windows.append(cw)
-			def lost_cw(win, self = self, cw = cw):
-				self.sub_windows.remove(cw)
-				print "closed"
-			cw.connect('destroy', lost_cw)
-			
+	def menu_new_prog(self):
+		prog = self.prog_menu_prog
+		def create(name):
+			new = Program(name)
+			prog.add_sub(new)
+		GetArg('New program', create, ['Program name:'])
+
+	def menu_new_view(self):
+		prog = self.prog_menu_prog
+		cw = ChainWindow(self.view, prog)
+		cw.show()
+		self.sub_windows.append(cw)
+		def lost_cw(win):
+			self.sub_windows.remove(cw)
+			print "closed"
+		cw.connect('destroy', lost_cw)
+	
+	def menu_map(self):
+		prog = self.prog_menu_prog
+		self.view.run_new(self.run_return)
+		self.view.may_record(['map', prog.get_path()])
+
+	def menu_play(self):
+		prog = self.prog_menu_prog
+		self.view.run_new(self.run_return)
+		self.view.may_record(['play', prog.get_path()])
+
+	def show_menu(self, event, prog):
+		self.prog_menu_prog = prog
 		prog_menu.popup(self, event)
 
 	def update_stack(self, op):

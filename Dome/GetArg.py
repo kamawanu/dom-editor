@@ -54,9 +54,11 @@ class GetArg(g.Dialog):
 		self.add_button(g.STOCK_OK, g.RESPONSE_OK)
 
 		def resp(widget, resp):
+			print "Rest", resp
 			if resp == g.RESPONSE_OK:
 				self.do_it()
 			widget.destroy()
+		self.connect('response', resp)
 
 		if destroy_return:
 			self.connect('destroy', lambda widget, cb = callback: cb(None))
