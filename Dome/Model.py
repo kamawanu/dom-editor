@@ -23,7 +23,7 @@ def get_xslt_source(doc, dome_data):
 	return src
 
 class Model:
-	def __init__(self, path, root_program = None, dome_data = None):
+	def __init__(self, path, root_program = None, dome_data = None, do_load = 1):
 		"If root_program is given, then no data is loaded (used for lock_and_copy)."
 		self.uri = 'Prog.dome'
 
@@ -38,7 +38,7 @@ class Model:
 		if path:
 			if path != '-':
 				self.uri = path
-			if path.endswith('.html') or path.endswith('.htm'):
+			if do_load and (path.endswith('.html') or path.endswith('.htm')):
 				doc = self.load_html(path)
 			if not doc and not root_program:
 				from Ft.Xml.InputSource import InputSourceFactory
@@ -144,7 +144,7 @@ class Model:
 		with a copy of the subtree."""
 		if self.get_locks(node):
 			raise Exception("Can't enter locked node!")
-		m = Model(self.get_base_uri(node), root_program = self.root_program)
+		m = Model(self.get_base_uri(node), root_program = self.root_program, do_load = 0)
 		copy = support.import_with_ns(m.doc, node)
 		root = m.get_root()
 		m.replace_node(root, copy)
