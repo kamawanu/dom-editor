@@ -205,7 +205,7 @@ class Display(g.HBox):
 			if bbox[1] > -self.last_alloc[1]:
 				draw_fn()
 			else:
-				print 'Warning: Ref node way off:', bbox[1]
+				pass#print 'Warning: Ref node way off:', bbox[1]
 			if node.nodeType == Node.ATTRIBUTE_NODE:
 				self.drawn[node] = (bbox, attr_parent)
 			else:
