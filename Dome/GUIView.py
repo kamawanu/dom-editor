@@ -479,6 +479,7 @@ class GUIView(Display):
 	do_again = make_do('again')
 	do_normalise = make_do('normalise')
 
+	do_clear_mark = make_do('clear_mark')
 	do_mark_switch = make_do('mark_switch')
 	do_mark_selection = make_do('mark_selection')
 	do_select_marked = make_do('select_marked_region')

@@ -2,6 +2,7 @@ from __future__ import nested_scopes
 
 from gtk import *
 from GDK import *
+import GDK
 from gnome.ui import *
 from support import *
 import string
@@ -525,24 +526,50 @@ class ChainDisplay(GnomeCanvas):
 			group.fail_line.set(line_style = LINE_ON_OFF_DASH)
 	
 	def edit_op(self, op):
+		def modify(widget):
+			i = 0
+			for e in editables:
+				i += 1
+				if e:
+					op.action[i] = e.get_text()
+			op.changed()
+			print "Done editing!"
+			win.destroy()
+			
 		win = GtkWindow()
 		win.set_border_width(8)
 		vbox = GtkVBox(TRUE, 8)
 		win.add(vbox)
-		for x in op.action:
+		vbox.pack_start(GtkLabel(op.action[0]), TRUE, FALSE, 0)
+		editables = []	# [ Entry | None ]
+		focus = None
+		for x in op.action[1:]:
 			entry = GtkEntry()
 			entry.set_text(str(x))
 			vbox.pack_start(entry, TRUE, FALSE, 0)
+			if type(x) == str or type(x) == unicode:
+				editables.append(entry)
+				entry.connect('activate', lambda e: modify(e))
+				if not focus:
+					focus = entry
+					entry.grab_focus()
+			else:
+				entry.set_editable(FALSE)
+				editables.append(None)
+			
 		hbox = GtkHBox(TRUE, 4)
 		vbox.pack_start(hbox, TRUE, FALSE, 0)
-		
-		button = GtkButton("Modify")
-		button.set_sensitive(FALSE)
-		hbox.pack_start(button, TRUE, TRUE, 0)
 
 		button = GtkButton("Cancel")
 		hbox.pack_start(button, TRUE, TRUE, 0)
 		button.connect('clicked', lambda b, win = win: win.destroy())
+		
+		button = GtkButton("Modify")
+		if focus:
+			button.connect('clicked', modify)
+		else:
+			button.set_sensitive(FALSE)
+		hbox.pack_start(button, TRUE, TRUE, 0)
 
 		win.show_all()
 	
@@ -575,6 +602,11 @@ class ChainDisplay(GnomeCanvas):
 		elif event.type == LEAVE_NOTIFY:
 			item.set(fill_color = self.op_colour(op))
 		elif event.type == MOTION_NOTIFY and self.drag_last_pos:
+			if not event.state & BUTTON1_MASK:
+				print "(stop drag!)"
+				self.drag_last_pos = None
+				self.program_changed(None)
+				return 1
 			x, y = (event.x, event.y)
 			dx, dy = x - self.drag_last_pos[0], y - self.drag_last_pos[1]
 			if abs(op.dx + dx) < 4:
@@ -596,6 +628,12 @@ class ChainDisplay(GnomeCanvas):
 			self.update_links()
 			#self.create_node(self.prog.start, self.nodes)
 			self.update_points()
+		elif event.type == GDK._2BUTTON_PRESS:
+			self.edit_op(op)
+			print "(edit; stop drag!)"
+			self.drag_last_pos = None
+			self.program_changed(None)
+		return 1
 
 	def show_op_menu(self, event, op):
 		if op.action[0] == 'Start':
