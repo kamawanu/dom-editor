@@ -37,6 +37,8 @@ def connect(x1, y1, x2, y2):
 DEFAULT_NEXT = (0, 25)
 DEFAULT_FAIL = (20, 20)
 
+expand_history = {}	# Prog name -> expanded flag
+
 def action_to_text(action):
 	text = action[0]
 	if text[:3] == 'do_':
@@ -147,10 +149,16 @@ class List(GtkVBox):
 		self.build_tree(self.tree, self.view.model.root_program)
 		# Redraw goes wrong if we don't use a callback...
 		def cb():
-			root = self.view.model.root_program
-			self.prog_to_tree[root].expand()
-			for p in root.subprograms.values():
-				self.prog_to_tree[p].expand()
+			global expand_history
+			old_eh = expand_history
+			expand_history = {}
+
+			def expand(prog):
+				if old_eh.get(prog, 0):
+					self.prog_to_tree[prog].expand()
+					map(expand, prog.subprograms.values())
+			expand(self.view.model.root_program)
+
 			return 0
 		idle_add(cb)
 
@@ -163,7 +171,12 @@ class List(GtkVBox):
 				x.destroy()
 	
 	def build_tree(self, tree, prog):
+		def set_expand_state(state):
+			expand_history[prog] = state
+			print prog, "is now", expand_history[prog]
 		item = GtkTreeItem(prog.name)
+		item.connect('expand', lambda widget: set_expand_state(1))
+		item.connect('collapse', lambda widget: set_expand_state(0))
 		item.connect('button-press-event', self.prog_event, prog)
 		item.connect('select', lambda widget, c = self.chains, p = prog: \
 							c.switch_to(p))
