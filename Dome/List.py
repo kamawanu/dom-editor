@@ -403,6 +403,13 @@ class ChainOp(ChainNode):
 		self.draw_link(self.next, 5, 10, 'black')
 		self.draw_link(self.fail, 10, 10, 'red')
 
+		if (op, 'next') in self.da.view.breakpoints:
+			w.draw_arc(da.style.black_gc, True,
+					self.x + 2, self.y + 12, 6, 6, 0, 400 * 60)
+		if (op, 'fail') in self.da.view.breakpoints:
+			w.draw_arc(da.style.black_gc, True,
+					self.x + 14, self.y + 10, 6, 6, 0, 400 * 60)
+
 	def draw_link(self, dest, dx, dy, colour):
 		if not dest: return
 
