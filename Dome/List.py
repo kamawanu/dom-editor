@@ -42,10 +42,13 @@ def action_to_text(action):
 
 class List(GnomeCanvas):
 	"A graphical display of a program."
-	def __init__(self, model):
+	def __init__(self, view):
 		GnomeCanvas.__init__(self)
-		self.model = model
+		self.view = view
 		self.unset_flags(CAN_FOCUS)
+
+		self.exec_point = None		# CanvasItem, or None
+		self.rec_point = None
 
 		s = self.get_style().copy()
 		s.bg[STATE_NORMAL] = self.get_color('light green')
@@ -55,10 +58,83 @@ class List(GnomeCanvas):
 		self.subs = None
 		self.set_usize(100, 100)
 
-		model.root_program.watchers.append(self.update_notify)
+		self.view.lists.append(self)
+		self.prog = None
+		self.switch_to(view.model.root_program)
+	
+	def update_points(self):
+		print "update_points"
+		self.put_point('rec_point')
+		self.put_point('exec_point')
+	
+	def put_point(self, point):
+		item = getattr(self, point)
+		if item:
+			item.destroy()
+			setattr(self, point, None)
+		
+		opexit = getattr(self.view, point)
+		if opexit:
+			(op, exit) = opexit
+			if point == 'rec_point':
+				c = 'red'
+				s = 6
+			else:
+				c = 'yellow'
+				s = 3
+			item = self.root().add('rect',
+						x1 = -s, x2 = s, y1 = -s, y2 = s,
+						fill_color = c,
+						outline_color = 'black', width_pixels = 1)
+			setattr(self, point, item)
+
+			if op.program == self.prog:
+				g = self.op_to_group[op]
+				(x1, y1) = g.i2w(0, 0)
+				if exit == 'next':
+					if op.next:
+						(x2, y2) = self.op_to_group[op.next].i2w(0, 0)
+					else:
+						(x2, y2) = g.i2w(0, 20)
+				elif exit == 'fail':
+					if op.fail:
+						(x2, y2) = self.op_to_group[op.fail].i2w(0, 0)
+					else:
+						(x2, y2) = g.i2w(20, 20)
+				else:
+					(x2, y2) = (x1, y1)
+				item.move((x1 + x2) / 2, (y1 + y2) / 2)
+			else:
+				p = self.nearest_prog(op.program)
+				g = self.prog_to_group[p]
+				(x, y) = g.i2w(0, 0)
+				item.move(x, y)
+	
+	def nearest_prog(self, prog):
+		"If prog is above us, returns our parent."
+		"If below us, returns the program containing it."
+		"Otherwise, returns our parent."
+		p = self.prog.parent
+		while p:
+			if p == prog:
+				return self.prog.parent
+			p = p.parent
+
+		p = prog
+		while p.parent:
+			if p.parent == self.prog:
+				return p
+			p = p.parent
+		return self.prog.parent
+	
+	def switch_to(self, prog):
+		if self.prog:
+			self.prog.watchers.remove(self)
+		self.prog = prog
+		self.prog.watchers.append(self)
 		self.update_all()
 	
-	def update_notify(self, op):
+	def program_changed(self, op):
 		print "op", op, "updated"
 		self.update_all()
 	
@@ -71,8 +147,12 @@ class List(GnomeCanvas):
 			self.nodes.destroy()
 
 		y = 0
-		for p in self.model.root_program.subprograms:
+		self.prog_to_group = {}
+		for p in [self.prog.parent, self.prog] + self.prog.subprograms:
+			if not p:
+				continue
 			g = self.subs.add('group', x = 0, y = y)
+			self.prog_to_group[p] = g
 			t = g.add('text', fill_color = 'black', x = 0, y = 0, anchor = ANCHOR_CENTER,
 								text = p.name, font = 'fixed')
 			(lx, ly, hx, hy) = t.get_bounds()
@@ -83,32 +163,37 @@ class List(GnomeCanvas):
 				w = hx
 			g.move(0, -ly)
 			m = 4
-			g.add('rect', fill_color = 'grey80', outline_color = 'black',
+
+			if p == self.prog:
+				c = 'yellow'
+			else:
+				c = 'grey80'
+			rect = g.add('rect', fill_color = c,
+						outline_color = 'black',
 						x1 = -w - m , y1 = ly - m,
 						x2 = w + m , y2 = hy + m)
 			t.raise_to_top()
+			g.connect('event', self.subprog_event, rect, p)
 
 			y += (hy - ly) + 12
 
-		self.nodes = self.root().add('group', x = 0, y = y)
-		self.create_node(self.model.root_program.start, self.nodes)
+		self.op_to_group = {}
+		self.nodes = self.root().add('group', x = 0, y = y + 32)
+		self.create_node(self.prog.start, self.nodes)
+		self.update_points()
 
 		self.set_bounds()
 	
+	def subprog_event(self, group, event, rect, sub):
+		if event.type == ENTER_NOTIFY:
+			rect.set(width_pixels = 2)
+		elif event.type == LEAVE_NOTIFY:
+			rect.set(width_pixels = 1)
+		elif event.type == BUTTON_PRESS and event.button == 1:
+			self.switch_to(sub)
+	
 	def create_node(self, op, group):
 		text = action_to_text(op.action)
-
-		next_line = group.add('line',
-					fill_color = 'black',
-					points = (0, 6, 0, 20),
-					width_pixels = 4)
-		#next_line.connect('event', self.line_event, self, 'next')
-
-		fail_line = group.add('line',
-					fill_color = '#ff6666',
-					points = (6, 6, 16, 16),
-					width_pixels = 4)
-		#fail_line.connect('event', self.line_event, self, 'fail')
 		
 		circle = group.add('ellipse',
 					fill_color = 'blue',
@@ -124,13 +209,47 @@ class List(GnomeCanvas):
 					font = 'fixed',
 					fill_color = 'black',
 					text = text)
+
+		y = 20
+		if op.next:
+			g = group.add('group', x = 0, y = 40)
+			(lx, ly, hx, hy) = g.get_bounds()
+			g.move(0, 45 - ly)
+			self.create_node(op.next, g)
+			y = 40
+		group.next_line = group.add('line',
+					fill_color = 'black',
+					points = (0, 6, 0, y),
+					width_pixels = 4)
+		group.next_line.connect('event', self.line_event, op, 'next')
+
+		if op.fail:
+			g = group.add('group', x = 40, y = 30)
+			self.create_node(op.fail, g)
+		group.fail_line = group.add('line',
+					fill_color = '#ff6666',
+					points = (6, 6, 16, 16),
+					width_pixels = 4)
+		group.fail_line.connect('event', self.line_event, op, 'fail')
+
+		self.op_to_group[op] = group
+	
+	def line_event(self, item, event, op, exit):
+		if event.type == BUTTON_PRESS and event.button == 1:
+			print "Clicked exit %s of %s" % (exit, op)
+			self.view.set_exec((op, exit))
 	
 	def set_bounds(self):
 		m = 8
 
 		min_x, min_y, max_x, max_y = self.root().get_bounds()
-		self.set_scroll_region(min_x - m, min_y - m, max_x + m, max_y + m)
+		min_x -= m
+		min_y -= m
+		max_x += m
+		max_y += m
+		self.set_scroll_region(min_x, min_y, max_x, max_y)
 		self.root().move(0, 0) # Magic!
+		self.set_usize(max_x - min_x, -1)
 	
 class Unused:
 	def record_new(self, i_name):

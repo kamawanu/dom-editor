@@ -38,14 +38,17 @@ def same(a, b):
 class View:
 	def __init__(self, model):
 		self.displays = []
+		self.lists = []
 		self.model = model
 		self.chroots = []
 		self.root = self.model.get_root()
 		self.current_nodes = [self.root]
 		self.clipboard = None
-		self.recording_where = None
 		self.current_attrib = None
 		model.add_view(self)
+
+		self.exec_point = None		# None, or (Op, Exit)
+		self.rec_point = None		# None, or (Op, Exit)
 	
 	def __getattr__(self, attr):
 		if attr == 'current':
@@ -54,28 +57,35 @@ class View:
 			raise Exception('This operation required exactly one selected node!')
 		raise Exception('Bad View attribute "%s"' % attr)
 
-	def toggle_record(self, extend = FALSE):
-		"Start or stop recording"
-		if self.recording_where:
-			self.recording_where = None
-		elif extend:
-			self.recording_where = Exec.exec_state.where
-			if not self.recording_where:
-				report_error("No current point!")
-				return
+	def set_exec(self, pos):
+		self.exec_point = pos
+		for l in self.lists:
+			l.update_points()
 
-			self.recording_exit = Exec.exec_state.exit
+	def set_rec(self, pos):
+		self.rec_point = pos
+		for l in self.lists:
+			l.update_points()
+	
+	def record_at_point(self):
+		if not self.exec_point:
+			report_error("No current point!")
+			return
+		self.set_rec(self.exec_point)
+
+	def toggle_record(self):
+		"Start or stop recording"
+		if self.rec_point:
+			self.set_rec(None)
 		else:
+			# XXX
 			node = self.current_nodes[0]
 			self.recording_where = self.model.macro_list.record_new(node.nodeName).start
 			self.recording_exit = 'next'
-		
-		for display in self.displays:
-			display.update_record_state()
 
 	def may_record(self, action):
 		"Perform and, possibly, record this action"
-		rec = self.recording_where
+		rec = self.rec_point
 
 		exit = 'next'
 		try:
@@ -89,10 +99,9 @@ class View:
 
 		# Only record if we were recording when this action started
 		if rec:
-			self.recording_where = rec.record(action, self.recording_exit)
-			self.recording_exit = exit
-			# XXX: Setting point stops background ops (eg playback)
-			#Exec.exec_state.set_pos(self.recording_where, self.recording_exit)
+			(op, old_exit) = rec
+			new_op = op.link_to(Op(op.program, action), old_exit)
+			self.set_rec((new_op, exit))
 	
 	def add_display(self, display):
 		"Calls move_from(old_node) when we move and update_all() on updates."
@@ -322,6 +331,7 @@ class View:
 			raise Beep
 
 	def ask(self, q):
+		# XXX
 		def ask_cb(result, self = self):
 			self.clipboard = self.model.doc.createTextNode(result)
 			if self.exec_state.where and not self.recording_where:

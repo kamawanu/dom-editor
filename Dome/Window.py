@@ -56,7 +56,8 @@ class Window(GtkWindow):
 		code = choices.load('Dome', 'RootProgram')
 		if code:
 			self.model.load_program(code)
-		list = List(self.model)
+		view = View(self.model)
+		list = List(view)
 		hbox.pack_start(list, FALSE, TRUE, 0)
 		list.show()
 		
@@ -70,7 +71,6 @@ class Window(GtkWindow):
 		swin = GtkScrolledWindow()
 		hbox.pack_start(swin, TRUE, TRUE, 0)
 
-		view = View(self.model)
 		Exec.exec_state = Exec.Exec(view)
 		self.gui_view = GUIView(self, view)
 		swin.add(self.gui_view)
@@ -104,8 +104,6 @@ class Window(GtkWindow):
 	
 	def update_title(self):
 		title = self.uri
-		if self.gui_view and self.gui_view.view.recording_where:
-			title += ' (recording)'
 		self.set_title(title)
 	
 	def key(self, widget, kev):
@@ -176,4 +174,4 @@ class Window(GtkWindow):
 		self.gui_view.view.toggle_record()
 	
 	def tool_Extend(self):
-		self.gui_view.view.toggle_record(extend = TRUE)
+		self.gui_view.view.record_at_point()

@@ -67,6 +67,7 @@ class Program:
 		self.name = name
 		self.subprograms = []
 		self.watchers = []
+		self.parent = None
 	
 	def set_start(self, start):
 		self.start = start
@@ -78,9 +79,12 @@ class Program:
 		else:	
 			print "%s: Changed" % self.name
 		for w in self.watchers:
-			w(self)
+			w.program_changed(self)
 	
 	def add_sub(self, prog):
+		if prog.parent:
+			raise Exception('%s already has a parent program!' % prog)
+		prog.parent = self
 		self.subprograms.append(prog)
 		self.changed(None)
 	
