@@ -36,8 +36,8 @@ def calc_node(display, node, pos):
 	def draw_fn():
 		surface = display.pm
 		style = display.surface.style	# Different surface ;-)
-		fg = display.style.fg_gc
-		bg = display.style.bg_gc
+		fg = style.fg_gc
+		bg = style.bg_gc
 
 		if node.nodeType != Node.ATTRIBUTE_NODE:
 			marker = True

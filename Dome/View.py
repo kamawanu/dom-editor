@@ -1226,6 +1226,8 @@ class View:
 			raise Beep
 		if uri.find('//') == -1:
 			base = self.model.get_base_uri(node)
+			if not ':' in base:
+				base = os.path.dirname(base)
 			print "Relative URI..."
 			if base:
 				print "Base URI is:", base, "add", uri
@@ -1237,6 +1239,8 @@ class View:
 			else:
 				pass
 				#print "Warning: Can't find 'uri' attribute!"
+		if not ':' in uri:
+			uri = 'file://' + uri
 		request = urllib2.Request(uri)
 
 		return request

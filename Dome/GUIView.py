@@ -16,32 +16,32 @@ from gnome import canvas
 
 menu = Menu('main', [
 		('/File', None, '<Branch>', ''),
-		('/File/Save', 'menu_save', '', 'F3'),
+		('/File/Save', 'menu_save', '', '<Ctrl>S'),
 		('/File/Blank document', 'do_blank_all', '', '<Ctrl>N'),
 		('/File/Clear undo buffer', 'menu_clear_undo', '', ''),
 
 		('/Edit', None, '<Branch>', ''),
-		('/Edit/Yank attributes', 'do_yank_attributes', '', ''),
+		('/Edit/Copy attributes', 'do_yank_attributes', '', ''),
 		('/Edit/Paste attributes', 'do_paste_attribs', '', ''),
-		('/Edit/Yank attrib value', 'do_yank_value', '', ''),
+		('/Edit/Copy attrib value', 'do_yank_value', '', ''),
 		('/Edit/Rename attribute', 'menu_rename_attr', '', ''),
 		('/Edit/', '', '', '<separator>'),
-		('/Edit/Cut', 'do_delete_node', '', 'x'),
-		('/Edit/Delete', 'do_delete_node_no_clipboard', '', '<Ctrl>X'),
+		('/Edit/Cut', 'do_delete_node', '', '<Ctrl>X'),
+		('/Edit/Delete', 'do_delete_node_no_clipboard', '', ''),
 		('/Edit/Shallow cut', 'do_delete_shallow', '', '<Shift>X'),
 		('/Edit/', '', '', '<separator>'),
-		('/Edit/Yank', 'do_yank', '', 'y'),
-		('/Edit/Shallow yank', 'do_shallow_yank', '', '<Shift>Y'),
+		('/Edit/Copy', 'do_yank', '', '<Ctrl>C'),
+		('/Edit/Shallow copy', 'do_shallow_yank', '', '<Shift>Y'),
 		('/Edit/', '', '', '<separator>'),
-		('/Edit/Paste (replace)','do_put_replace', '', '<Shift>R'),
+		('/Edit/Paste (replace)','do_put_replace', '', '<Ctrl>V'),
 		('/Edit/Paste (inside)', 'do_put_as_child', '', 'bracketright'),
 		('/Edit/Paste (before)', 'do_put_before', '', '<Shift>P'),
 		('/Edit/Paste (after)', 'do_put_after', '', 'p'),
 		('/Edit/', '', '', '<separator>'),
 		('/Edit/Edit value', 'toggle_edit', '', 'Return'),
 		('/Edit/', '', '', '<separator>'),
-		('/Edit/Undo', 'do_undo', '', 'u'),
-		('/Edit/Redo', 'do_redo', '', '<Ctrl>R'),
+		('/Edit/Undo', 'do_undo', '', '<Ctrl>Z'),
+		('/Edit/Redo', 'do_redo', '', '<Ctrl>Y'),
 
 		('/Move', None, '<Branch>', ''),
 		('/Move/XPath search', 'menu_show_search', '', 'slash'),
@@ -375,8 +375,9 @@ class GUIView(Display, XDSLoader):
 
 		if node.nodeType == Node.ELEMENT_NODE:
 			if attrib:
-				text = str(attrib)
-			text = node.nodeName
+				text = unicode(attrib.value)
+			else:
+				text = node.nodeName
 			entry = g.Entry()
 			entry.set_text(text)
 			entry.set_activates_default(True)
@@ -386,7 +387,7 @@ class GUIView(Display, XDSLoader):
 			entry = g.TextView()
 			buffer = entry.get_buffer()
 			buffer.insert_at_cursor(text, -1)
-			entry.set_size_request(200, 100)
+			entry.set_size_request(400, 200)
 
 			def get_text():
 				start = buffer.get_start_iter()
