@@ -2,7 +2,6 @@ from __future__ import nested_scopes
 
 from rox import alert
 
-import GDK
 from support import *
 from xml.dom import Node, XMLNS_NAMESPACE
 from Ft.Xml import XPath

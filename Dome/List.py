@@ -76,6 +76,8 @@ def action_to_text(action):
 	if text[:3] == 'do_':
 		text = text[3:]
 	text = string.capitalize(string.replace(text, '_', ' '))
+	if text == 'Global':
+		text = 'Select nodes'
 	
 	if len(action) > 1:
 		if action[0] == 'do_search' or action[0] == 'xpath':

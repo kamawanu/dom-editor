@@ -305,7 +305,7 @@ class GUIView(Display, XDSLoader):
 
 		#text.set_editable(TRUE)
 		text.get_buffer().insert_at_cursor(self.get_edit_text(), -1)
-		text.set_wrap_mode(g.WRAP_WORD)
+		text.set_wrap_mode(g.WRAP_NONE)
 		text.get_buffer().connect('changed', self.eb_changed)
 		text.connect('key-press-event', self.eb_key)
 		eb.show()

@@ -1,24 +1,23 @@
-from gtk import *
-from GDK import *
+from rox import g
 
 import sys
 import traceback
 
-class Canvas(GtkWindow):
+class Canvas(g.Window):
 	def __init__(self, view, node):
-		from gnome.ui import GnomeCanvas
-		GtkWindow.__init__(self)
+		from gnome import canvas
+		g.Window.__init__(self)
 		self.view = view
 		self.display_root = node
 
-		self.canvas = GnomeCanvas()
+		self.canvas = canvas.Canvas()
 		self.add(self.canvas)
 		self.canvas.show()
 
-		self.group = None
+		self.pict_group = None
 
 		s = self.canvas.get_style().copy()
-		s.bg[STATE_NORMAL] = self.canvas.get_color('LemonChiffon')
+		s.bg[g.STATE_NORMAL] = g.gdk.color_parse('LemonChiffon')
 		self.canvas.set_style(s)
 
 		self.set_title(self.display_root.nodeName)
@@ -36,9 +35,9 @@ class Canvas(GtkWindow):
 			print "Display node lost - killing canvas!"
 			self.destroy()
 			return
-		if self.group:
-			self.group.destroy()
-		self.group = self.build(self.canvas.root(), self.display_root)
+		if self.pict_group:
+			self.pict_group.destroy()
+		self.pict_group = self.build(self.canvas.root(), self.display_root)
 		self.set_bounds()
 	
 	def set_bounds(self):
