@@ -20,6 +20,7 @@ class Tree(GtkDrawingArea):
 	def __init__(self, root, vadj):
 		GtkDrawingArea.__init__(self)
 		self.vadj = vadj
+		self.doc = root.ownerDocument
 		self.set_events(BUTTON_PRESS_MASK)
 		self.set_flags(CAN_FOCUS)
 		self.connect('expose-event', self.expose)
@@ -33,11 +34,11 @@ class Tree(GtkDrawingArea):
 		self.connect('realize', self.realize)
 
 	def key_press(self, widget, kev):
-		try:
-			stop = self.handle_key(kev)
-		except:
-			report_exception()
-			stop = 1
+		#try:
+		stop = self.handle_key(kev)
+		#except:
+			#report_exception()
+			#stop = 1
 		if stop:
 			widget.emit_stop_by_name('key-press-event')
 		return stop
@@ -71,12 +72,12 @@ class Tree(GtkDrawingArea):
 			self.move_to_node(self.display_root)
 		elif key == End:
 			last = self.display_root
-			while len(last.kids) > 0:
-				last = last.kids[-1]
+			while len(last.childNodes) > 0:
+				last = last.childNodes[-1]
 			self.move_to_node(last)
 		elif key == Left and cur is not self.display_root:
 			self.left_hist.append(self.current_line)
-			self.move_to_node(cur.parent)
+			self.move_to_node(cur.parentNode)
 		elif key == Right and len(self.left_hist) > 0:
 			line = self.left_hist.pop()
 			node = None
@@ -84,7 +85,7 @@ class Tree(GtkDrawingArea):
 				node = self.line_to_node[line]
 			except IndexError:
 				pass
-			if node and node.parent == cur:
+			if node and node.parentNode == cur:
 				self.move_to(line)
 			else:
 				self.left_hist = []
@@ -114,12 +115,12 @@ class Tree(GtkDrawingArea):
 			key = i
 #		elif key == Tab:
 #			edit_node(self, cur)
-#		elif key == u and self.display_root.can_undo():
-#			self.display_root.do_undo()
-#			new = cur
-#		elif key == r and self.display_root.can_redo():
-#			self.display_root.do_redo()
-#			new = cur
+		elif key == u and Change.can_undo(self.display_root):
+			Change.do_undo(self.display_root)
+			new = cur
+		elif key == r and Change.can_redo(self.display_root):
+			Change.do_redo(self.display_root)
+			new = cur
 #		elif key == J:
 #			cur.join()
 #			new = cur
