@@ -298,7 +298,7 @@ class Model:
 			self.insert_before_interal(node, new, parent)
 		self.update_all(parent)
 	
-	def set_attrib(self, node, namespaceURI, localName, value):
+	def set_attrib(self, node, namespaceURI, localName, value, with_update = 1):
 		"Set an attribute's value. If value is None, remove the attribute."
 		if node.hasAttributeNS(namespaceURI, localName):
 			old = node.getAttributeNS(namespaceURI, localName)
@@ -313,7 +313,8 @@ class Model:
 
 		self.add_undo(lambda: self.set_attrib(node, namespaceURI, localName, old))
 		
-		self.update_all(node)
+		if with_update:
+			self.update_all(node)
 	
 	def prefix_to_namespace(self, node, prefix):
 		"Use the xmlns attributes to workout the namespace."

@@ -113,9 +113,11 @@ class Window(GtkWindow):
 			doc = self.view.export_all()
 		self.output_data = ''
 		from xml.dom import ext
+		print "Getting data..."
 		ext.PrettyPrint(doc, stream = self)
 		d = self.output_data
 		self.output_data = ''
+		print "Got data... saving..."
 		return d
 	
 	def write(self, text):

@@ -1,3 +1,5 @@
+from __future__ import nested_scopes
+
 from gtk import *
 from gnome.ui import *
 from GDK import *
@@ -117,6 +119,7 @@ class Display(GnomeCanvas):
 					self.child_group_resized(node)
 				else:
 					# Need to rebuild everything...
+					print "Rebuilding..."
 					if self.root_group:
 						self.root_group.destroy()
 					self.root_group = self.root().add('group', x = 0, y = 0)
@@ -124,7 +127,9 @@ class Display(GnomeCanvas):
 					node = self.view.root
 					group.connect('event', self.node_event, node)
 					self.create_tree(node, group)
+					print "Highlighting..."
 					self.auto_highlight_rec(node)
+					print "Done"
 			self.move_from()
 			self.set_bounds()
 			if self.view.current_nodes:
@@ -150,18 +155,20 @@ class Display(GnomeCanvas):
 		self.child_group_resized(node)
 	
 	def auto_highlight_rec(self, node):
-		"After creating the tree, everything is highlighted..."
-		self.auto_hightlight(node)
-		for k in node.childNodes:
-			self.auto_highlight_rec(k)
-	
-	def auto_hightlight(self, node):
-		"Highlight this node depending on its selected state."
-		try:
-			self.hightlight(self.node_to_group[node],
-				self.view.current_attrib == None and node in self.view.current_nodes)
-		except KeyError:
-			pass
+		a = {}
+		for x in self.view.current_nodes:
+			a[x] = None
+		cattr = self.view.current_attrib
+		def do(node):
+			"After creating the tree, everything is highlighted..."
+			try:
+				self.hightlight(self.node_to_group[node],
+					cattr == None and a.has_key(node))
+			except KeyError:
+				return
+			for k in node.childNodes:
+				do(k)
+		do(node)
 	
 	def destroyed(self, widget):
 		self.view.remove_display(self)

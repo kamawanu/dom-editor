@@ -1234,12 +1234,16 @@ class View:
 		Canvas(self, self.get_current()).show()
 	
 	def toggle_hidden(self):
-		for node in self.current_nodes:
+		nodes = self.current_nodes[:]
+		self.move_to([])
+		for node in nodes:
 			if node.hasAttributeNS(None, 'hidden'):
 				new = None
 			else:
 				new = 'yes'
-			self.model.set_attrib(node, None, 'hidden', new)
+			self.model.set_attrib(node, None, 'hidden', new, with_update = 0)
+		self.model.update_all(self.root)
+		self.move_to(nodes)
 	
 	def soap_send(self):
 		copy = node_to_xml(self.get_current())
