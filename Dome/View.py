@@ -1234,8 +1234,8 @@ class View:
 	def export_all(self):
 		from xml.dom import implementation
 		doc = implementation.createDocument(DOME_NS, 'dome', None)
-		node = root_program.to_xml(doc)
-		doc.appendChild(node)
+		node = self.root_program.to_xml(doc)
+		doc.documentElement.appendChild(node)
 		return doc
 
 class StrGrab:
