@@ -10,6 +10,7 @@ from xml.dom import Node
 from Ft.Xml.Xslt.StylesheetReader import StylesheetReader
 from Ft.Xml.Xslt.StylesheetTree import XsltElement, XsltText
 from Ft.Xml.Xslt.LiteralElement import LiteralElement
+from Ft.Xml.Xslt.ApplyTemplatesElement import ApplyTemplatesElement
 from Program import Program, Op
 
 def import_sheet(doc):
@@ -19,12 +20,16 @@ def import_sheet(doc):
 
 	# To start with, the mark is on the source document node and
 	# the cursor is on the result document node.
-	op = Op(['do_search', '/xslt/Source'])
-	root.start.link_to(op, 'next')
-	op2 = Op(['mark_selection'])
-	op.link_to(op2, 'next')
-	op3 = Op(['do_search', '/xslt/Result'])
-	op2.link_to(op3, 'next')
+	#
+	# The root program is called with:
+	# => Cursor = context node
+	#    Mark = result parent (append here)
+	# <= Cursor is undefined
+	#    Mark is unchanged
+	op = add(root.start, 'do_search', '/xslt/Result')
+	op = add(op, 'mark_selection')
+	op = add(op, 'do_search', '/xslt/Source')
+	op = add(op, 'play', 'XSLT/Default mode')
 
 	reader = StylesheetReader()
 	sheet = reader.fromDocument(doc)
@@ -52,6 +57,7 @@ def import_sheet(doc):
 		else:
 			prog = Program('Default mode')
 		root.add_sub(prog)
+		tests = prog.start
 		print "Mode", mode
 		types = sheet.matchTemplates[mode]
 		for type in types.keys():
@@ -61,12 +67,21 @@ def import_sheet(doc):
 				templates = [types[type]]
 			for tl in templates:
 				for t in tl:
-					name = `t[0]`.replace('/', '%')
+					pattern = `t[0]`
+					name = pattern.replace('/', '%')
 					temp = Program(`i` + '-' + name)
-					make_template(temp.start, t[2])
+					op = add(temp.start, 'mark_switch')
+					make_template(op, t[2])
 					i += 1
 					prog.add_sub(temp)
-	
+					
+					if pattern.startswith('/'):
+						if pattern == '/':
+							pattern = ''
+						pattern = '/xslt/Source' + pattern # XXX: Hack
+					tests = add(tests, 'fail_if', pattern)
+					op = Op(action = ['play', temp.get_path()])
+					tests.link_to(op, 'fail')
 
 	return root
 
@@ -77,11 +92,11 @@ def add(op, *action):
 
 # A template is instantiated by running its program.
 #
-# => Mark   = context node
-#    Cursor = result parent (append children here)
+# => Cursor = result parent (append here)
+#    Mark = context node
 #
-# <= Cursor is unchanged
-#    Mark is undefined
+# <= Cursor is undefined
+#    Mark is unchanged
 #
 # Add the instructions to instantiate this template to 'op'.
 def make_template(op, temp):
@@ -96,7 +111,11 @@ def make_template(op, temp):
 			op = add(op, 'add_node', 'ee', child._output_qname)
 			op = make_template(op, child)
 			op = add(op, 'move_left')
+		elif isinstance(child, ApplyTemplatesElement):
+			op = add(op, 'mark_switch')
+			op = add(op, 'do_global', '*')	# XXX
+			op = add(op, 'map', 'XSLT/Default mode')
+			op = add(op, 'mark_switch')
 		else:
-			pass
-			#print "Unknown template type", child, "(%s)" % child.__class__
+			print "Unknown template type", child, "(%s)" % child.__class__
 	return op

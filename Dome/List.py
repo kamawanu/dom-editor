@@ -189,7 +189,7 @@ class List(GtkVBox):
 			if event.button == 3:
 				self.show_menu(event, prog)
 			else:
-				name = self.prog_to_name(prog)
+				name = prog.get_path()
 				self.view.run_new(self.run_return)
 				if event.state & SHIFT_MASK:
 					self.view.may_record(['map', name])
@@ -197,14 +197,6 @@ class List(GtkVBox):
 					self.view.may_record(['play', name])
 		return 1
 	
-	def prog_to_name(self, prog):
-		path = ""
-		p = prog
-		while p:
-			path = p.name + '/' + path
-			p = p.parent
-		return path[:-1]
-
 	def show_menu(self, event, prog):
 		def del_prog(self = self, prog = prog):
 			parent = prog.parent
@@ -224,7 +216,7 @@ class List(GtkVBox):
 			dp = del_prog
 		else:
 			dp = None
-		name = self.prog_to_name(prog)
+		name = prog.get_path()
 		def do(play, self = self, name = name):
 			def ret(play = play, self = self, name = name):
 				self.view.run_new(self.run_return)

@@ -1353,6 +1353,18 @@ class View:
 	def fail(self):
 		raise Beep(may_record = 1)
 	
+	def fail_if(self, xpath):
+		"""Evaluate xpath as a boolean, and fail if true."""
+		src = self.get_current()
+		ns = ext.GetAllNs(src)
+		ns['ext'] = FT_EXT_NAMESPACE
+		c = Context.Context(src.parentNode, [src.parentNode], processorNss = ns)
+		
+		rt = XPath.Evaluate(xpath, context = c)
+		print "Got", rt
+		if src in rt:
+			raise Beep(may_record = 1)
+	
 	def attribute(self, namespace = None, attrib = ''):
 		node = self.get_current()
 

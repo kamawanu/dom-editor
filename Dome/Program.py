@@ -112,6 +112,14 @@ class Program:
 		self.subprograms = {}
 		self.watchers = []
 		self.parent = None
+
+	def get_path(self):
+		path = ""
+		p = self
+		while p:
+			path = p.name + '/' + path
+			p = p.parent
+		return path[:-1]
 	
 	def set_start(self, start):
 		start.set_program(self)
