@@ -76,6 +76,9 @@ class Window(GtkWindow):
 
 	def root_from_file(self, path):
 		# Also sets uri attribute (call update_title yourself)
+		self.set_title('Loading...')
+		while events_pending():
+			mainiteration(FALSE)
 		if path[-5:] == '.html':
 			print "Reading HTML..."
 			reader = Html.Reader()

@@ -634,7 +634,7 @@ class Tree(GtkDrawingArea):
 				self.recording_macro = m
 				self.window.update_title()
 				m.show_all()
-			return 0
+			raise Beep
 
 		action = m.get_next_action()
 
