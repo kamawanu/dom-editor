@@ -118,8 +118,8 @@ class Display(GnomeCanvas):
 		# Update now, if we need to
 		if self.update_timeout:
 			timeout_remove(self.update_timeout)
-			# Don't do the timeout stuff now... pygtk dies :-(
-			self.update_timeout = timeout_add(10, self.update_callback)
+			self.update_callback()
+			#self.update_timeout = timeout_add(10, self.update_callback)
 	
 	def update_callback(self):
 		self.update_timeout = 0
@@ -347,9 +347,18 @@ class Display(GnomeCanvas):
 					top = y
 				y = y + hy + 4
 			diag = min(top, indent)
+
+			if lowest_child - top > 30000:
+				mid_y = top + 30000
+			else:
+				mid_y = lowest_child
+			points = [4, 4, diag, diag, indent, top, indent, mid_y]
+			while mid_y < lowest_child:
+				mid_y = min(mid_y + 30000, lowest_child)
+				points += [indent, mid_y]
 			group.lines.append(group.add('line',
-					points = (4, 4, diag, diag, indent, top, indent, lowest_child),
-					fill_color = 'black', width_pixels = 1))
+					points = points, fill_color = 'black', width_pixels = 1))
+				
 			group.lines[-1].lower_to_bottom()
 
 
