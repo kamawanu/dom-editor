@@ -250,7 +250,6 @@ class View:
 	
 	def update_replace(self, old, new):
 		if old == self.root:
-			print "Changing view root node"
 			self.root = new
 		if old in self.current_nodes:
 			self.model.lock(new)

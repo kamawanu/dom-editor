@@ -189,7 +189,6 @@ class Model:
 
 	def add_undo(self, fn):
 		self.undo_stack.append((self.user_op, fn))
-		print "Undo stack is now:", self.undo_stack
 		if not self.doing_undo:
 			self.redo_stack = []
 
@@ -202,7 +201,6 @@ class Model:
 	def replace_node(self, old, new):
 		if self.get_locks(old):
 			raise Exception('Attempt to replace locked node %s' % old)
-		print "Replace %s -> %s" % (old, new)
 		old.parentNode.replaceChild(new, old)
 		self.add_undo(lambda: self.replace_node(new, old))
 		
