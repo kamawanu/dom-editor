@@ -503,7 +503,7 @@ class View:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(self.get_current(), [self.get_current()], processorNss = ns)
-		self.move_to(xpath.Evaluate(pattern, context = c))
+		self.move_to(xpath.Evaluate(self.macro_pattern(pattern), context = c))
 
 	def select_region(self, path, ns = None):
 		if len(self.current_nodes) == 0:
@@ -537,6 +537,19 @@ class View:
 			if on or was_on:
 				selected.append(n)
 		self.move_to(selected)
+	
+	def macro_pattern(self, pattern):
+		"""Do the @CURRENT@ substitution for an XPath"""
+		if len(self.current_nodes) != 1:
+			return pattern
+		node = self.get_current()
+		if node.nodeType == Node.TEXT_NODE:
+			current = node.data
+		else:
+			current = node.nodeName
+		pattern = pattern.replace('@CURRENT@', current)
+		print "Searching for", pattern
+		return pattern
 		
 	def do_search(self, pattern, ns = None, toggle = FALSE):
 		if len(self.current_nodes) == 0:
@@ -547,7 +560,8 @@ class View:
 			ns = ext.GetAllNs(src)
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
-		rt = xpath.Evaluate(pattern, context = c)
+		
+		rt = xpath.Evaluate(self.macro_pattern(pattern), context = c)
 		node = None
 		for x in rt:
 			if not self.has_ancestor(x, self.root):
@@ -573,6 +587,7 @@ class View:
 			self.move_to(node)
 	
 	def do_text_search(self, pattern):
+		pattern = self.macro_pattern(pattern)
 		return self.do_search("//text()[ext:match('%s')]" % pattern)
 
 	def subst(self, replace, with):

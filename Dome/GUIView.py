@@ -372,19 +372,24 @@ class GUIView(Display):
 		def do_global(pattern, self = self):
 			action = ["do_global", pattern]
 			self.view.may_record(action)
-		GetArg('Global:', do_global, ['Pattern:'], 'Perform next action on all nodes matching')
+		GetArg('Global:', do_global, ['Pattern:'],
+			'(@CURRENT@ is the current node\'s value)\n' +
+			'Perform next action on all nodes matching')
 
 	def menu_show_text_search(self):
 		def do_text_search(pattern, self = self):
 			action = ["do_text_search", pattern]
 			self.view.may_record(action)
-		GetArg('Search for:', do_text_search, ['Text pattern:'])
+		GetArg('Search for:', do_text_search, ['Text pattern:'],
+			'(@CURRENT@ is the current node\'s value)\n')
 
 	def menu_show_search(self):
 		def do_search(pattern, self = self):
 			action = ["do_search", pattern]
 			self.view.may_record(action)
-		GetArg('Search for:', do_search, ['XPath:'])
+		GetArg('Search for:',
+			do_search, ['XPath:'],
+			'(@CURRENT@ is the current node\'s value)')
 
 	def new_name(self):
 		cur = self.view.get_current()
