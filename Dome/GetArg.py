@@ -54,6 +54,14 @@ class GetArg(GtkWindow):
 		actions = GtkHBox(TRUE, 32)
 		self.vbox.pack_end(actions, FALSE, TRUE, 0)
 
+		label = GtkLabel('Cancel')
+		label.set_padding(16, 2)
+		button = GtkButton()
+		button.add(label)
+		button.set_flags(CAN_DEFAULT)
+		actions.pack_start(button, TRUE, FALSE, 0)
+		button.connect('clicked', self.destroy)
+
 		label = GtkLabel('OK')
 		label.set_padding(16, 2)
 		button = GtkButton()
@@ -62,15 +70,6 @@ class GetArg(GtkWindow):
 		actions.pack_start(button, TRUE, FALSE, 0)
 		button.grab_default(button)
 		button.connect('clicked', self.do_it)
-		
-		label = GtkLabel('Cancel')
-		label.set_padding(16, 2)
-		button = GtkButton()
-		button.add(label)
-		button.set_flags(CAN_DEFAULT)
-		actions.pack_start(button, TRUE, FALSE, 0)
-
-		button.connect('clicked', self.destroy)
 
 		if destroy_return:
 			self.connect('destroy', lambda widget, cb = callback: cb(None))

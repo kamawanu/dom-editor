@@ -636,23 +636,29 @@ class ChainDisplay(GnomeCanvas):
 			#self.create_node(self.prog.start, self.nodes)
 			self.update_points()
 		elif event.type == GDK._2BUTTON_PRESS:
-			self.edit_op(op)
+			if op.action[0] == 'Start':
+				self.edit_comment(op.parent)
+			else:
+				self.edit_op(op)
 			print "(edit; stop drag!)"
 			self.drag_last_pos = None
 			self.program_changed(None)
 		return 1
 
+	def edit_comment(self, block):
+		assert isinstance(block, Block)
+
+		def set(comment):
+			block.set_comment(comment)
+		GetArg('Comment', set, ['Comment:'],
+			message = '\\n for a newline', init = [block.comment])
+
 	def show_op_menu(self, event, op):
 		if op.action[0] == 'Start':
 			op = op.parent
-			def edit_comment():
-				def set(comment):
-					op.set_comment(comment)
-				GetArg('Comment', set, ['Comment:'],
-					message = '\\n for a newline', init = [op.comment])
 			items = [('Toggle Enter/Leave', lambda: op.toggle_enter()),
 				 ('Toggle Foreach', lambda: op.toggle_foreach()),
-				 ('Edit comment', edit_comment)]
+				 ('Edit comment', lambda: self.edit_comment(op))]
 		else:
 			items = [('Edit node', lambda: self.edit_op(op))]
 
