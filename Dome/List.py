@@ -50,8 +50,6 @@ op_menu = Menu('op', [
 from GetArg import GetArg
 from Program import Program, load, Block
 
-no_cursor = g.gdk.Cursor(g.gdk.TCROSS)
-
 box_size = 9
 next_box = (0, 12)
 fail_box = (12, 8)
@@ -1067,7 +1065,6 @@ class ChainDisplay(g.EventBox):
 			if event.button == 1:
 				if not getattr(op, exit):
 					self.drag_last_pos = (event.x, event.y)
-					#item.grab(BUTTON_RELEASE | MOTION_NOTIFY, no_cursor, event.time)
 			elif event.button == 2:
 				self.paste_chain(op, exit)
 			elif event.button == 3:
@@ -1076,7 +1073,6 @@ class ChainDisplay(g.EventBox):
 		elif event.type == g.gdk.BUTTON_RELEASE:
 			if event.button == 1:
 				print "Clicked exit %s of %s" % (exit, op)
-				#item.ungrab(event.time)
 				self.view.set_exec((op, exit))
 				self.drag_last_pos = None
 				if not getattr(op, exit):

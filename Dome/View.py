@@ -62,6 +62,7 @@ record_again = [
 	"yank",
 	"shallow_yank",
 	"delete_node",
+	"move_selection",
 	"delete_node_no_clipboard",
 	"delete_shallow",
 	"play",
@@ -605,13 +606,7 @@ class View:
 				return
 		
 		assert not self.op_in_progress or (self.op_in_progress.action[1] == pattern)
-		try:
-			code = self.op_in_progress.cached_code
-		except:
-			from Ft.Xml.XPath import XPathParser
-			code = XPathParser.new().parse(self.macro_pattern(pattern))
-			if self.op_in_progress and pattern.find('@CURRENT@') == -1:
-				self.op_in_progress.cached_code = code
+		code = self.cached_code(pattern)
 
 		ns = self.model.namespaces.uri
 		c = Context.Context(self.get_current(), processorNss = ns)
@@ -1804,6 +1799,47 @@ class View:
 
 	def mark_selection(self):
 		self.set_marked(self.current_nodes)
+	
+	def cached_code(self, expr):
+		"""If self.op_in_progress has cached code, return that. Otherwise, compile and cache code."""
+		try:
+			return self.op_in_progress.cached_code
+		except:
+			from Ft.Xml.XPath import XPathParser
+			code = XPathParser.new().parse(self.macro_pattern(expr))
+		if self.op_in_progress and expr.find('@CURRENT@') == -1:
+			self.op_in_progress.cached_code = code
+		return code
+	
+	def move_selection(self, xpath):
+		"Move selected node to parent identified by xpath."
+		src = self.get_current()
+		code = self.cached_code(xpath)
+
+		c = Context.Context(src, [src], processorNss = self.model.namespaces.uri)
+		rt = code.evaluate(c)
+
+		if not rt:
+			raise Beep
+		if len(rt) != 1:
+			print "Multiple matches!", rt
+			raise Beep
+
+		dst, = rt
+		self.move_to(rt)
+		self.model.delete_nodes([src])
+		self.model.insert(dst, src)
+	
+	def move_marked(self):
+		to = self.get_current()
+		if to.nodeType != Node.ELEMENT_NODE:
+			raise Beep
+		tmp = self.marked
+		self.clear_mark()
+		self.model.delete_nodes(tmp)
+		for n in tmp:
+			self.model.insert(to, n)
+		self.set_marked(tmp)
 	
 	def clear_mark(self):
 		self.set_marked([])

@@ -67,6 +67,7 @@ menu = Menu('main', [
 		('/Mark/Mark Selection', 'do_mark_selection', '', 'm'),
 		('/Mark/Switch with Selection', 'do_mark_switch', '', 'comma'),
 		('/Mark/Clear Mark', 'do_clear_mark', '<StockItem>', '', g.STOCK_CLEAR),
+		('/Mark/Move marked here', 'do_move_marked', '<StockItem>', '', g.STOCK_GO_FORWARD),
 
 		('/Network', None, '<Branch>', ''),
 		('/Network/HTTP GET', 'do_suck', '', '<Shift>asciicircum'),
@@ -171,6 +172,13 @@ class GUIView(Display, XDSLoader):
 		else:
 			return 0
 		return 1
+
+	def do_drag(self, src, dst):
+		if src[1] or dst[1]:
+			return		# Don't do attribute drags yet
+		src, dst = src[0], dst[0]
+		path = make_relative_path(src, dst, None, self.view.model.namespaces)
+		self.view.may_record(['move_selection', path])
 
 	def node_clicked(self, node, bev):
 		print "Clicked", node.namespaceURI, node.localName
@@ -522,6 +530,7 @@ class GUIView(Display, XDSLoader):
 	do_remove_ns = make_do('remove_ns')
 
 	do_clear_mark = make_do('clear_mark')
+	do_move_marked = make_do('move_marked')
 	do_mark_switch = make_do('mark_switch')
 	do_mark_selection = make_do('mark_selection')
 	do_select_marked = make_do('select_marked_region')

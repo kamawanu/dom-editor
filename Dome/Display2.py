@@ -9,6 +9,8 @@ from constants import XMLNS_NAMESPACE
 import __main__
 default_font = __main__.default_font
 
+drag_cursor = g.gdk.Cursor(g.gdk.HAND1)
+
 def calc_node(display, node, pos):
 	attribs = []
 	if node.nodeType == Node.TEXT_NODE:
@@ -124,12 +126,15 @@ class Display(g.HBox):
 
 		self.signals = [self.connect('destroy', self.destroyed)]
 		self.surface.connect('button-press-event', self.bg_event)
+		self.surface.connect('motion-notify-event', self.bg_motion)
 		self.surface.connect('button-release-event', self.bg_event)
 
 		# Display is relative to this node, which is the highest
 		# displayed node (possibly off the top of the screen)
 		self.ref_node = view.root
 		self.ref_pos = (0, 0)
+
+		self.drag_info = None
 
 		self.last_alloc = None
 		self.surface.connect('size-allocate', lambda w, a: self.size_allocate(a))
@@ -427,6 +432,21 @@ class Display(g.HBox):
 			else:
 				self.ref_pos[1] = -100
 
+	def bg_motion(self, widget, event):
+		if not self.drag_info:
+			return
+		node, attr_parent, x, y, in_progress = self.drag_info
+		if not in_progress:
+			if abs(event.x - x) > 5 or abs(event.y - y) > 5:
+				self.drag_info = (node, attr_parent, event.x, event.y, True)
+				self.window.set_cursor(drag_cursor)
+			else:
+				return False
+		return False
+	
+	def do_drag(self, src, dst):
+		pass
+
 	def bg_event(self, widget, event):
 		if event.type == g.gdk.BUTTON_PRESS and event.button == 3:
 			self.show_menu(event)
@@ -434,6 +454,7 @@ class Display(g.HBox):
 			self.do_update_now()
 			node, attr_parent = self.xy_to_node(event.x, event.y)
 			if event.button == 1:
+				self.drag_info = (node, attr_parent, event.x, event.y, False)
 				if node:
 					if attr_parent:
 						self.attrib_clicked(attr_parent, node, event)
@@ -443,13 +464,23 @@ class Display(g.HBox):
 				assert self.pan_timeout is None
 				self.pan_start = (event.x, event.y)
 				self.pan_timeout = g.timeout_add(100, self.pan)
-		elif event.type == g.gdk.BUTTON_RELEASE and event.button == 2:
-			assert self.pan_timeout is not None
-			g.timeout_remove(self.pan_timeout)
-			self.pan_timeout = None
+		elif event.type == g.gdk.BUTTON_RELEASE:
+			if event.button == 2:
+				assert self.pan_timeout is not None
+				g.timeout_remove(self.pan_timeout)
+				self.pan_timeout = None
+			elif event.button == 1 and self.drag_info:
+				src_node, src_attr_parent, x, y, in_progress = self.drag_info
+				if not in_progress:
+					return True
+				dst_node, dst_attr_parent = self.xy_to_node(event.x, event.y)
+				self.window.set_cursor(None)
+				if not dst_node or (dst_node == src_node and dst_attr_parent == src_attr_parent):
+					return True
+				self.do_drag((src_node, src_attr_parent), (dst_node, dst_attr_parent))
 		else:
-			return 0
-		return 1
+			return False
+		return True
 
 	def marked_changed(self, nodes):
 		"nodes is a list of nodes to be rechecked."
