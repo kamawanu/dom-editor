@@ -209,11 +209,14 @@ class View:
 		if not isinstance(op, Op):
 			raise Exception('push_stack: not an Op', op)
 		self.exec_stack.append(op)
-		for l in self.lists:
-			l.update_stack(op)
+		self.update_stack(op)
 
 	def pop_stack(self):
 		op = self.exec_stack.pop()
+		self.update_stack(op)
+	
+	def update_stack(self, op = None):
+		"Called when exec_stack or foreach_stack changes."
 		for l in self.lists:
 			l.update_stack(op)
 
@@ -951,6 +954,7 @@ class View:
 		stack_block, nodes_list, restore = self.foreach_stack[-1]
 		if stack_block != block:
 			self.foreach_stack = []
+			self.update_stack()
 			raise Exception("Reached the end of a block we never entered")
 
 		if continuing:
@@ -961,6 +965,7 @@ class View:
 			if continuing == 'fail':
 				print "Error in block; exiting early in program", block.get_program()
 				self.foreach_stack.pop()
+				self.update_stack()
 				return 0
 			while nodes_list and nodes_list[0].parentNode == None:
 				print "Skipping deleted node", nodes_list[0]
@@ -968,6 +973,7 @@ class View:
 
 		if not nodes_list:
 			self.foreach_stack.pop()
+			self.update_stack()
 			if block.foreach:
 				nodes = filter(lambda x: self.has_ancestor(x, self.root), restore)
 				self.move_to(nodes)
@@ -994,6 +1000,7 @@ class View:
 			list = [self.current_nodes[:]]	# List of one item, containing everything
 			
 		self.foreach_stack.append((block, list, []))
+		self.update_stack()
 		if not self.start_block_iteration(block):
 			# No nodes selected...
 			if not block.is_toplevel():

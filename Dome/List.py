@@ -268,7 +268,7 @@ class List(GtkVBox):
 		"The stack has changed - redraw 'op'"
 		if op and op.get_program() == self.chains.prog:
 			self.chains.update_all()
-		l = len(self.view.exec_stack)
+		l = len(self.view.exec_stack) + len(self.view.foreach_stack)
 		if l == 0:
 			self.stack_frames.set_text('No stack')
 		elif l == 1:
