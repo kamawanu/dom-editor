@@ -101,6 +101,7 @@ menu = Menu('main', [
 		('/View/Toggle hidden', 'do_toggle_hidden', '', '<Ctrl>H'),
 		('/View/Show as HTML', 'do_show_html', '', ''),
 		('/View/Show as canvas', 'do_show_canvas', '', ''),
+		('/View/Show namespaces', 'show_namespaces', '', '<Ctrl>;'),
 		('/View/Close Window', 'menu_close_window', '', '<Ctrl>Q'),
 
 		#('/Options...', 'menu_options', '', '<Ctrl>O'),
@@ -233,6 +234,10 @@ class GUIView(Display, XDSLoader):
 			action = ["subst", args[0], args[1]]
 			self.view.may_record(action)
 		GetArg('Substitute:', do_subst, ('Replace:', 'With:'))
+	
+	def show_namespaces(self):
+		import Namespaces
+		Namespaces.GUI(self.view.model).show()
 	
 	def move_from(self, old = []):
 		self.hide_editbox()

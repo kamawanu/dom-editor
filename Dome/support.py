@@ -16,8 +16,8 @@ entrefpattern = re.compile('&(\D\S+);')
 def node_to_xml(node):
 	"Takes an XML node and returns an XML documentElement suitable for saving."
 	root = implementation.createDocument(None, 'root', None)
-	new = node.cloneNode(deep = 1)
-	new = root.importNode(new, deep = 1)
+	new = node.cloneNode(1)
+	new = root.importNode(new, 1)
 	root.replaceChild(new, root.documentElement)
 	return root
 

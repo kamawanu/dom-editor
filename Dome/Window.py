@@ -121,12 +121,12 @@ class Window(rox.Window, saving.Saveable):
 		self.savebox.set_destroy_with_parent(True)
 		radio_dome = g.RadioButton(None, 'Save everything (.dome)')
 		radio_xml = g.RadioButton(radio_dome, 'Export data as XML')
-		radio_html = g.RadioButton(radio_xml, 'Export data as HTML')
+		radio_html = g.RadioButton(radio_xml, 'Export data as XHTML')
 
 		self.save_radios = (
 			(radio_dome, 'dome', 'application/x-dome', self.save_as_dome),
 			(radio_xml, 'xml', 'text/xml', self.save_as_xml),
-			(radio_html, 'html', 'text/html', self.save_as_html))
+			(radio_html, 'xhtml', 'application/xhtml+xml', self.save_as_html))
 				    
 		def changed(toggle = None):
 			name = self.savebox.save_area.entry.get_text()
@@ -134,8 +134,8 @@ class Window(rox.Window, saving.Saveable):
 				name = name[:-4]
 			elif name.endswith('.dome'):
 				name = name[:-5]
-			elif name.endswith('.html'):
-				name = name[:-5]
+			elif name.endswith('.xhtml'):
+				name = name[:-6]
 
 			for radio, ext, mime, fn in self.save_radios:
 				if radio.get_active():

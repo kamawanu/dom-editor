@@ -385,7 +385,7 @@ class ChainOp(ChainNode):
 
 		self.width, self.height = self.layout.get_pixel_size()
 		self.width += 12
-		self.height = max(self.height, 12)
+		self.height = max(self.height, 20)
 
 	def expose(self):
 		da = self.da
@@ -410,13 +410,22 @@ class ChainOp(ChainNode):
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
 	def maybe_clicked(self, event):
-		if self.x <= event.x and self.y <= event.y and \
-		   self.x + self.width >= event.x and self.y + self.height >= event.y:
-			if event.button == 1:
-				self.da.view.set_exec((self.op, 'next'))
+		x = event.x - self.x
+		if x < 0: return False
+		y = event.y - self.y
+		if y < 0: return False
+
+		if x > self.width or y > self.height:
+			return False
+
+		if event.button == 1:
+			self.da.view.set_exec((self.op, 'next'))
+		else:
+			if x < 10 and y > 10:
+				self.da.show_menu(event, self.op, 'next')
 			else:
-				self.da.show_op_menu(event, self.op)
-			return True
+				self.da.show_menu(event, self.op)
+		return True
 
 	def all_nodes(self):
 		yield self
@@ -1006,6 +1015,13 @@ class ChainDisplay(g.DrawingArea):
 			return
 		self.clipboard = next.to_doc()
 		op.unlink(exit)
+	
+	def show_menu(self, event, op, exit = None):
+		if exit:
+			self.line_menu_line = (op, exit)
+			line_menu.popup(self, event)
+		else:
+			self.show_op_menu(event, op)
 
 	def line_event(self, item, event, op, exit):
 		# Item may be rec_point or exec_point...

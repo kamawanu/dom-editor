@@ -29,6 +29,9 @@ from constants import *
 
 import re
 
+#http://www.w3.org/2001/12/soap-envelope'
+SOAPENV_NS = 'http://schemas.xmlsoap.org/soap/envelope/'
+
 def elements(node):
 	out = []
 	for x in node.childNodes:
@@ -1686,7 +1689,7 @@ class View:
 		copy = node_to_xml(self.get_current())
 		env = copy.documentElement
 
-		if env.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/':
+		if env.namespaceURI != SOAPENV_NS:
 			alert("Not a SOAP-ENV:Envelope (bad namespace)")
 			raise Done()
 		if env.localName != 'Envelope':
@@ -1701,12 +1704,12 @@ class View:
 		head = kids[0]
 		body = kids[1]
 
-		if head.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/' or \
+		if head.namespaceURI != SOAPENV_NS or \
 		   head.localName != 'Head':
 			alert("First child must be a SOAP-ENV:Head element")
 			raise Done()
 
-		if body.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/' or \
+		if body.namespaceURI != SOAPENV_NS or \
 		   body.localName != 'Body':
 			alert("Second child must be a SOAP-ENV:Body element")
 			raise Done()
@@ -1753,9 +1756,7 @@ class View:
 		reply = conn.getfile().read()
 		print "Got:\n", reply
 
-		reader = PyExpat.Reader()		# XXX
-		new_doc = reader.fromString(reply)
-		print new_doc
+		new_doc = support.parse_data(reply, None)
 
 		new = self.model.doc.importNode(new_doc.documentElement, 1)
 		

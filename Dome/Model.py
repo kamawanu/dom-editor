@@ -26,6 +26,8 @@ class Model:
 	def __init__(self, path, root_program = None, dome_data = None, do_load = 1):
 		"If root_program is given, then no data is loaded (used for lock_and_copy)."
 		self.uri = 'Prog.dome'
+		import Namespaces
+		self.namespaces = Namespaces.Namespaces() 
 
 		if dome_data:
 			from Ft.Xml.InputSource import InputSourceFactory
