@@ -16,6 +16,8 @@ from Menu import Menu
 from GetArg import GetArg
 from Program import Program, load, Block
 
+no_cursor = cursor_new(TCROSS)
+
 def trunc(text):
 	if len(text) < 18:
 		return text
@@ -735,6 +737,7 @@ class ChainDisplay(GnomeCanvas):
 			if event.button == 1:
 				if not getattr(op, exit):
 					self.drag_last_pos = (event.x, event.y)
+					#item.grab(BUTTON_RELEASE | MOTION_NOTIFY, no_cursor, event.time)
 			elif event.button == 2:
 				self.paste_chain(op, exit)
 			elif event.button == 3:
@@ -772,11 +775,18 @@ class ChainDisplay(GnomeCanvas):
 		elif event.type == BUTTON_RELEASE:
 			if event.button == 1:
 				print "Clicked exit %s of %s" % (exit, op)
+				#item.ungrab(event.time)
 				self.view.set_exec((op, exit))
 				self.drag_last_pos = None
 				if not getattr(op, exit):
 					self.end_link_drag(item, event, op, exit)
 		elif event.type == MOTION_NOTIFY and self.drag_last_pos:
+			if not event.state & BUTTON1_MASK:
+				print "(stop drag!)"
+				self.drag_last_pos = None
+				if not getattr(op, exit):
+					self.end_link_drag(item, event, op, exit)
+				return 1
 			x, y = (event.x, event.y)
 			dx, dy = x - self.drag_last_pos[0], y - self.drag_last_pos[1]
 
