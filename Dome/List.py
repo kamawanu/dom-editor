@@ -54,13 +54,26 @@ class List(GtkVBox):
 		self.chains = ChainDisplay(view, view.model.root_program)
 
 		self.pack_start(self.tree, expand = 0, fill = 1)
-		self.pack_start(self.chains, expand = 1, fill = 1)
+
+		hbox = GtkHBox()
+		self.pack_start(hbox, expand = 1, fill = 1)
+		hbox.pack_start(self.chains, 1, 1)
+		sb = GtkVScrollbar(self.chains.get_vadjustment())
+		hbox.pack_start(sb, 0, 1)
+		self.chains.connect('size-allocate', self.chain_resize, sb)
 
 		self.build_tree(self.tree, view.model.root_program)
 		self.chains.show()
 		self.tree.show()
 		for i in self.tree.children():
 			i.expand()
+	
+	def chain_resize(self, canvas, c, sb):
+		adj = canvas.get_vadjustment()
+		if adj.upper - adj.lower > adj.page_size:
+			sb.show()
+		else:
+			sb.hide()
 
 	def build_tree(self, tree, prog):
 		item = GtkTreeItem(prog.name)

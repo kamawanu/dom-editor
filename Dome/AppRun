@@ -5,17 +5,13 @@
 import xml.dom.html
 xml.dom.html.HTML_CHARACTER_ENTITIES = {}
 
-from gtk import *
 import sys
 from os.path import dirname
 
+from gtk import *
 from Window import Window
 
 app_dir = dirname(sys.argv[0])
-
-window = GtkWindow()
-window.set_title("Dome")
-window.set_default_size(400, 300)
 
 tl_windows = 0
 

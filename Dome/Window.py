@@ -20,17 +20,6 @@ from View import View
 from List import List
 from GUIView import GUIView
 
-def strip_space(doc):
-	def cb(node, cb):
-		if node.nodeType == Node.TEXT_NODE:
-			node.data = string.strip(node.data)
-			if node.data == '':
-				node.parentNode.removeChild(node)
-		else:
-			for k in node.childNodes[:]:
-				cb(k, cb)
-	cb(doc.documentElement, cb)
-
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)

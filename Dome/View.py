@@ -38,6 +38,8 @@ def same(a, b):
 
 class InProgress(Exception):
 	"Throw this if the operation will complete later..."
+class Done(Exception):
+	"Thrown when the chain is completed successfully"
 
 class View:
 	def __init__(self, model):
@@ -299,7 +301,7 @@ class View:
 			self.callback_on_return = None
 			cb()
 		else:
-			raise Exception("Nothing more to do.")
+			raise Done()
 
 	def set_oip(self, op):
 		if op:
