@@ -161,7 +161,7 @@ class Display(GnomeCanvas):
 						if group.flags() & DESTROYED:
 							print "(group destroyed)"
 							raise Exception('Group destroyed')
-					except KeyError:
+					except:
 						# Modified node not created yet.
 						# Don't worry, updating the parent later
 						# will fix it...
