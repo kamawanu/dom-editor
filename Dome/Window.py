@@ -70,13 +70,16 @@ class Window(rox.Window, saving.Saveable):
 		paned.add1(self.list)
 		self.list.show()
 
-		swin = g.ScrolledWindow()
-		swin.set_policy(g.POLICY_AUTOMATIC, g.POLICY_ALWAYS)
-		paned.add2(swin)
+		#swin = g.ScrolledWindow()
+		#swin.set_policy(g.POLICY_AUTOMATIC, g.POLICY_ALWAYS)
+		#paned.add2(swin)
 		paned.set_position(200)
 
-		self.gui_view = GUIView(self, view)
-		swin.add(self.gui_view)
+		#self.gui_view = GUIView(self, view)
+		from Display2 import Display
+		self.gui_view = Display(self, view)
+		#swin.add(self.gui_view)
+		paned.add2(self.gui_view)
 		#swin.set_hadjustment(self.gui_view.get_hadjustment())
 		#swin.set_vadjustment(self.gui_view.get_vadjustment())
 
