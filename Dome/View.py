@@ -1,6 +1,6 @@
 from gtk import *
 from support import *
-from xml.dom.Node import Node
+from xml.dom import Node
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
 import os, re, string, types
 import urlparse
@@ -8,6 +8,8 @@ import Html
 
 from Beep import Beep
 import Exec
+
+DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
 
 # An view contains:
 # - A ref to a DOM document
@@ -151,16 +153,20 @@ class View:
 		self.move_to(self.root_node)
 	
 	# 'nodes' may be either a node or a list of nodes.
-	# If it's a single node, then 'attrib' may also be specified
+	# If it's a single node, then an 'attrib' node may also be specified
 	def move_to(self, nodes, attrib = None):
 		if self.current_nodes == nodes:
 			return
+
+		if attrib and attrib.nodeType != Node.ATTRIBUTE_NODE:
+			raise Exception('attrib not of type ATTRIBUTE_NODE!')
 
 		if type(nodes) != types.ListType:
 			nodes = [nodes]
 
 		old_nodes = self.current_nodes
 		self.current_nodes = nodes
+
 		self.current_attrib = attrib
 
 		for display in self.displays:
@@ -253,7 +259,7 @@ class View:
 		self.global_set = path.select(c)
 		self.move_to(self.global_set)
 		
-	def do_search(self, pattern, ns = None, toggle = FALSE, attrib_name = None):
+	def do_search(self, pattern, ns = None, toggle = FALSE):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 
@@ -279,12 +285,6 @@ class View:
 		if not node:
 			print "*** Search for '%s' failed" % pattern
 			raise Beep
-		if attrib_name:
-			if node.hasAttribute(attrib_name):
-				node = node.getAttribute(attrib_name)
-			else:
-				print "*** Node %s has no %s attribute" % (node, attrib_name)
-				raise Beep
 		if toggle:
 			new = self.current_nodes[:]
 			if node in new:
@@ -338,15 +338,16 @@ class View:
 	
 	def yank(self):
 		if self.current_attrib:
-			name = self.current_attrib
-			value = self.current.getAttribute(name)
-
+			a = self.current_attrib
 			self.clipboard = self.model.doc.createElement('attribute')
+			n = self.model.doc.createElement('namespaceURI')
+			n.appendChild(self.model.doc.createTextNode(a.namespaceURI))
+			self.clipboard.appendChild(n)
 			n = self.model.doc.createElement('name')
-			n.appendChild(self.model.doc.createTextNode(name))
+			n.appendChild(self.model.doc.createTextNode(a.localName))
 			self.clipboard.appendChild(n)
 			n = self.model.doc.createElement('value')
-			n.appendChild(self.model.doc.createTextNode(value))
+			n.appendChild(self.model.doc.createTextNode(a.value))
 			self.clipboard.appendChild(n)
 		else:
 			self.clipboard = self.model.doc.createDocumentFragment()
@@ -363,7 +364,7 @@ class View:
 		if self.current_attrib:
 			ca = self.current_attrib
 			self.current_attrib = None
-			self.model.set_attrib(self.current, ca, None)
+			self.model.set_attrib(self.current, ca.namespaceURI, ca.localName, None)
 			return
 		new = []
 		for x in nodes:
@@ -451,8 +452,8 @@ class View:
 			p = node
 			base = None
 			while p:
-				if p.hasAttribute('uri'):
-					base = p.getAttribute('uri')
+				if p.hasAttributeNS(DOME_NS, 'uri'):
+					base = p.getAttributeNS(DOME_NS, 'uri')
 					break
 				p = p.parentNode
 			if base:
@@ -469,7 +470,7 @@ class View:
 		root = reader.fromStream(cout)
 		cout.close()
 		new = html_to_xml(node.ownerDocument, root)
-		new.setAttribute('uri', uri)
+		new.setAttributeNS(DOME_NS, 'dome:uri', uri)
 		self.model.replace_node(node, new)
 	
 	def put_before(self):
@@ -514,10 +515,10 @@ class View:
 		except:
 			raise Beep
 	
-	def yank_value(self, name):
-		if not self.current.hasAttribute(name):
+	def yank_value(self):
+		if not self.current_attrib:
 			raise Beep
-		value = self.current.getAttribute(name)
+		value = self.current_attrib.value
 		self.clipboard = self.model.doc.createTextNode(value)
 		print "Clip now", self.clipboard
 	
@@ -533,8 +534,9 @@ class View:
 		print attribs
 		for a in attribs:
 			n = self.model.doc.createElement('attribute')
-			n.setAttribute('name', a.name)
-			n.setAttribute('value', a.value)
+			n.setAttributeNS(DOME_NS, 'namespaceURI', a.namespaceURI)
+			n.setAttributeNS(DOME_NS, 'name', a.nodeName)
+			n.setAttributeNS(DOME_NS, 'value', a.value)
 			self.clipboard.appendChild(n)
 		print "Clip now", self.clipboard
 	
@@ -545,15 +547,16 @@ class View:
 			attribs = [self.clipboard]
 		new = []
 		for a in attribs:
-			if a.hasAttribute('name') and a.hasAttribute('value'):
-				name = a.getAttribute('name')
-				value = a.getAttribute('value')
-				new.append((name, value))
-			else:
+			try:
+				namespaceURI = a.getElementsbyTagNameNS(DOME_NS, 'namespaceURI')[0]
+				nodename = a.getElementsbyTagNameNS(DOME_NS, 'name')[0]
+				value = a.getElementsbyTagNameNS(DOME_NS, 'value')[0]
+				new.append((ns, nodename, value))
+			except IndexError:
 				raise Beep
 		for node in self.current_nodes:
-			for (name, value) in new:
-				self.model.set_attrib(node, name, value)
+			for (ns, local, value) in new:
+				self.model.set_attrib(node, ns, local, value)
 	
 	def compare(self):
 		"Ensure that all selected nodes have the same value."
@@ -567,13 +570,20 @@ class View:
 	def fail(self):
 		raise Beep(may_record = 1)
 	
-	def attribute(self, attrib):
+	def attribute(self, namespace = None, attrib = None):
 		if not attrib:
-			attrib = None
-		elif not self.current.hasAttribute(attrib):
-			raise Beep
-		self.move_to(self.current, attrib)
+			self.move_to(self.current)
+			return
+
+		print "(ns, attrib)", `namespace`, attrib
+
+		if self.current.hasAttributeNS(namespace, attrib):
+			self.move_to(self.current,
+				self.current.getAttributeNodeNS(namespace, attrib))
+		else:
+			raise Beep()
 	
 	def set_attrib(self, new):
 		name, value = string.split(new, '=', 1)
-		self.model.set_attrib(self.current, name, value)
+		ns = self.current_attrib.namespaceURI
+		self.model.set_attrib(self.current, ns, name, value)

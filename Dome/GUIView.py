@@ -1,6 +1,6 @@
 from gtk import *
 from GDK import *
-from xml.dom.Node import Node
+from xml.dom import Node
 import string
 
 from support import report_exception
@@ -70,10 +70,7 @@ class GUIView(Display):
 		ns = {}
 		path = make_relative_path(src, element, FALSE, ns)
 		self.view.may_record(["do_search", path, ns, FALSE])
-		print attrib
-		print attrib.localName
-		print attrib.namespace
-		self.view.may_record(["attribute", attrib])
+		self.view.may_record(["attribute", attrib.namespaceURI, attrib.localName])
 	
 	def show_menu(self, bev):
 		items = [

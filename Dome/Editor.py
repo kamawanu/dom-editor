@@ -1,7 +1,7 @@
 from gtk import *
 from GDK import *
 from _gtk import gdk_screen_width
-from xml.dom.Node import Node
+from xml.dom import Node
 import string
 
 import Change

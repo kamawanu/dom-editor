@@ -3,7 +3,7 @@ from GDK import *
 from _gtk import *
 import string
 
-from xml.dom.Node import Node
+from xml.dom import Node
 from xml.dom import ext
 from xml.dom import implementation
 from xml.dom.ext.reader import PyExpat

@@ -2,7 +2,7 @@ from gtk import *
 from gnome.ui import *
 from GDK import *
 from _gtk import *
-from xml.dom.Node import Node
+from xml.dom import Node
 
 import string
 import Exec
@@ -112,7 +112,7 @@ class Display(GnomeCanvas):
 		group.text = group.add('text', x = 0, y = -6, anchor = ANCHOR_NW,
 					font = 'fixed', fill_color = 'grey40',
 					text = "%s=%s" % (str(attrib.name), str(attrib.value)))
-		group.connect('event', self.attrib_event, parent, attrib.name)
+		group.connect('event', self.attrib_event, parent, attrib)
 	
 	def create_tree(self, node, group, cramped = 0):
 		group.node = node
@@ -155,7 +155,7 @@ class Display(GnomeCanvas):
 					hy = ahy
 				else:
 					ax = ahx + 8
-				group.attrib_to_group[a.name] = g
+				group.attrib_to_group[a] = g
 		
 		kids = []
 		for n in node.childNodes:
@@ -266,7 +266,7 @@ class Display(GnomeCanvas):
 					pass
 
 	def set_current_attrib(self, attrib):
-		"Select 'attrib' attribute of the current node. None to unselect."
+		"Select 'attrib' attribute node of the current node. None to unselect."
 		if self.current_attrib:
 			self.current_attrib.text.set(fill_color = 'grey40')
 			self.current_attrib = None

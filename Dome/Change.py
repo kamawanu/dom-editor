@@ -1,7 +1,7 @@
 # All changes go through here so we can undo...
 
 from Beep import Beep
-from xml.dom.Node import Node
+from xml.dom import Node
 
 # Which undo list operations will affect.
 # Normal ops add to the undo list.
@@ -46,17 +46,18 @@ def set_data(node, new):
 		lambda node = node, old = old:
 			set_data(node, old))
 
-def set_attrib(node, attrib, value = None):
-	if node.hasAttribute(attrib):
-		old = node.getAttribute(attrib)
+def set_attrib(node, namespaceURI, localName, value = None):
+	if node.hasAttributeNS(namespaceURI, localName):
+		old = node.getAttributeNS(namespaceURI, localName)
 	else:
 		old = None
 	if value != None:
-		node.setAttribute(attrib, value)
+		node.setAttributeNS(namespaceURI, localName, value)
 	else:
-		node.removeAttribute(attrib)
+		node.removeAttributeNS(namespaceURI, localName)
 
-	add_undo(node, lambda node = node, attrib = attrib, old = old: set_attrib(node, attrib, old))
+	add_undo(node, lambda node = node, attrib = attrib, old = old: \
+				set_attrib(node, namespaceURI, localName, old))
 
 # Support
 

@@ -1,4 +1,4 @@
-from xml.dom.Node import Node
+from xml.dom import Node
 
 def literal_match(node):
 	return "[ext:match('%s')]" % node.nodeValue

@@ -8,7 +8,7 @@
 from xml.dom import implementation
 from xml.dom.ext.reader import PyExpat
 from xml.dom import ext
-from xml.dom.Node import Node
+from xml.dom import Node
 import string
 import Html
 import Change
@@ -41,6 +41,7 @@ class Model:
 		new_doc = reader.fromUri(path)
 
 		new = self.doc.importNode(new_doc.documentElement, deep = 1)
+		
 		self.doc.replaceChild(new, self.doc.documentElement)
 		self.strip_space()
 		self.update_all(self.doc)
@@ -124,7 +125,7 @@ class Model:
 			Change.insert_before(node, new, parent)
 		self.update_all(parent)
 	
-	def set_attrib(self, node, name, value):
+	def set_attrib(self, node, namespaceURI, localName, value):
 		"Set an attribute's value. If value is None, remove the attribute."
-		Change.set_attrib(node, name, value)
+		Change.set_attrib(node, namespaceURI, localName, value)
 		self.update_all(node)
