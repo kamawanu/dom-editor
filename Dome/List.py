@@ -332,12 +332,7 @@ class ChainDisplay(canvas.Canvas):
 		self.exec_point = None		# CanvasItem, or None
 		self.rec_point = None
 
-		s = self.get_style().copy()
-		if mono:
-			s.bg[g.STATE_NORMAL] = g.gdk.color_parse('white')
-		else:
-			s.bg[g.STATE_NORMAL] = g.gdk.color_parse('light green')
-		self.set_style(s)
+		self.set_active(1)
 
 		self.nodes = None
 		self.subs = None
@@ -348,6 +343,14 @@ class ChainDisplay(canvas.Canvas):
 		self.view.model.root_program.watchers.append(self)
 
 		self.switch_to(prog)
+	
+	def set_active(self, active):
+		if active:
+			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('#F7F7F7'))
+		elif mono:
+			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('white'))
+		else:
+			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('#FFC0C0'))
 	
 	def update_points(self):
 		self.put_point('rec_point')
@@ -698,7 +701,7 @@ class ChainDisplay(canvas.Canvas):
 				self.drag_last_pos = None
 				self.program_changed(None)
 		elif event.type == g.gdk.ENTER_NOTIFY:
-			item.set(fill_color = 'white')
+			item.set(fill_color = '#339900')
 		elif event.type == g.gdk.LEAVE_NOTIFY:
 			item.set(fill_color = self.op_colour(op))
 		elif event.type == g.gdk.MOTION_NOTIFY and self.drag_last_pos:

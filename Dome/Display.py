@@ -59,14 +59,17 @@ class Display(canvas.Canvas):
 	
 	def size_allocate(self, canvas, size):
 		x, y, width, height = self.get_allocation()
+		chains = self.parent_window.list.chains
 		if self.visible:
 			if width < 40:
 				self.visible = 0
+				chains.set_active(0)
 				print "hide"
 		else:
 			if width > 40:
 				self.visible = 1
 				self.update_all()
+				chains.set_active(1)
 				print "show"
 	
 	def set_view(self, view):
