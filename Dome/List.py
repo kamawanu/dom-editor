@@ -261,7 +261,8 @@ class List(g.VBox):
 				prog = self.view.name_to_prog(path)
 				self.show_menu(event, prog)
 			else:
-				self.view.run_new(self.run_return)
+				if not self.view.rec_point:
+					self.view.run_new(self.run_return)
 				self.view.set_status("Running '%s'" % path)
 				if event.state & g.gdk.SHIFT_MASK:
 					self.view.may_record(['map', path])
@@ -300,13 +301,15 @@ class List(g.VBox):
 	
 	def menu_map(self):
 		prog = self.prog_menu_prog
-		self.view.run_new(self.run_return)
+		if not self.view.rec_point:
+			self.view.run_new(self.run_return)
 		self.view.set_status("Running '%s'" % prog.get_path())
 		self.view.may_record(['map', prog.get_path()])
 
 	def menu_play(self):
 		prog = self.prog_menu_prog
-		self.view.run_new(self.run_return)
+		if not self.view.rec_point:
+			self.view.run_new(self.run_return)
 		self.view.set_status("Running '%s'" % prog.get_path())
 		self.view.may_record(['play', prog.get_path()])
 

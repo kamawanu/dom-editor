@@ -236,7 +236,10 @@ class Window(rox.Window, saving.Saveable):
 		self.view.single_step = 1
 		try:
 			self.view.do_one_step()
-		except InProgress, Done:
+		except InProgress:
+			self.view.single_step = 0
+			return
+		except Done:
 			pass
 		self.view.single_step = 0
 		self.view.sched()

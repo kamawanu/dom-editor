@@ -543,6 +543,7 @@ class View:
 		bp = self.breakpoint()
 		if bp == True or (self.single_step == 0 and bp is not None):
 			print "Hit a breakpoint! At " + time.ctime(time.time())
+			print self.foreach_stack
 			if bp:
 				self.set_rec(self.exec_point)
 			else:
@@ -1119,7 +1120,7 @@ class View:
 		self.play_block(oip)
 		if not self.single_step:
 			self.sched()
-		raise InProgress
+			raise InProgress
 	
 	def sched(self):
 		if self.op_in_progress:
@@ -1145,7 +1146,7 @@ class View:
 			self.run_new()
 			return 0
 		except InProgress:
-			#print "InProgress"
+			# print "InProgress"
 			return 0
 		except:
 			type, val, tb = sys.exc_info()
