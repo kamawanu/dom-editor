@@ -91,6 +91,7 @@ class Display(g.HBox):
 		self.surface.set_app_paintable(True)
 		self.surface.set_double_buffered(False)
 		self.update_timeout = 0
+		self.cached_nodes = None
 
 		self.scroll_adj = g.Adjustment(lower = 0, upper = 100, step_incr = 1)
 		self.scroll_adj.connect('value-changed', self.scroll_to)
@@ -218,31 +219,35 @@ class Display(g.HBox):
 		self.surface.window.clear()
 
 		# Update adjustment
-		r = self.ref_node
-		n = 0
-		pos = 0
-		for x in self.quick_walk():
-			if x is r:
-				pos = n
-			n += 1
+		self.ensure_cache()
+		try:
+			pos = self.cached_nodes.index(self.ref_node)
+		except:
+			pos = 0
+			print "Missing ref node!!"
 		self.scroll_adj.value = float(pos)
-		self.scroll_adj.upper = float(n)
+		self.scroll_adj.upper = float(len(self.cached_nodes))
 
 		return 0
 	
-	def quick_walk(self):
-		"Return all the nodes in the document, in document order. Not attributes."
-		yield self.view.root.parentNode
+	def ensure_cache(self):
+		"Find all the nodes in the document, in document order. Not attributes."
+		if self.cached_nodes is not None:
+			return
+		nodes = [self.view.root.parentNode]
 		node = self.view.root
 		while node:
-			yield node
+			nodes.append(node)
 			if node.childNodes:
 				node = node.childNodes[0]
 			else:
 				while not node.nextSibling:
 					node = node.parentNode
-					if not node: return
+					if not node:
+						self.cached_nodes = nodes
+						return
 				node = node.nextSibling
+		self.cached_nodes = nodes
 	
 	def walk_tree(self, node, pos):
 		"""Yield this (node, bbox), and all following ones in document order."""
@@ -285,6 +290,8 @@ class Display(g.HBox):
 			self.update()
 
 	def update_all(self, node = None):
+		self.cached_nodes = None
+
 		if self.update_timeout:
 			return		# Going to update anyway...
 
@@ -432,10 +439,11 @@ class Display(g.HBox):
 	
 	def scroll_to(self, adj):
 		n = int(adj.value)
-		for node in self.quick_walk():
-			n -= 1
-			if n < 0:
-				break
+		self.ensure_cache()
+		try:
+			node = self.cached_nodes[n]
+		except:
+			node = self.cached_nodes[-1]
 		if self.ref_node == node:
 			return
 		self.ref_node = node

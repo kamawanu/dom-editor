@@ -69,10 +69,11 @@ if show_leaks:
 	old = {}
 	for x in gc.get_objects():
 		old[id(x)] = None
-#import profile
+import profile
 #profile.run('go()')
 go()
 
+#profile.run('rox.mainloop()')
 rox.mainloop()
 
 if show_leaks:
