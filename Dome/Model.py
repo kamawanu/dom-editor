@@ -16,19 +16,21 @@ import string
 import support
 from Beep import Beep
 
-def get_xslt_source(doc, file):
+def get_xslt_source(doc, dome_data):
 	src = doc.createElementNS(None, 'Source')
 	if file:
-		from Ft.Xml.InputSource import InputSourceFactory
-		isrc = InputSourceFactory()
-		xslt_source = nonvalParse(isrc.fromUri(file))
-		src.appendChild(support.import_with_ns(doc, xslt_source.documentElement))
+		src.appendChild(support.import_with_ns(doc, dome_data.documentElement))
 	return src
 
 class Model:
-	def __init__(self, path, root_program = None, xslt_data = None):
+	def __init__(self, path, root_program = None, dome_data = None):
 		"If root_program is given, then no data is loaded (used for lock_and_copy)."
 		self.uri = 'Document'
+
+		if dome_data:
+			from Ft.Xml.InputSource import InputSourceFactory
+			isrc = InputSourceFactory()
+			dome_data = nonvalParse(isrc.fromUri(dome_data))
 
 		# Pop an (op_number, function) off one of these and call the function to
 		# move forwards or backwards in the undo history.
@@ -66,16 +68,19 @@ class Model:
 						for y in x.childNodes:
 							if y.nodeType == Node.ELEMENT_NODE:
 								data_to_load = y
+			if dome_data:
+				data_to_load = dome_data.documentElement
 		elif (root.namespaceURI == constants.XSLT_NS and 
-			root.localName in ['stylesheet', 'transform']) or \
-			root.hasAttributeNS(constants.XSLT_NS, 'version'):
+		      root.localName in ['stylesheet', 'transform']) or \
+		      root.hasAttributeNS(constants.XSLT_NS, 'version'):
 			import xslt
 			self.root_program = xslt.import_sheet(doc)
 			x = implementation.createDocument(None, 'xslt', None)
 			data_to_load = x.documentElement
-			src = get_xslt_source(x, xslt_data)
+			src = get_xslt_source(x, dome_data)
 			data_to_load.appendChild(x.createElementNS(None, 'Result'))
 			data_to_load.appendChild(src)
+			dome_data = None
 		else:
 			data_to_load = root
 

@@ -37,7 +37,7 @@ class Window(GtkWindow):
 			path = os.path.abspath(path)
 			
 		import Model
-		self.model = Model.Model(path, xslt_data = data)
+		self.model = Model.Model(path, dome_data = data)
 		self.gui_view = None
 		self.state = ""
 		
