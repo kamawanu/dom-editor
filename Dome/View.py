@@ -676,7 +676,7 @@ class View:
 		self.model.set_attrib(self.current, namespaceURI, name, value)
 		self.move_to(self.current, self.current.getAttributeNodeNS(namespaceURI, name))
 	
-	def load_xml(self, path):
+	def load_html(self, path):
 		"Replace root with contents of this HTML file."
 		print "Reading HTML..."
 		reader = Html.Reader()
