@@ -35,6 +35,13 @@ def load(chain):
 
 		op = Op(action)
 
+		dx = op_node.getAttributeNS(None, 'dx')
+		if dx:
+			op.dx = dx
+		dy = op_node.getAttributeNS(None, 'dy')
+		if dy:
+			op.dy = dy
+
 		if not start:
 			start = op
 		if prev:
@@ -263,6 +270,8 @@ class Op:
 		node = parent.ownerDocument.createElementNS(DOME_NS, 'node')
 		parent.appendChild(node)
 		node.setAttributeNS(None, 'action', `self.action`)
+		node.setAttributeNS(None, 'dx', str(self.dx))
+		node.setAttributeNS(None, 'dy', str(self.dy))
 		
 		if self.fail:
 			self.fail.to_xml_int(node)
