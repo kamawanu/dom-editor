@@ -9,6 +9,7 @@ from xml.dom import implementation
 from xml.dom.ext.reader import PyExpat
 
 import Html
+from loader import make_xds_loader
 from support import *
 from Tree import Tree
 from SaveBox import SaveBox
@@ -42,36 +43,52 @@ class Window(GtkWindow):
 		swin = GtkScrolledWindow()
 		self.add(swin)
 		swin.set_policy(POLICY_NEVER, POLICY_ALWAYS)
+		self.swin = swin
 
 		self.uri = "Document"
 
 		if path:
 			if path != '-':
 				self.uri = path
-			if path[-5:] == '.html':
-				print "Reading HTML..."
-				reader = Html.Reader()
-				root = reader.fromUri(path)
-				ext.StripHtml(root)
-				root = html_to_xml(root)
-				self.uri = self.uri[:-5] + '.xml'
-			else:
-				print "Reading XML..."
-				reader = PyExpat.Reader()
-				root = reader.fromUri(path)
-				strip_space(root)
+			root = self.root_from_file(path)
 		else:
 			root = implementation.createDocument('', 'root', None)
 
-		self.tree = Tree(self, root, swin.get_vadjustment())
-		self.tree.show()
-		swin.add_with_viewport(self.tree)
+		self.set_root(root)
 		swin.show()
+		self.connect('key-press-event', self.key)
+		make_xds_loader(self, self)
+	
+	def set_root(self, root):
+		self.tree = Tree(self, root, self.swin.get_vadjustment())
+		self.tree.show()
+		self.swin.add_with_viewport(self.tree)
 		self.tree.grab_focus()
-
 		self.update_title()
 
-		self.connect('key-press-event', self.key)
+	def root_from_file(self, path):
+		# Also sets uri attribute (call update_title yourself)
+		if path[-5:] == '.html':
+			print "Reading HTML..."
+			reader = Html.Reader()
+			root = reader.fromUri(path)
+			ext.StripHtml(root)
+			self.uri = self.uri[:-5] + '.xml'
+			return html_to_xml(root)
+		else:
+			print "Reading XML..."
+			reader = PyExpat.Reader()
+			strip_space(root)
+			self.uri = file
+			return reader.fromUri(path)
+
+	def load_file(self, file):
+		root = self.root_from_file(file)
+		self.tree.destroy()
+		self.set_root(root)
+
+	def load_data(self, data):
+		report_error("Can only load files for now - sorry")
 	
 	def update_title(self):
 		title = self.uri

@@ -13,7 +13,7 @@ from Editor import edit_node
 from Search import Search
 import Change
 from SaveBox import SaveBox
-from Macro import Macro
+import Macro
 
 class Beep(Exception):
 	pass
@@ -83,7 +83,6 @@ class Tree(GtkDrawingArea):
 		self.left_hist = []
 		self.connect('realize', self.realize)
 
-		self.macro = Macro()
 		self.recording_macro = None
 
 	def key_press(self, widget, kev):
@@ -105,7 +104,6 @@ class Tree(GtkDrawingArea):
 
 		if key == q:
 			if self.recording_macro:
-				self.macro = self.recording_macro
 				self.recording_macro = None
 			else:
 				self.recording_macro = self.macro
@@ -114,10 +112,7 @@ class Tree(GtkDrawingArea):
 			self.window.update_title()
 			return 1
 		elif key == Q:
-			if self.recording_macro:
-				self.recording_macro.show_all()
-			else:
-				self.macro.show_all()
+			Macro.current_macro.show_all()
 			return 1
 
 		if key == F3 or key == Return:
@@ -621,35 +616,37 @@ class Tree(GtkDrawingArea):
 	def step(self):
 		if self.recording_macro:
 			raise Beep
-		if not self.macro.more_moves:
+		m = Macro.current_macro
+		if not m.more_moves:
 			c = get_choice("No more steps... create a new operation?",
 					"Playback",
 					("Yes", "No"))
 			if c == 0:
-				self.recording_macro = self.macro
+				self.recording_macro = m
 				self.window.update_title()
 			return 0
 
-		action = self.macro.get_next_action()
+		action = m.get_next_action()
 
 		up = 0
 		try:
 			up = self.do_action(action)
 		except Beep:
-			self.macro.move_fail()
+			m.move_fail()
 			self.last_op_failed = 1
 		else:
-			self.macro.move_next()
+			m.move_next()
 			self.last_op_failed = 0
 		return up
 
 	def playback(self, node):
 		"Playback"
-		self.macro.rewind()
+		m = Macro.current_macro
+		m.rewind()
 		up = 0
-		while self.macro.more_moves:
+		while m.more_moves:
 			up = up | self.step()
-			if self.last_op_failed and not self.macro.more_moves:
+			if self.last_op_failed and not m.more_moves:
 				self.step()
 				break
 		if up:

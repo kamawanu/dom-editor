@@ -6,6 +6,7 @@ import sys
 
 from Tree import Tree
 from Window import Window
+import Macro
 
 window = GtkWindow()
 window.set_title("Dome")
@@ -24,6 +25,8 @@ def tl_unref(w = None):
 		mainquit()
 
 docs = []
+
+Macro.current_macro = Macro.Macro()
 
 if len(sys.argv) > 1:
 	for file in sys.argv[1:]:
