@@ -134,6 +134,7 @@ class Model:
 			ReleaseNode(self.doc.documentElement)
 			#print "(releasing)"
 		else:
+			pass
 			#print "(still locked)"
 
 	def update_all(self, node):

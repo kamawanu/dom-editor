@@ -820,6 +820,7 @@ class View:
 				#print "Base URI is:", base
 				uri = urlparse.urljoin(base, uri)
 			else:
+				pass
 				#print "Warning: Can't find 'uri' attribute!"
 
 		stream = urllib.urlopen(uri)
