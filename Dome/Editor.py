@@ -6,19 +6,19 @@ import string
 
 import Change
 
-def edit_node(tree, node, where = None):
+def edit_node(gui, node, where = None):
 	if node.nodeType == Node.TEXT_NODE:
-		DataEditor(node, tree, where)
+		DataEditor(node, gui, where)
 	elif node.nodeType == Node.ELEMENT_NODE:
-		TagEditor(node, tree, where)
+		TagEditor(node, gui, where)
 
 class Editor(GtkWindow):
 	# If where is given then the action add_node(where) is recorded.
-	def __init__(self, node, tree, where):
+	def __init__(self, node, gui, where):
 		GtkWindow.__init__(self, WINDOW_DIALOG)
 		self.vbox = GtkVBox(FALSE, 8)
 		self.add(self.vbox)
-		self.tree = tree
+		self.gui = gui
 		self.node = node
 		self.where = where
 		self.set_border_width(8)
@@ -47,14 +47,14 @@ class Editor(GtkWindow):
 	
 	def do_it(self, data):
 		if self.where:
-			self.tree.may_record(['add_node', self.where, data])
+			self.gui.may_record(['add_node', self.where, data])
 		else:
-			self.tree.may_record(['change_node', data])
+			self.gui.may_record(['change_node', data])
 		self.destroy()
 
 class DataEditor(Editor):
-	def __init__(self, node, tree, where):
-		Editor.__init__(self, node, tree, where)
+	def __init__(self, node, gui, where):
+		Editor.__init__(self, node, gui, where)
 		self.set_default_size(gdk_screen_width() * 2 / 3, -1)
 
 		self.text = GtkText()
@@ -80,8 +80,8 @@ class DataEditor(Editor):
 			self.destroy()
 	
 class TagEditor(Editor):
-	def __init__(self, node, tree, where):
-		Editor.__init__(self, node, tree, where)
+	def __init__(self, node, gui, where):
+		Editor.__init__(self, node, gui, where)
 
 		self.entry = GtkEntry()
 		self.entry.set_text(node.nodeName)

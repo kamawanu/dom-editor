@@ -9,6 +9,8 @@ from Beep import Beep
 from Menu import Menu
 from GetArg import GetArg
 from Path import make_relative_path
+from Editor import edit_node
+import Exec
 
 class GUIView(Display):
 	vmargin = 4
@@ -20,6 +22,25 @@ class GUIView(Display):
 		window.connect('key-press-event', self.key_press)
 		self.set_events(BUTTON_PRESS_MASK)
 		self.set_flags(CAN_FOCUS)
+		self.recording_where = None
+
+	def toggle_record(self, extend = FALSE):
+		"Start or stop recording"
+		if self.recording_where:
+			self.recording_where = None
+		elif extend:
+			self.recording_where = Exec.exec_state.where
+			if not self.recording_where:
+				report_error("No current point!")
+				return
+
+			self.recording_exit = Exec.exec_state.exit
+		else:
+			node = self.view.current
+			self.recording_where = self.view.model.macro_list.record_new(node.nodeName).start
+			self.recording_exit = 'next'
+		
+		self.window.update_title()
 
 	def key_press(self, widget, kev):
 		try:
@@ -97,7 +118,7 @@ class GUIView(Display):
 
 	def may_record(self, action):
 		"Perform, and possibly record, this action"
-		#rec = self.recording_where
+		rec = self.recording_where
 
 		try:
 			self.view.do_action(action)
@@ -106,9 +127,10 @@ class GUIView(Display):
 			return 0
 
 		# Only record if we were recording when this action started
-		#if rec:
-			#self.recording_where = rec.record(action, self.recording_exit)
-			#self.recording_exit = 'next'
+		if rec:
+			self.recording_where = rec.record(action, self.recording_exit)
+			self.recording_exit = 'next'
+			Exec.exec_state.set_pos(self.recording_where, self.recording_exit)
 	
 	def show_ask(self):
 		def do_ask(q, self = self):
@@ -122,6 +144,9 @@ class GUIView(Display):
 			self.may_record(action)
 		GetArg('Substitute:', do_subst, ('Replace:', 'With:'))
 
+	def show_edit(self):
+		edit_node(self, self.view.current)
+
 	def show_pipe(self):
 		def do_pipe(expr, self = self):
 			action = ["python", expr]
@@ -134,6 +159,44 @@ class GUIView(Display):
 			self.may_record(action)
 		GetArg('Search for:', do_search, ['Pattern:'])
 
+	def new_element(self):
+		cur = self.view.current
+		if cur.nodeType == Node.TEXT_NODE:
+			return self.view.model.doc.createElement( cur.parentNode.nodeName)
+		return self.view.model.doc.createElement(cur.nodeName)
+	
+	def insert_element(self):
+		"Insert element"
+		new = self.new_element()
+		edit_node(self, new, "ie")
+		return new
+
+	def append_element(self):
+		"Append element"
+		new = self.new_element()
+		edit_node(self, new, "ae")
+		return new
+
+	def open_element(self):
+		"Open element"
+		new = self.new_element()
+		edit_node(self, new, "oe")
+		
+	def insert_text(self):
+		"Insert text"
+		new = self.view.model.doc.createTextNode('')
+		edit_node(self, new, "it")
+
+	def append_text(self):
+		"Append text"
+		new = self.view.model.doc.createTextNode('')
+		edit_node(self, new, "at")
+
+	def open_text(self):
+		"Open text"
+		new = self.view.model.doc.createTextNode('')
+		edit_node(self, new, "ot")
+
 	key_to_action = {
 		# Motions
 		Up	: ["move_prev_sib"],
@@ -144,8 +207,8 @@ class GUIView(Display):
 		Home	: ["move_home"],
 		End	: ["move_end"],
 		
-		#greater	: ["chroot"],
-		#less	: ["unchroot"],
+		greater	: ["enter"],
+		less	: ["leave"],
 		
 		#Prior	: ["move_prev_sib"],
 		#Next	: ["move_next_sib"],
@@ -158,23 +221,23 @@ class GUIView(Display):
 		question: show_ask,
 
 		# Changes
-		#I	: insert_element,
-		#A	: append_element,
-		#O	: open_element,
+		I	: insert_element,
+		A	: append_element,
+		O	: open_element,
 		
-		#i	: insert_text,
-		#a	: append_text,
-		#o	: open_text,
+		i	: insert_text,
+		a	: append_text,
+		o	: open_text,
 
-		#y	: ["yank"],
-		#P	: ["put_before"],
-		#p	: ["put_after"],
-		#bracketright : ["put_as_child"],
-		#R	: ["put_replace"],
+		y	: ["yank"],
+		P	: ["put_before"],
+		p	: ["put_after"],
+		bracketright : ["put_as_child"],
+		R	: ["put_replace"],
 
-		#ord('^'): ["suck"],
+		ord('^'): ["suck"],
 
-		#Tab	: edit_node,
+		Tab	: show_edit,
 		exclam	: show_pipe,
 		s	: show_subst,
 

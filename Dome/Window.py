@@ -38,6 +38,7 @@ class Window(GtkWindow):
 		GtkWindow.__init__(self)
 		
 		self.model = Model(List(self))
+		self.gui_view = None
 		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
 				      gdk_screen_height() * 2 / 3)
@@ -87,7 +88,6 @@ class Window(GtkWindow):
 		else:
 			self.model.load_xml(path)
 			self.uri = path
-		self.uri = path
 		self.update_title()
 
 	def load_data(self, data):
@@ -95,8 +95,8 @@ class Window(GtkWindow):
 	
 	def update_title(self):
 		title = self.uri
-		#if self.tree.recording_where:
-			#title += ' (recording)'
+		if self.gui_view and self.gui_view.recording_where:
+			title += ' (recording)'
 		self.set_title(title)
 	
 	def key(self, widget, kev):
@@ -110,15 +110,12 @@ class Window(GtkWindow):
 	def save(self):
 		if self.savebox:
 			self.savebox.destroy()
-		if self.uri[-5:] == '.html':
-			self.savebox = SaveBox(self, 'text', 'html')
-		else:
-			self.savebox = SaveBox(self, 'text', 'xml')
+		self.savebox = SaveBox(self, 'text', 'xml')
 		self.savebox.show()
 	
 	def get_xml(self):
 		self.output_data = ''
-		ext.PrettyPrint(node_to_xml(self.tree.display_root), stream = self)
+		ext.PrettyPrint(node_to_xml(self.gui_view.view.root), stream = self)
 		d = self.output_data
 		self.output_data = ''
 		return d
@@ -167,7 +164,7 @@ class Window(GtkWindow):
 		Exec.exec_state.do_one_step()
 	
 	def tool_Record(self):
-		self.tree.toggle_record()
+		self.gui_view.toggle_record()
 	
 	def tool_Extend(self):
-		self.tree.toggle_record(extend = TRUE)
+		self.gui_view.toggle_record(extend = TRUE)

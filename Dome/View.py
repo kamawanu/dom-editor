@@ -141,7 +141,7 @@ class View:
 	def leave(self):
 		"Undo the effect of the last chroot()."
 		if not self.chroots:
-			raise Exception('No Enter to undo!')
+			raise Beep
 
 		n = self.chroots.pop()
 		root = self.root
