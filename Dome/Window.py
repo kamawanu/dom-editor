@@ -130,7 +130,7 @@ class Window(GtkWindow):
 	def save(self, type):
 		if self.savebox:
 			self.savebox.destroy()
-		self.savebox = SaveBox(self, 'text', type)
+		self.savebox = SaveBox(self, self.uri, 'text/' + type)
 		path = self.savebox.entry.get_chars(0, -1)
 		dir, file = os.path.split(path)
 		i = string.rfind(file, '.')
@@ -163,11 +163,8 @@ class Window(GtkWindow):
 	def write(self, text):
 		self.output_data = self.output_data + text
 
-	def save_as(self, path):
-		return send_to_file(self.get_xml(), path)
-
-	def send_raw(self, selection_data):
-		selection_data.set(selection_data.target, 8, self.get_xml())
+	def save_get_data(self):
+		return self.get_xml()
 		
 	def set_uri(self, uri):
 		self.uri = uri
