@@ -153,29 +153,35 @@ class Window(GtkWindow):
 	# Toolbar bits
 
 	tools = [
-		('Save', 'Save this macro'),
+		('Save', 'Save this document'),
 		('Record', 'Start recording here'),
-		('Stop', 'Stop a running macro'),
-		('Play', 'Run this macro from the start'),
-		('Next', 'Run until the next step in this macro'),
-		('Step', 'Run one step, stopping in any macro'),
+		('Stop', 'Stop a running program'),
+		('Play', 'Run this program from here'),
+		('Next', 'Run until the next step in this program'),
+		('Step', 'Run one step, stopping in any program'),
 		]
 	
 	def tool_Save(self):
 		self.save('xml')
 	
 	def tool_Stop(self):
-		self.view.single_step = 1
+		self.view.run_new()
 
 	def tool_Play(self):
+		if not self.view.callback_on_return:
+			self.view.run_new(self.list.run_return)
 		self.view.single_step = 0
 		self.view.sched()
 	
 	def tool_Next(self):
-		Exec.exec_state.set_step_mode(1)
-		Exec.exec_state.do_one_step()
+		if not self.view.callback_on_return:
+			self.view.run_new(self.list.run_return)
+		self.view.single_step = 2
+		self.view.do_one_step()
 	
 	def tool_Step(self):
+		if not self.view.callback_on_return:
+			self.view.run_new(self.list.run_return)
 		self.view.single_step = 1
 		self.view.do_one_step()
 	

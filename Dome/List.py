@@ -376,7 +376,7 @@ class ChainDisplay(GnomeCanvas):
 				print "Paste", self.clipboard
 				reader = PyExpat.Reader()
 				doc = reader.fromStream(StringIO(self.clipboard))
-				new = load(op.program, doc.documentElement)
+				new = load(doc.documentElement)
 				op.link_to(new, exit)
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')

@@ -77,7 +77,7 @@ class View:
 	def __init__(self, model):
 		self.displays = []
 		self.lists = []
-		self.single_step = 1
+		self.single_step = 1	# 0 = Play   1 = Step-into   2 = Step-over
 		self.model = model
 		self.chroots = []
 		self.root = self.model.get_root()
@@ -91,6 +91,8 @@ class View:
 		self.op_in_progress = None
 		self.idle_cb = 0
 		self.callback_on_return = None	# Called when there are no more Ops...
+		self.in_callback = 0		# (not the above callback - this is the playback one)
+		self.innermost_failure = None
 	
 	def __getattr__(self, attr):
 		if attr == 'current':
@@ -103,12 +105,16 @@ class View:
 		return a is not b
 	
 	def running(self):
-		return self.idle_cb != 0
+		return self.idle_cb != 0 or self.in_callback
 
 	def run_new(self, callback = None):
 		"Reset the playback system (stack, step-mode and point)."
 		"Call callback when execution finishes."
+		if self.idle_cb:
+			idle_remove(self.idle_cb)
+			self.idle_cb = 0
 		self.single_step = 0
+		self.innermost_failure = None
 		self.callback_on_return = callback
 
 	def set_exec(self, pos):
@@ -142,9 +148,6 @@ class View:
 	def may_record(self, action):
 		"Perform and, possibly, record this action"
 		rec = self.rec_point
-
-		if action[0] in record_again:
-			self.last_action = action
 
 		exit = 'next'
 		try:
@@ -314,7 +317,9 @@ class View:
 
 	def do_action(self, action):
 		"'action' is a tuple (function, arg1, arg2, ...)"
-		if action[0] == 'again':
+		if action[0] in record_again:
+			self.last_action = action
+		elif action[0] == 'again':
 			action = self.last_action
 		fn = getattr(self, action[0])
 		exit = 'next'
@@ -538,6 +543,16 @@ class View:
 				self.callback_on_return = done
 			self.set_oip(None)
 			self.callback_on_return = fin
+
+		if self.single_step == 2:
+			self.single_step = 0
+			def fin(self = self, done = self.callback_on_return):
+				if self.single_step == 0:
+					self.single_step = 1
+				self.callback_on_return = done
+				if done:
+					done()
+			self.callback_on_return = fin
 			
 		self.set_exec((prog.start, 'next'))
 		self.sched()
@@ -554,9 +569,14 @@ class View:
 		idle_remove(self.idle_cb)
 		self.idle_cb = 0
 		try:
-			self.do_one_step()
+			self.in_callback = 1
+			try:
+				self.do_one_step()
+			finally:
+				self.in_callback = 0
 		except Done:
 			print "Done"
+			self.run_new()
 			return 0
 		except InProgress:
 			print "InProgress"
@@ -578,6 +598,7 @@ class View:
 		return 0
 
 	def map(self, name):
+		# XXX - doesn't work always from a macro?
 		print "Map", name
 
 		nodes = self.current_nodes[:]
