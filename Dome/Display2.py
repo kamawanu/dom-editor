@@ -9,6 +9,9 @@ def calc_node(display, node, pos):
 		text = node.nodeValue.strip()
 	elif node.nodeType == Node.ELEMENT_NODE:
 		text = node.nodeName
+		for key in node.attributes:
+			a = node.attributes[key]
+			text += ' %s=%s' % (unicode(a.name), unicode(a.value))
 	elif node.nodeType == Node.COMMENT_NODE:
 		text = node.nodeValue.strip()
 	elif node.nodeName:
@@ -24,6 +27,7 @@ def calc_node(display, node, pos):
 
 	def draw_fn():
 		surface = display.pm
+		style = display.style
 		fg = display.style.fg_gc
 		bg = display.style.bg_gc
 
@@ -37,7 +41,11 @@ def calc_node(display, node, pos):
 				x + 12, y, width - 1, height - 1)
 			surface.draw_layout(fg[g.STATE_SELECTED], x + 12, y, layout)
 		else:
-			surface.draw_layout(fg[g.STATE_NORMAL], x + 12, y, layout)
+			if node.nodeType == Node.TEXT_NODE:
+				gc = style.text_gc[g.STATE_NORMAL]
+			else:
+				gc = style.fg_gc[g.STATE_NORMAL]
+			surface.draw_layout(gc, x + 12, y, layout)
 
 	bbox = (x, y, x + 12 + width, y + height)
 	return bbox, draw_fn
@@ -55,6 +63,7 @@ class Display(g.EventBox):
 
 		s = self.get_style().copy()
 		s.bg[g.STATE_NORMAL] = g.gdk.color_parse('old lace')
+		s.text[g.STATE_NORMAL] = g.gdk.color_parse('blue')
 		self.set_style(s)
 
 		#self.connect('destroy', self.destroyed)
@@ -103,7 +112,8 @@ class Display(g.EventBox):
 		self.drawn = {}	# xmlNode -> (x1, y1, y2, y2)
 
 		n = self.ref_node
-		while n is not self.view.root:
+		p = self.view.root.parentNode
+		while n is not p:
 			n = n.parentNode
 			if not n:
 				print "(lost root)"
@@ -120,7 +130,7 @@ class Display(g.EventBox):
 		node = self.ref_node
 		for node, bbox, draw_fn in self.walk_tree(self.ref_node, self.ref_pos):
 			if bbox[1] > self.last_alloc[1]: break	# Off-screen
-			
+
 			draw_fn()
 			self.drawn[node] = bbox
 			if bbox[1] < 0:
@@ -170,6 +180,21 @@ class Display(g.EventBox):
 			self.update_timeout = g.timeout_add(10, self.update)
 	
 	def move_from(self, old = []):
+		if self.view.current_nodes:
+			selection = {}
+			for n in self.view.current_nodes:
+				selection[n] = None
+			shown = False
+			for node, bbox, draw_fn in self.walk_tree(self.ref_node, self.ref_pos):
+				if bbox[1] > self.last_alloc[1]: break	# Off-screen
+				if bbox[3] > 0 and node in selection:
+					shown = True
+					break	# A selected node is shown
+			if not shown:
+				print "(selected nodes not shown)"
+				self.ref_node = self.view.current_nodes[0]
+				self.ref_pos = (40, self.last_alloc[1] / 2)
+				self.backup_ref_node()
 		self.update_all()
 
 	def set_view(self, view):
@@ -213,6 +238,14 @@ class Display(g.EventBox):
 
 		self.ref_pos = new
 
+		self.backup_ref_node()
+
+		self.update()
+		
+		return 1
+	
+	def backup_ref_node(self):
+		self.ref_pos = list(self.ref_pos)
 		# Walk up the parents until we get a ref node above the start of the screen
 		# (redraw will come back down)
 		while self.ref_pos[1] > 0:
@@ -243,10 +276,6 @@ class Display(g.EventBox):
 				if bbox[3] > 10: break	# Something is visible
 			else:
 				self.ref_pos[1] = -100
-
-		self.update()
-		
-		return 1
 
 	def bg_event(self, widget, event):
 		if event.type == g.gdk.BUTTON_PRESS and event.button == 3:
