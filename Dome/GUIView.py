@@ -392,6 +392,8 @@ class GUIView(Display, XDSLoader):
 				 ('text()', 'all child text nodes'),
 				 ('//img[@src="@CURRENT@"]',
 				 	"all <img>s whose src is the current node's value"),
+				 ('*[not(self::img)]',
+				 	"all child elements except <img> elements"),
 				 ))
 
 	def menu_show_text_search(self):
