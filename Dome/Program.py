@@ -128,7 +128,7 @@ def load_dome_program(prog, ns):
 	for node in prog.childNodes:
 		if node.localName == 'node' and not done_update:
 			print "*** Converting from old format ***"
-			new.code = load(prog, new)
+			new.code = load(prog, new, ns)
 			done_update = 1
 		if node.localName == 'block':
 			assert not done_update

@@ -184,22 +184,17 @@ class Window(rox.Window, saving.Saveable):
 			self.set_status()
 
 	def save_as_dome(self, stream):
-		print "Saving", self.view.root
 		#self.view.model.strip_space()
 		doc = self.view.export_all()
-		print "Writing data..."
 		PrettyPrint(doc, stream)
 
 	def save_as_xml(self, stream):
-		print "Saving XML", self.view.root
 		doc = self.view.model.doc
-		print "Writing data..."
 		PrettyPrint(doc, stream)
 		
 	def save_as_html(self, stream):
 		from xml.dom.html import HTMLDocument
 		import to_html
-		print "Saving HTML", self.view.root
 		print >>stream, to_html.to_html(self.view.root.ownerDocument)
 
 	def set_uri(self, uri):
