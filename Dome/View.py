@@ -1364,6 +1364,9 @@ class View:
 		isrc = InputSourceFactory()
 
 		try:
+			# Hack to stop 4Suite getting confused with the namespaces
+			i = data.find('<!DOCTYPE')
+			if i != -1: data = data[:i] + data[data.find('>', i) + 1:]
 			root = nonvalParse(isrc.fromString(data, uri))
 			#ext.StripHtml(root)
 		except:
@@ -1376,6 +1379,8 @@ class View:
 			raise Beep
 		else:
 			print "parse OK...",
+			#print "Root node is", root.documentElement.namespaceURI, \
+			#		      root.documentElement.localName
 		
 		new = node.ownerDocument.importNode(root.documentElement, 1)
 		new.setAttributeNS(None, 'uri', uri)
