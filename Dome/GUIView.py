@@ -12,7 +12,7 @@ from GetArg import GetArg
 from Path import make_relative_path
 
 from rox.Menu import Menu
-from gnome2 import canvas
+from gnome import canvas
 
 menu = Menu('main', [
 		('/File', None, '<Branch>', ''),
@@ -111,7 +111,7 @@ menu = Menu('main', [
 		('/View/Show as canvas', 'do_show_canvas', '', ''),
 		('/View/Close Window', 'menu_close_window', '', '<Ctrl>Q'),
 
-		#('/Options...', 'menu_options', '', '<Ctrl>O'),
+		('/Options...', 'menu_options', '', '<Ctrl>O'),
 		])
 
 def make_do(action):

@@ -12,7 +12,6 @@ from Ft.Xml.Domlette import GetAllNs
 from Ft.Xml import XMLNS_NAMESPACE
 
 from xml.dom import Node
-import string
 import support
 from Beep import Beep
 
@@ -188,8 +187,10 @@ class Model:
 		if not node:
 			node = self.doc.documentElement
 		if node.nodeType == Node.TEXT_NODE:
-			node.data = string.strip(node.data)
-			if node.data == '':
+			#node.data = node.data.strip()
+			#if node.data == '':
+			#	node.parentNode.removeChild(node)
+			if not node.data.strip():
 				node.parentNode.removeChild(node)
 		else:
 			for k in node.childNodes[:]:
@@ -380,7 +381,7 @@ class Model:
 			namespaceURI = XMLNS_NAMESPACE
 			localName = name
 		elif ':' in name:
-			prefix, localName = string.split(name, ':')
+			prefix, localName = name.split(':')
 			namespaceURI = self.prefix_to_namespace(node, prefix)
 		else:
 			namespaceURI = None

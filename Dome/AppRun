@@ -22,13 +22,14 @@ from os.path import dirname
 app_dir = dirname(sys.argv[0])
 
 from rox import g, mime
-#from rox.options import Option
+from rox.options import Option
 from Window import Window
+rox.setup_app_options('Dome')
 
-#default_font = Option('default_font', 'sans 12')
+default_font = Option('default_font', 'sans 12')
 
 # All options must be registered by the time we get here
-#rox.app_options.notify()
+rox.app_options.notify()
 
 #sys.argv.append('--disable-crash-dialog')
 #import gnome.ui

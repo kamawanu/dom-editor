@@ -145,7 +145,7 @@ class Window(rox.Window, saving.Saveable):
 		export = self.savebox.toggle_export_xml.get_active()
 
 		print "Saving", self.view.root
-		self.view.model.strip_space()
+		#self.view.model.strip_space()
 		if export:
 			doc = self.view.model.doc
 		else:

@@ -1,6 +1,6 @@
 import rox
 from rox import g, TRUE, FALSE, alert
-from gnome2 import canvas
+from gnome import canvas
 
 from support import *
 import string

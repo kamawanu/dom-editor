@@ -1,5 +1,5 @@
 from rox import g, TRUE, FALSE
-from gnome2 import canvas
+from gnome import canvas
 from xml.dom import Node
 from constants import *
 import rox
@@ -29,8 +29,8 @@ def wrap(str, width):
 cramped_indent = 16
 normal_indent = 24
 
-#import __main__
-#default_font = __main__.default_font
+import __main__
+default_font = __main__.default_font
 
 class Display(canvas.Canvas):
 	def __init__(self, window, view):
@@ -55,7 +55,7 @@ class Display(canvas.Canvas):
 
 		self.set_view(view)
 
-		#rox.app_options.add_notify(self.options_changed)
+		rox.app_options.add_notify(self.options_changed)
 	
 	def size_allocate(self, canvas, size):
 		x, y, width, height = self.get_allocation()
@@ -222,12 +222,12 @@ class Display(canvas.Canvas):
 	
 	def destroyed(self, widget):
 		self.view.remove_display(self)
-		#rox.app_options.remove_notify(self.options_changed)
+		rox.app_options.remove_notify(self.options_changed)
 	
 	def create_attribs(self, attrib, group, cramped, parent):
 		group.text = group.add(canvas.CanvasText, x = 0, y = -6, anchor = g.ANCHOR_NW,
 					fill_color = 'grey40',
-					#font = default_font.value,
+					font = default_font.value,
 					text = "%s=%s" % (str(attrib.name), str(attrib.value)))
 		group.connect('event', self.attrib_event, parent, attrib)
 
@@ -262,7 +262,7 @@ class Display(canvas.Canvas):
 		else:
 			text = wrap(text, 1000)
 		group.text = group.add(canvas.CanvasText, x = 10 , y = -6, anchor = g.ANCHOR_NW,
-					#font = default_font.value,
+					font = default_font.value,
 					fill_color = 'black', text = text)
 		self.node_to_group[node] = group
 

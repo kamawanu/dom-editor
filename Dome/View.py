@@ -1340,6 +1340,7 @@ class View:
 			pass
 		else:
 			data = to_html(data)
+			#print "Converted to", data
 		
 		old_md5 = node.getAttributeNS(None, 'md5_sum')
 		
