@@ -106,7 +106,7 @@ class Tree(GtkDrawingArea):
 			if self.recording_macro:
 				self.recording_macro = None
 			else:
-				self.recording_macro = self.macro
+				self.recording_macro = Macro.current_macro
 				self.last_op_failed = 0
 			
 			self.window.update_title()
