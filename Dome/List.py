@@ -464,10 +464,12 @@ class ChainDisplay(GnomeCanvas):
 			if op.action[0] == 'Start':
 				text = str(op.parent.comment.replace('\\n', '\n'))
 				text_y = 0
-				text_col = 'blue'
+				text_font = '-misc-fixed-bold-r-normal-*-*-120-*-*-c-*-iso8859-1'
+				text_col = 'dark blue'
 			else:
 				text = str(action_to_text(op.action))
 				text_y = -8
+				text_font = '-misc-fixed-medium-r-normal-*-*-120-*-*-c-*-iso8859-1'
 				text_col = 'black'
 			
 			group.ellipse = group.add('ellipse',
@@ -483,7 +485,7 @@ class ChainDisplay(GnomeCanvas):
 							y = text_y,
 							anchor = ANCHOR_NE,
 							justification = 'right',
-							font = 'fixed',
+							font = text_font,
 							fill_color = text_col,
 							text = text)
 
