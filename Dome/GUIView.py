@@ -24,6 +24,7 @@ menu = Menu('main', [
 		('/Edit/Yank attributes', 'do_yank_attributes', '', ''),
 		('/Edit/Paste attributes', 'do_paste_attribs', '', ''),
 		('/Edit/Yank attrib value', 'do_yank_value', '', ''),
+		('/Edit/Rename attribute', 'menu_rename_attr', '', ''),
 		('/Edit/', '', '', '<separator>'),
 		('/Edit/Cut', 'do_delete_node', '', 'x'),
 		('/Edit/Delete', 'do_delete_node_no_clipboard', '', '<Ctrl>X'),
@@ -369,7 +370,7 @@ class GUIView(Display, XDSLoader):
 			self.show_editbox()
 
 	def menu_select_attrib(self):
-		def do_attrib(name, self = self):
+		def do_attrib(name):
 			if ':' in name:
 				(prefix, localName) = name.split(':', 1)
 			else:
@@ -380,25 +381,25 @@ class GUIView(Display, XDSLoader):
 		GetArg('Select attribute:', do_attrib, ['Name:'])
 
 	def menu_show_add_attrib(self):
-		def do_it(name, self = self):
+		def do_it(name):
 			action = ["add_attrib", "UNUSED", name]
 			self.view.may_record(action)
 		GetArg('Create attribute:', do_it, ['Name:'])
 
 	def menu_show_pipe(self):
-		def do_pipe(expr, self = self):
+		def do_pipe(expr):
 			action = ["python", expr]
 			self.view.may_record(action)
 		GetArg('Python expression:', do_pipe, ['Eval:'], "'x' is the old text...")
 
 	def menu_show_xpath(self):
-		def go(expr, self = self):
+		def go(expr):
 			action = ["xpath", expr]
 			self.view.may_record(action)
 		GetArg('XPath expression:', go, ['Eval:'], "Result goes on the clipboard")
 
 	def menu_show_global(self):
-		def do_global(pattern, self = self):
+		def do_global(pattern):
 			action = ["do_global", pattern]
 			self.view.may_record(action)
 		GetArg('Global:', do_global, ['Pattern:'],
@@ -406,19 +407,26 @@ class GUIView(Display, XDSLoader):
 			'Perform next action on all nodes matching')
 
 	def menu_show_text_search(self):
-		def do_text_search(pattern, self = self):
+		def do_text_search(pattern):
 			action = ["do_text_search", pattern]
 			self.view.may_record(action)
 		GetArg('Search for:', do_text_search, ['Text pattern:'],
 			'(@CURRENT@ is the current node\'s value)\n')
 
 	def menu_show_search(self):
-		def do_search(pattern, self = self):
+		def do_search(pattern):
 			action = ["do_search", pattern]
 			self.view.may_record(action)
 		GetArg('Search for:',
 			do_search, ['XPath:'],
 			'(@CURRENT@ is the current node\'s value)')
+
+	def menu_rename_attr(self):
+		def do(name):
+			action = ["rename_attrib", name]
+			self.view.may_record(action)
+		GetArg('Rename to:', do, ['New name:'])
+
 
 	def show_add_box(self, action):
 		if action[0] == 'i':
@@ -492,7 +500,7 @@ class GUIView(Display, XDSLoader):
 		if rox.confirm('Really clear the undo buffer?',
 				g.STOCK_CLEAR):
 			self.view.model.clear_undo()
-
+	
 	do_blank_all = make_do('blank_all')
 	do_enter = make_do('enter')
 	do_leave = make_do('leave')

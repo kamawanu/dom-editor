@@ -109,6 +109,7 @@ record_again = [
 	"do_pass",
 	"attribute",
 	"set_attrib",
+	"rename_attrib",
 	"add_attrib",
 	"soap_send",
 	"show_canvas",
@@ -1587,6 +1588,15 @@ class View:
 		node = self.get_current()
 		a = self.model.set_attrib(node, a.name, value)
 		self.move_to(node, a)
+	
+	def rename_attrib(self, new):
+		a = self.current_attrib
+		if not a:
+			raise Beep()
+		node = self.get_current()
+		new_attr = self.model.set_attrib(node, new, a.value)
+		self.model.set_attrib(node, a.name, None)
+		self.move_to(node, new_attr)
 	
 	def add_attrib(self, UNUSED, name, value = ''):
 		node = self.get_current()

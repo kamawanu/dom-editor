@@ -16,7 +16,7 @@ def mode_prog_name(mode):
 		return 'Default mode'
 
 def import_sheet(doc):
-	print "Import!", doc
+	#print "Import!", doc
 
 	root = Program('XSLT')
 
@@ -53,7 +53,6 @@ def import_sheet(doc):
 
 	global s
 	s = sheet
-	print sheet
 
 	# sheet.matchTemplates is { mode -> { type -> { (ns, name) -> [match]     for elements
 	#                         		      { 	      [match]     otherwise
@@ -101,7 +100,7 @@ def import_sheet(doc):
 					loose_ends.append(op)
 		# Now add the built-in rules
 
-		print "Tidy", loose_ends
+		#print "Tidy", loose_ends
 
 		tests = add(tests, 'fail_if', 'text()')
 		op = Op(action = ['play', 'XSLT/DefaultText'])
@@ -133,13 +132,28 @@ def add(op, *action):
 def make_template(op, temp):
 	for child in temp.children:
 		if isinstance(child, XsltText):
-			print "Text node", child.data
+			#print "Text node", child.data
 			op = add(op, 'add_node', 'et', child.data)
 			op = add(op, 'move_left')
 
 		elif isinstance(child, LiteralElement):
-			print "Element", child._output_qname
+			#print "Element", child._output_qname
 			op = add(op, 'add_node', 'ee', child._output_qname)
+			for (qname, namespace, value) in child._output_attrs:
+				if len(value._parsedParts) != 1:
+					print "TODO: can't handle attrib", value
+				else:
+					xpath = `value._parsedParts[0]`
+					if value._plainParts:
+						# XXX: Do this propertly
+						xpath = 'concat("%s", %s)' % (value._plainParts[0], xpath)
+					print "XPath =", xpath
+					op = add(op, 'mark_switch')
+					op = add(op, 'xpath', xpath)
+					op = add(op, 'mark_switch')
+					op = add(op, 'add_attrib', None, qname)
+					op = add(op, 'put_replace')
+
 			op = make_template(op, child)
 			op = add(op, 'move_left')
 		elif isinstance(child, ApplyTemplatesElement):
@@ -150,7 +164,7 @@ def make_template(op, temp):
 			sub = add(sub, 'mark_switch')
 			# Ugly hack... global *|text() doesn't select in document order
 			if child._select:
-				sub = add(sub, 'do_global', `child._select`)
+				sub = add(sub, 'do_global', `child._select.expression`)
 			else:
 				sub = add(sub, 'select_children')
 			sub = add(sub, 'map', 'XSLT/' + mode_prog_name(child._mode))
@@ -160,7 +174,7 @@ def make_template(op, temp):
 			op = block
 		elif isinstance(child, ValueOfElement):
 			op = add(op, 'mark_switch')
-			op = add(op, 'xpath', `child._select`)
+			op = add(op, 'xpath', `child._select.expression`)
 			op = add(op, 'mark_switch')
 			op = add(op, 'put_as_child_end')
 			op = add(op, 'move_left')

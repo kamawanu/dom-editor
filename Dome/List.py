@@ -51,9 +51,9 @@ from Program import Program, load, Block
 no_cursor = g.gdk.Cursor(g.gdk.TCROSS)
 
 def trunc(text):
-	if len(text) < 18:
+	if len(text) < 28:
 		return text
-	return text[:16] + '...'
+	return text[:26] + '...'
 
 def connect(x1, y1, x2, y2):
 	"""Chop 5 pixels off both ends of this line"""
@@ -78,7 +78,7 @@ def action_to_text(action):
 	text = string.capitalize(string.replace(text, '_', ' '))
 	
 	if len(action) > 1:
-		if action[0] == 'do_search':
+		if action[0] == 'do_search' or action[0] == 'xpath':
 			pat = str(action[1])
 			pat = string.replace(pat, 'following-sibling::', '>>')
 			pat = string.replace(pat, 'preceding-sibling::', '<<')
@@ -89,7 +89,9 @@ def action_to_text(action):
 			while len(pat) > 20:
 				i = string.rfind(pat[:20], '/')
 				if i == -1:
-					i = 20
+					i = string.rfind(pat[:20], ':')
+					if i == -1:
+						i = 20
 				details = details + pat[:i + 1] + '\n'
 				pat = pat[i + 1:]
 			details = details + pat
@@ -114,7 +116,7 @@ def action_to_text(action):
 			else:
 				details = str(action[1])
 			if len(details) > 20:
-				details = `details`[:19] + '...'
+				details = trunc(`details`)
 		text = text + '\n' + details
 	return text
 
@@ -345,10 +347,10 @@ class ChainDisplay(canvas.Canvas):
 		self.switch_to(prog)
 	
 	def set_active(self, active):
-		if active:
-			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('#F7F7F7'))
-		elif mono:
+		if mono:
 			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('white'))
+		elif active:
+			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('#F7F7F7'))
 		else:
 			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('#FFC0C0'))
 	
