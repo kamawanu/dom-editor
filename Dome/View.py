@@ -67,6 +67,7 @@ record_again = [
 	"soap_send",
 	"show_canvas",
 	"show_html",
+	"select_dups",
 	"select_region",
 ]
 
@@ -1273,6 +1274,16 @@ class View:
 		self.model.lock(new)
 		self.root = new
 		self.move_to(self.root)
+	
+	def select_dups(self):
+		node = self.get_current()
+		select = []
+		for n in node.parentNode.childNodes:
+			if n is node:
+				continue
+			if same(node, n):
+				select.append(n)
+		self.move_to(select)
 	
 	def show_html(self):
 		from HTML import HTML

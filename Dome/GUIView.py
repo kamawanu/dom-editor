@@ -55,6 +55,7 @@ menu = Menu('Dome', 'main', [
 
 		('/Select', None, '<Branch>', ''),
 		('/Select/By XPath', 'menu_show_global', '', 'numbersign'),
+		('/Select/Duplicate siblings', 'do_select_dups', '', ''),
 
 		('/Network', None, '<Branch>', ''),
 		('/Network/HTTP suck', 'do_suck', '', '<Shift>asciicircum'),
@@ -435,6 +436,7 @@ class GUIView(Display):
 	do_leave = make_do('leave')
 	do_suck = make_do('suck')
 	do_soap_send = make_do('soap_send')
+	do_select_dups = make_do('select_dups')
 	do_paste_attribs = make_do('paste_attribs')
 	do_yank_value = make_do('yank_value')
 	do_delete_node = make_do('delete_node')
