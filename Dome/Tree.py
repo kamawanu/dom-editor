@@ -130,7 +130,10 @@ class Tree(GtkDrawingArea):
 		if bev.button == 1:
 			height = self.row_height
 			line = int((bev.y - self.vmargin) / height)
-			node = self.move_to(line)
+			def action(self, cur, line = line):
+				"Move"
+				node = self.move_to(line)
+			self.may_record(action)
 	
 	def move_to_node(self, node):
 		if node:
@@ -289,19 +292,20 @@ class Tree(GtkDrawingArea):
 		self.recording = None
 		self.window.update_title()
 	
-	def user_do_search(self, pattern):
+	def user_do_search(self, pattern, next = 0):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 	
-		def action(self, cur, path = path):
+		def action(self, cur, path = path, next = next):
 			"Search"
-			c = Context.Context(self.display_root,
-						[self.display_root])
+			c = Context.Context(cur, [cur])
 			rt = path.select(c)
-			if len(rt) > 0:
-				return rt[0]
-			else:
+			if len(rt) == 0:
 				raise Beep
+			for x in rt:
+				if self.node_to_line[x] > self.current_line:
+					return x
+			return rt[0]
 		
 		self.may_record(action)
 
