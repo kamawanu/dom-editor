@@ -81,16 +81,13 @@ class List(GtkVBox):
 
 		self.pack_start(self.tree, expand = 0, fill = 1)
 
-		hbox = GtkHBox()
-		self.pack_start(hbox, expand = 1, fill = 1)
-		hbox.pack_start(self.chains, 1, 1)
-		adj = self.chains.get_vadjustment()
-		adj.set_all(0, 0, 0, 10, 0, 0)
-		sb = GtkVScrollbar(adj)
-		hbox.pack_start(sb, 0, 1)
-		self.chains.connect('size-allocate', self.chain_resize, sb)
+		swin = GtkScrolledWindow()
+		swin.set_policy(POLICY_AUTOMATIC, POLICY_AUTOMATIC)
+		self.pack_start(swin, expand = 1, fill = 1)
+		swin.add(self.chains)
+		print self.chains.size_request()
+		swin.show_all()
 
-		self.chains.show()
 		self.tree.show()
 		self.view.lists.append(self)
 		self.view.model.root_program.watchers.append(self)
@@ -122,13 +119,6 @@ class List(GtkVBox):
 			return 0
 		idle_add(cb)
 	
-	def chain_resize(self, canvas, c, sb):
-		adj = canvas.get_vadjustment()
-		if adj.upper - adj.lower > adj.page_size:
-			sb.show()
-		else:
-			sb.hide()
-
 	def build_tree(self, tree, prog):
 		item = GtkTreeItem(prog.name)
 		item.connect('button-press-event', self.prog_event, prog)
@@ -327,6 +317,7 @@ class ChainDisplay(GnomeCanvas):
 						fill_color = c,
 						outline_color = 'black', width_pixels = 1)
 			setattr(self, point, item)
+			item.connect('event', self.line_event, op, exit)
 
 			if g:
 				(x1, y1) = g.i2w(0, 0)
@@ -521,13 +512,14 @@ class ChainDisplay(GnomeCanvas):
 					('Delete chain', del_chain),
 					('Paste chain', paste_chain)]
 				Menu(items).popup(event.button, event.time)
-		elif event.type == ENTER_NOTIFY:
-			item.set(fill_color = 'white')
-		elif event.type == LEAVE_NOTIFY:
-			if exit == 'next':
-				item.set(fill_color = 'black')
-			else:
-				item.set(fill_color = '#ff6666')
+		elif item != self.exec_point and item != self.rec_point:
+			if event.type == ENTER_NOTIFY:
+				item.set(fill_color = 'white')
+			elif event.type == LEAVE_NOTIFY:
+				if exit == 'next':
+					item.set(fill_color = 'black')
+				else:
+					item.set(fill_color = '#ff6666')
 	
 	def set_bounds(self):
 		min_x, min_y, max_x, max_y = self.root().get_bounds()
@@ -537,7 +529,7 @@ class ChainDisplay(GnomeCanvas):
 		max_y += 8
 		self.set_scroll_region(min_x, min_y, max_x, max_y)
 		self.root().move(0, 0) # Magic!
-		self.set_usize(max_x - min_x, -1)
+		#self.set_usize(max_x - min_x, -1)
 	
 	def canvas_to_world(self, (x, y)):
 		"Canvas routine seems to be broken..."
