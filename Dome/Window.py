@@ -73,19 +73,21 @@ class Window(GtkWindow):
 			reader = Html.Reader()
 			root = reader.fromUri(path)
 			ext.StripHtml(root)
-			self.uri = self.uri[:-5] + '.xml'
+			self.uri = path[:-5] + '.xml'
 			return html_to_xml(root)
 		else:
 			print "Reading XML..."
 			reader = PyExpat.Reader()
+			root = reader.fromUri(path)
 			strip_space(root)
-			self.uri = file
-			return reader.fromUri(path)
+			self.uri = path
+			return root
 
 	def load_file(self, file):
 		root = self.root_from_file(file)
 		self.tree.destroy()
 		self.set_root(root)
+		self.update_title()
 
 	def load_data(self, data):
 		report_error("Can only load files for now - sorry")
