@@ -9,7 +9,18 @@ import string
 from StringIO import StringIO
 import math
 
-#from Menu import Menu
+from rox.Menu import Menu
+
+prog_menu = Menu('programs', [
+		('/Play', 'menu_play', '', ''),
+		('/Map', 'menu_map', '', ''),
+		('/View', 'menu_view', '', ''),
+		('/', '', '', '<separator>'),
+		('/New program', 'menu_new_prog', '', ''),
+		('/Rename', 'menu_rename', '', ''),
+		('/Delete', 'menu_delete', '', ''),
+])
+
 #from GetArg import GetArg
 from Program import Program, load, Block
 
@@ -104,6 +115,7 @@ class List(g.VBox):
 
 		self.prog_model = g.TreeStore(str, str)
 		tree = g.TreeView(self.prog_model)
+		tree.connect('button-press-event', self.button_press)
 		tree.unset_flags(g.CAN_FOCUS)
 		tree.set_headers_visible(FALSE)
 
@@ -196,20 +208,22 @@ class List(g.VBox):
 			box.show()
 		print "List: execution done!"
 
-	def prog_event(self, item, event, prog):
+	def button_press(self, tree, event):
 		if event.button == 2 or event.button == 3:
-			item.emit_stop_by_name('button-press-event')
-			#item.select()
+			path, col, cx, cy = tree.get_path_at_pos(event.x, event.y)
+			print "Event on", path
+			iter = self.prog_model.get_iter(path)
+			path = self.prog_model.get_value(iter, 1)
 			if event.button == 3:
+				prog = self.view.name_to_prog(path)
 				self.show_menu(event, prog)
 			else:
-				name = prog.get_path()
 				self.view.run_new(self.run_return)
-				if event.state & SHIFT_MASK:
-					self.view.may_record(['map', name])
+				if event.state & g.gdk.SHIFT_MASK:
+					self.view.may_record(['map', path])
 				else:
-					self.view.may_record(['play', name])
-		return 1
+					self.view.may_record(['play', path])
+		return 0
 	
 	def show_menu(self, event, prog):
 		def del_prog(self = self, prog = prog):
@@ -246,17 +260,7 @@ class List(g.VBox):
 				print "closed"
 			cw.connect('destroy', lost_cw)
 			
-		items = [
-			('Play', do('play')),
-			('Map', do('map')),
-			('View', new_view),
-			(None, None),
-			('New program', new_prog),
-			('Rename', rename_prog),
-			('Delete', dp),
-			]
-		menu = Menu(items)
-		menu.popup(event.button, event.time)
+		prog_menu.popup(self, event)
 
 	def update_stack(self, op):
 		"The stack has changed - redraw 'op'"
@@ -445,7 +449,7 @@ class ChainDisplay(canvas.Canvas):
 		if isinstance(op, Block):
 			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
 			self.create_node(op.start, gr)
-			self.update_now()	# GnomeCanvas bug?
+			#self.update_now()	# GnomeCanvas bug?
 			(lx, ly, hx, hy) = gr.get_bounds()
 			minx = lx - 4
 			if op.foreach:
@@ -501,7 +505,7 @@ class ChainDisplay(canvas.Canvas):
 							fill_color = text_col,
 							text = text)
 
-				self.update_now()	# GnomeCanvas bug?
+				#self.update_now()	# GnomeCanvas bug?
 				(lx, ly, hx, hy) = label.get_bounds()
 				next_off_y = hy
 			else:
@@ -512,7 +516,7 @@ class ChainDisplay(canvas.Canvas):
 			sx, sy = self.get_arrow_start(op, 'next')
 			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
 			self.create_node(op.next, gr)
-			self.update_now()	# GnomeCanvas bug?
+			#self.update_now()	# GnomeCanvas bug?
 			(lx, ly, hx, hy) = gr.get_bounds()
 			drop = max(20, next_off_y + 10)
 			y = drop - ly
@@ -539,7 +543,7 @@ class ChainDisplay(canvas.Canvas):
 			y = 46
 			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
 			self.create_node(op.fail, gr)
-			self.update_now()	# GnomeCanvas bug?
+			#self.update_now()	# GnomeCanvas bug?
 			(lx, ly, hx, hy) = gr.get_bounds()
 			x = 20 - lx
 			fail = op.fail
@@ -881,7 +885,7 @@ class ChainDisplay(canvas.Canvas):
 		return (x1, y1, x2, y2)
 	
 	def set_bounds(self):
-		self.update_now()	# GnomeCanvas bug?
+		#self.update_now()	# GnomeCanvas bug?
 		min_x, min_y, max_x, max_y = self.root().get_bounds()
 		min_x -= 8
 		max_x += 8

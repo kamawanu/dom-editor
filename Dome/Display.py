@@ -79,7 +79,7 @@ class Display(canvas.Canvas):
 		w -= m * 2 + 1
 		h -= m * 2 + 1
 
-		self.update_now()	# GnomeCanvas bug?
+		#self.update_now()	# GnomeCanvas bug?
 		min_x, min_y, max_x, max_y = self.root().get_bounds()
 		if max_x - min_x < w:
 			max_x = min_x + w
@@ -213,7 +213,7 @@ class Display(canvas.Canvas):
 					text = "%s=%s" % (str(attrib.name), str(attrib.value)))
 		group.connect('event', self.attrib_event, parent, attrib)
 
-		self.update_now()	# GnomeCanvas bug?
+		#self.update_now()	# GnomeCanvas bug?
 		(lx, ly, hx, hy) = group.text.get_bounds()
 		group.rect = group.add(canvas.CanvasRect,
 					x1 = lx - 1, y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
@@ -251,7 +251,7 @@ class Display(canvas.Canvas):
 					fill_color = 'black', text = text)
 		self.node_to_group[node] = group
 
-		self.update_now()	# GnomeCanvas bug?
+		#self.update_now()	# GnomeCanvas bug?
 		(lx, ly, hx, hy) = group.text.get_bounds()
 		group.rect = group.add(canvas.CanvasRect,
 					x1 = -8 , y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
@@ -279,7 +279,7 @@ class Display(canvas.Canvas):
 					a = node.attributes[key]
 					gr = group.add(canvas.CanvasGroup, x = ax, y = ay)
 					self.create_attribs(a, gr, cramped, node)
-					self.update_now()	# GnomeCanvas bug?
+					#self.update_now()	# GnomeCanvas bug?
 					(alx, aly, ahx, ahy) = gr.get_bounds()
 					if acramped:
 						ay = ahy + 8
@@ -326,7 +326,7 @@ class Display(canvas.Canvas):
 			top = None
 			for gr in kids:
 				gr.set(x = 0, y = 0)
-				self.update_now()	# GnomeCanvas bug?
+				#self.update_now()	# GnomeCanvas bug?
 				(lx, ly, hx, hy) = gr.get_bounds()
 				y -= ly
 				lowest_child = y
@@ -354,7 +354,7 @@ class Display(canvas.Canvas):
 			x = indent
 			for gr in kids:
 				gr.set(x = 0, y = 0)
-				self.update_now()	# GnomeCanvas bug?
+				#self.update_now()	# GnomeCanvas bug?
 				(lx, ly, hx, hy) = gr.get_bounds()
 				x -= lx
 				gr.set(x = x, y = y - ly)
@@ -492,7 +492,7 @@ class Display(canvas.Canvas):
 			group = self.node_to_group[node]
 		except KeyError:
 			return
-		self.update_now()	# GnomeCanvas bug?
+		#self.update_now()	# GnomeCanvas bug?
 		(lx, ly, hx, hy) = group.rect.get_bounds()
 		x, y = self.world_to_canvas(group.i2w(0, 0))
 		lx += x
