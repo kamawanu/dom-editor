@@ -6,7 +6,14 @@ from Ft.Xml.Xslt.StylesheetTree import XsltElement, XsltText
 from Ft.Xml.Xslt.LiteralElement import LiteralElement
 from Ft.Xml.Xslt.ApplyTemplatesElement import ApplyTemplatesElement
 from Ft.Xml.Xslt.ValueOfElement import ValueOfElement
+from Ft.Xml.Xslt.CopyElement import CopyElement
 from Program import Program, Op, Block
+
+def mode_prog_name(mode):
+	if mode:
+		return 'Mode:' + mode[1]
+	else:
+		return 'Default mode'
 
 def import_sheet(doc):
 	print "Import!", doc
@@ -62,10 +69,7 @@ def import_sheet(doc):
 	i = 1
 
 	for mode in sheet.matchTemplates.keys():
-		if mode:
-			mode_name = 'Mode:' + mode[1]
-		else:
-			mode_name = 'Default mode'
+		mode_name = mode_prog_name(mode)
 		prog = Program(mode_name)
 		root.add_sub(prog)
 		tests = prog.code.start
@@ -143,15 +147,13 @@ def make_template(op, temp):
 			block.toggle_restore()
 			sub = block.start
 
-			if child._select:
-				match = `child._select`
-			else:
-				match = '*|text()'
-
-			print "MATCH:", match
 			sub = add(sub, 'mark_switch')
-			sub = add(sub, 'do_global', match)
-			sub = add(sub, 'map', 'XSLT/Default mode')
+			# Ugly hack... global *|text() doesn't select in document order
+			if child._select:
+				sub = add(sub, 'do_global', `child._select`)
+			else:
+				sub = add(sub, 'select_children')
+			sub = add(sub, 'map', 'XSLT/' + mode_prog_name(child._mode))
 			sub = add(sub, 'mark_switch')
 
 			op.link_to(block, 'next')
@@ -161,6 +163,13 @@ def make_template(op, temp):
 			op = add(op, 'xpath', `child._select`)
 			op = add(op, 'mark_switch')
 			op = add(op, 'put_as_child_end')
+			op = add(op, 'move_left')
+		elif isinstance(child, CopyElement):
+			op = add(op, 'mark_switch')
+			op = add(op, 'shallow_yank')
+			op = add(op, 'mark_switch')
+			op = add(op, 'put_as_child_end')
+			op = make_template(op, child)
 			op = add(op, 'move_left')
 		else:
 			print "Unknown template type", child, "(%s)" % child.__class__

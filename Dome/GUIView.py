@@ -61,6 +61,7 @@ menu = Menu('main', [
 		('/Select/By XPath', 'menu_show_global', '', 'numbersign'),
 		('/Select/Duplicate Siblings', 'do_select_dups', '', ''),
 		('/Select/To Mark', 'do_select_marked', '', 'minus'),
+		('/Select/Child Nodes', 'do_select_children', '', 'asterisk'),
 
 		('/Mark', None, '<Branch>', ''),
 		('/Mark/Mark Selection', 'do_mark_selection', '', 'm'),
@@ -528,6 +529,7 @@ class GUIView(Display, XDSLoader):
 	do_mark_switch = make_do('mark_switch')
 	do_mark_selection = make_do('mark_selection')
 	do_select_marked = make_do('select_marked_region')
+	do_select_children = make_do('select_children')
 
 	move_home = make_do('move_home')
 	move_end = make_do('move_end')

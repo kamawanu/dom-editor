@@ -80,6 +80,7 @@ def to_html(data):
 # These actions can be repeated using '.'
 record_again = [
 	"do_global",
+	"select_children",
 	"subst",
 	"python",
 	"xpath",
@@ -639,11 +640,18 @@ class View:
 		assert type(nodes) == list
 
 		#don't select the document itself!
-		for n in nodes: assert n.parentNode
+		#Also, don't select attributes (needed for XSLT stuff)
+		nodes = [n for n in nodes if n.parentNode]
 		
 		#nodes = XPath.Evaluate(self.macro_pattern(pattern), contextNode = self.get_current())
 		#print "Found", nodes
 		self.move_to(nodes)
+	
+	def select_children(self):
+		new = []
+		for n in self.current_nodes:
+			new.extend(n.childNodes)
+		self.move_to(new)
 
 	def select_region(self, path, ns = None):
 		if len(self.current_nodes) == 0:
