@@ -487,12 +487,6 @@ class View:
 		new = self.clipboard.cloneNode(deep = 1)
 		self.model.insert_after(node, new)
 	
-	def no(self):
-		try:
-			self.model.insert_after(node, new)
-		except:
-			raise Beep
-
 	def put_replace(self):
 		node = self.current
 		if self.clipboard == None:
@@ -577,3 +571,9 @@ class View:
 		elif not self.current.hasAttribute(attrib):
 			raise Beep
 		self.move_to(self.current, attrib)
+	
+	def set_attrib(self, new):
+		if not self.current_attrib:
+			raise Beep
+		name, value = string.split(new, '=', 1)
+		self.model.set_attrib(self.current, name, value)

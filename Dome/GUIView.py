@@ -123,59 +123,88 @@ class GUIView(Display):
 		GetArg('Substitute:', do_subst, ('Replace:', 'With:'))
 	
 	def move_from(self, old = []):
-		self.show_editbox(None)
+		self.hide_editbox()
 		Display.move_from(self, old)
 	
-	def show_editbox(self, node):
-		"Move the cursor 'index' within the text of 'node'"
+	def hide_editbox(self):
 		if self.cursor_node:
 			group = self.node_to_group[self.cursor_node]
-			group.text.show()
+			self.cursor_hidden_text.show()
 			self.hightlight(group, self.cursor_node in self.view.current_nodes)
 			self.cursor_node = None
-
 			self.edit_box_item.destroy()
-		if node:
-			group = self.node_to_group[node]
-			self.cursor_node = node
-			group.text.hide()
-			self.hightlight(group, FALSE)
 
-			lx, ly, hx, hy = group.text.get_bounds()
-			x, y = group.i2w(lx, ly)
+	def show_editbox(self):
+		"Edit the current node/attribute"
+		if self.cursor_node:
+			self.hide_editbox()
+		node = self.view.current
 
-			eb = GtkText()
-			self.edit_box = eb
-			m = 3
-			self.edit_box_item = self.root().add('widget', widget = eb,
-							x = x - m, y = y - m,
-							anchor = ANCHOR_NW)
-			s = eb.get_style().copy()
-			s.font = load_font('fixed')
-			eb.set_style(s)
+		group = self.node_to_group[node]
+		self.cursor_node = node
+		self.cursor_attrib = self.view.current_attrib
 
-			eb.set_editable(TRUE)
-			if node.nodeType == Node.ELEMENT_NODE:
-				text = node.nodeName
-			else:
-				text = node.nodeValue
-			eb.insert_defaults(text)
-			eb.connect('changed', self.eb_changed)
-			eb.connect('key_press_event', self.eb_key)
-			eb.set_line_wrap(FALSE)
-			self.size_eb()
-			eb.grab_focus()
-			eb.show()
+		self.hightlight(group, FALSE)
+
+		if self.cursor_attrib:
+			group = group.attrib_to_group[self.cursor_attrib]
+
+		self.cursor_hidden_text = group.text
+		group.text.hide()
+			
+		lx, ly, hx, hy = group.text.get_bounds()
+		x, y = group.i2w(lx, ly)
+
+		eb = GtkText()
+		self.edit_box = eb
+		m = 3
+		self.edit_box_item = self.root().add('widget', widget = eb,
+						x = x - m, y = y - m,
+						anchor = ANCHOR_NW)
+		s = eb.get_style().copy()
+		s.font = load_font('fixed')
+		eb.set_style(s)
+
+		eb.set_editable(TRUE)
+		eb.insert_defaults(self.get_edit_text())
+		eb.connect('changed', self.eb_changed)
+		eb.connect('key_press_event', self.eb_key)
+		eb.set_line_wrap(FALSE)
+		self.size_eb()
+		eb.grab_focus()
+		eb.show()
+	
+	def get_edit_text(self):
+		node = self.cursor_node
+		if node.nodeType == Node.ELEMENT_NODE:
+			if self.cursor_attrib:
+				a = node.getAttributeNode(self.cursor_attrib)
+				return "%s=%s" % (str(a.name), str(a.value))
+			return node.nodeName
+		else:
+			return node.nodeValue
 	
 	def eb_key(self, eb, kev):
 		key = kev.keyval
+		if key == KP_Enter:
+			key = Return
 		if key == Escape:
-			self.show_editbox(None)
-		elif key == Tab:
+			self.hide_editbox()
+		elif key == Return and kev.state & CONTROL_MASK:
+			eb.insert_defaults('\n')
+			self.size_eb()
+		elif key == Tab or key == Return:
 			text = eb.get_chars(0, -1)
-			self.view.may_record(['change_node', text])
-			self.show_editbox(None)
+			if text != self.get_edit_text():
+				self.commit_edit(text)
+			self.hide_editbox()
 		return 1
+
+	def commit_edit(self, new):
+		if self.cursor_attrib:
+			self.view.may_record(['set_attrib', new])
+		else:
+			self.view.may_record(['change_node', new])
 	
 	def eb_changed(self, eb):
 		self.size_eb()
@@ -198,9 +227,9 @@ class GUIView(Display):
 
 	def toggle_edit(self):
 		if self.cursor_node:
-			self.show_editbox(None)
+			self.hide_editbox()
 		else:
-			self.show_editbox(self.view.current)
+			self.show_editbox()
 
 	def show_del_attrib(self):
 		def do_attrib(attrib, self = self):
@@ -333,6 +362,7 @@ class GUIView(Display):
 		ord('^'): ["suck"],
 
 		Tab	: toggle_edit,
+		Return	: toggle_edit,
 		at	: show_attrib,
 		exclam	: show_pipe,
 		s	: show_subst,
