@@ -2,6 +2,8 @@ from gtk import *
 from GDK import *
 from xml.dom.Node import Node
 
+from support import report_exception
+
 from Display import Display
 from View import Beep
 from Menu import Menu
@@ -15,8 +17,38 @@ class GUIView(Display):
 		Display.__init__(self, model)
 		self.window = window
 		self.connect('button-press-event', self.button_event)
+		window.connect('key-press-event', self.key_press)
 		self.set_events(BUTTON_PRESS_MASK)
 		self.set_flags(CAN_FOCUS)
+
+	def key_press(self, widget, kev):
+		try:
+			stop = self.handle_key(kev)
+		except:
+			report_exception()
+			stop = 1
+		if stop:
+			widget.emit_stop_by_name('key-press-event')
+		return stop
+
+	def handle_key(self, kev):
+		key = kev.keyval
+
+		if key == F3 or key == Return:
+			return 0
+
+		try:
+			action = self.key_to_action[key]
+		except KeyError:
+			return 0
+
+		if callable(action):
+			# Need to popup a dialog box, etc rather then perform an action
+			action(self)
+			return 1
+
+		self.may_record(action)
+		return 1
 	
 	def button_event(self, widget, bev):
 		if bev.type != BUTTON_PRESS:
@@ -97,3 +129,55 @@ class GUIView(Display):
 			action = ["do_search", pattern]
 			self.may_record(action)
 		GetArg('Search for:', do_search, ['Pattern:'])
+
+	key_to_action = {
+		# Motions
+		Up	: ["move_prev_sib"],
+		Down	: ["move_next_sib"],
+		Left	: ["move_left"],
+		Right	: ["move_right"],
+		
+		#Home	: ["move_home"],
+		#End	: ["move_end"],
+		
+		#greater	: ["chroot"],
+		#less	: ["unchroot"],
+		
+		#Prior	: ["move_prev_sib"],
+		#Next	: ["move_next_sib"],
+
+		slash	: show_search,
+		#n	: ["search_next"],
+
+		# Interaction
+
+		question: show_ask,
+
+		# Changes
+		#I	: insert_element,
+		#A	: append_element,
+		#O	: open_element,
+		
+		#i	: insert_text,
+		#a	: append_text,
+		#o	: open_text,
+
+		#y	: ["yank"],
+		#P	: ["put_before"],
+		#p	: ["put_after"],
+		#bracketright : ["put_as_child"],
+		#R	: ["put_replace"],
+
+		#ord('^'): ["suck"],
+
+		#Tab	: edit_node,
+		exclam	: show_pipe,
+		s	: show_subst,
+
+		#x	: ["delete_node"],
+		#X	: ["delete_prev_sib"],
+
+		# Undo/redo
+		#u	: ["undo"],
+		#r	: ["redo"],
+	}

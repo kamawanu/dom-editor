@@ -41,6 +41,28 @@ class View:
 
 		self.current = node
 	
+	def move_prev_sib(self):
+		if self.current == self.root or not self.current.previousSibling:
+			raise Beep
+		self.move_to(self.current.previousSibling)
+	
+	def move_next_sib(self):
+		if self.current == self.root or not self.current.nextSibling:
+			raise Beep
+		self.move_to(self.current.nextSibling)
+	
+	def move_left(self):
+		if self.current == self.root:
+			raise Beep
+		self.move_to(self.current.parentNode)
+	
+	def move_right(self):
+		kids = self.current.childNodes
+		if kids:
+			self.move_to(kids[0])
+		else:
+			raise Beep
+	
 	def enter(self):
 		"Change the display root to the current node."
 		n = 0

@@ -29,7 +29,7 @@ class GetArg(GtkWindow):
 		self.args = []
 
 		for a in args:
-			hbox = GtkHBox(FALSE, 0)
+			hbox = GtkHBox(FALSE, 4)
 			hbox.pack_start(GtkLabel(a), FALSE, TRUE, 0)
 			arg = GtkEntry()
 			hbox.pack_start(arg, TRUE, TRUE, 0)

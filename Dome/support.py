@@ -1,5 +1,5 @@
 import sys
-from traceback import format_exception_only
+import traceback
 from xml.dom import implementation
 
 from string import find, lower, join
@@ -190,7 +190,11 @@ def report_error(message, title = 'Error'):
 	return get_choice(message, title, ['OK'])
 
 def report_exception():
-	ex = format_exception_only(sys.exc_type, sys.exc_value)
+	type, val, tb = sys.exc_info()
+	list = traceback.extract_tb(tb)
+	stack = traceback.format_list(list[-2:])
+	ex = traceback.format_exception_only(type, val) + ['\n\n'] + stack
+	traceback.print_exception(type, val, tb)
 	report_error(join(ex, ''))
 
 def send_to_file(data, path):
