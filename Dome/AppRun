@@ -2,10 +2,17 @@
 # vi: set syntax=python : */
 
 import gc
-show_leaks = False
 
 import findrox; findrox.version(1, 9, 8)
 import rox
+
+try:
+	bool
+except:
+	# Python 2.2
+	__builtins__.bool = lambda x: not not x
+
+show_leaks = False
 
 #rox.setup_app_options('Dome')
 
