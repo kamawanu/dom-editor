@@ -406,7 +406,7 @@ class View:
 
 	def change_node(self, new_data):
 		node = self.current
-		if node.nodeType == Node.TEXT_NODE:
+		if node.nodeType == Node.TEXT_NODE or node.nodeType == Node.COMMENT_NODE:
 			self.model.set_data(node, new_data)
 		else:
 			self.model.set_name(node, new_data)

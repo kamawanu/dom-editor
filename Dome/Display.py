@@ -83,10 +83,18 @@ class Display(GnomeCanvas):
 		self.root_group = self.root().add('group', x = 0, y = 0)
 		self.node_to_group = {}
 		self.create_tree(self.view.root, self.root_group)
+		self.unhighlight(self.view.root)
+		self.move_from()
 		self.set_bounds()
 		if self.view.current_nodes:
 			self.scroll_to_show(self.view.current_nodes[0])
 		return 0
+	
+	def unhighlight(self, node):
+		"After creating the tree, everything is highlighted..."
+		self.hightlight(self.node_to_group[node], node in self.view.current_nodes)
+		for k in node.childNodes:
+			self.unhighlight(k)
 	
 	def destroyed(self, widget):
 		self.view.remove_display(self)
@@ -119,7 +127,7 @@ class Display(GnomeCanvas):
 					x1 = lx - 1, y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
 					fill_color = 'blue')
 		group.rect.lower_to_bottom()
-		self.hilight(group, node in self.view.current_nodes)
+		group.rect.hide()
 
 		hbox = node.nodeName == 'TR'
 		if hbox:
@@ -189,7 +197,7 @@ class Display(GnomeCanvas):
 		elif node.nodeType == Node.ELEMENT_NODE:
 			return node.nodeName
 		elif node.nodeType == Node.COMMENT_NODE:
-			return node.nodeValue
+			return string.strip(node.nodeValue)
 		elif node.nodeName:
 			return node.nodeName
 		elif node.nodeValue:
@@ -226,14 +234,14 @@ class Display(GnomeCanvas):
 	def attrib_clicked(self, element, attrib, event):
 		return
 	
-	def move_from(self, old):
+	def move_from(self, old = []):
 		self.set_current_attrib(self.view.current_attrib)
 
 		new = self.view.current_nodes
 		for n in old:
 			if n not in new:
 				try:
-					self.hilight(self.node_to_group[n], FALSE)
+					self.hightlight(self.node_to_group[n], FALSE)
 				except KeyError:
 					pass
 		if self.update_timeout:
@@ -244,7 +252,7 @@ class Display(GnomeCanvas):
 		for n in new:
 			if n not in old:
 				try:
-					self.hilight(self.node_to_group[n], TRUE)
+					self.hightlight(self.node_to_group[n], TRUE)
 				except KeyError:
 					pass
 
@@ -258,7 +266,7 @@ class Display(GnomeCanvas):
 			group.text.set(fill_color = 'red')
 			self.current_attrib = group
 
-	def hilight(self, group, state):
+	def hightlight(self, group, state):
 		node = group.node
 		if state:
 			group.rect.show()
@@ -274,16 +282,18 @@ class Display(GnomeCanvas):
 			else:
 				group.text.set(fill_color = 'red')
 
+	def world_to_canvas(self, (x, y)):
+		"Canvas routine seems to be broken..."
+		mx, my, maxx, maxy = self.get_scroll_region()
+		return (x - mx, y - my)
+		
 	def scroll_to_show(self, node):
 		try:
 			group = self.node_to_group[node]
 		except KeyError:
 			return
 		(lx, ly, hx, hy) = group.rect.get_bounds()
-		x, y = group.i2w(0, 0)
-		mx, my, maxx, maxy = self.get_scroll_region()
-		x -= mx
-		y -= my
+		x, y = self.world_to_canvas(group.i2w(0, 0))
 		lx += x
 		ly += y
 		hx += x

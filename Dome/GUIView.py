@@ -1,6 +1,7 @@
 from gtk import *
 from GDK import *
 from xml.dom.Node import Node
+import string
 
 from support import report_exception
 
@@ -16,6 +17,7 @@ class GUIView(Display):
 	def __init__(self, window, view):
 		Display.__init__(self, window, view)
 		window.connect('key-press-event', self.key_press)
+		self.cursor_node = None
 
 	def key_press(self, widget, kev):
 		try:
@@ -30,7 +32,11 @@ class GUIView(Display):
 	def handle_key(self, kev):
 		key = kev.keyval
 
-		if key == F3 or key == Return:
+		if self.cursor_node:
+			self.cursor_editing(key)
+			return 1
+
+		if key == F3:
 			return 0
 
 		try:
@@ -45,6 +51,41 @@ class GUIView(Display):
 
 		self.view.may_record(action)
 		return 1
+
+	def cursor_editing(self, key):
+		new = None
+		i = self.cursor_index
+
+		if key == Left and i > 0:
+			i -= 1
+		elif key == Right:
+			i += 1
+		elif key == Home:
+			i = 0
+		elif key == End:
+			i = -1
+		elif key == Escape:
+			self.show_cursor(None)
+			return
+		elif key == Tab or key == Return:
+			if str(self.get_text(self.cursor_node)) != self.cursor_text:
+				self.view.may_record(["change_node", self.cursor_text])
+			self.show_cursor(None)
+			return
+		elif key == BackSpace and i > 0:
+			new = self.cursor_text[:i - 1] + self.cursor_text[i:]
+			i -= 1
+		else:
+			try:
+				c = chr(key)
+			except:
+				return
+			new = self.cursor_text[:i] + c + self.cursor_text[i:]
+			i += 1
+		if new != None:
+			self.set_cursor_text(new)
+		if i != self.cursor_index:
+			self.move_cursor(i)
 	
 	def node_clicked(self, node, bev):
 		if node:
@@ -117,9 +158,64 @@ class GUIView(Display):
 			action = ["subst", args[0], args[1]]
 			self.view.may_record(action)
 		GetArg('Substitute:', do_subst, ('Replace:', 'With:'))
+	
+	def move_from(self, old = []):
+		self.show_cursor(None)
+		Display.move_from(self, old)
+	
+	def set_cursor_text(self, new):
+		new = str(new)
+		self.cursor_text = new
+		self.cursor.text.set(text = new)
+		lx, ly, hx, hy = self.cursor.text.get_bounds()
+		self.cursor.rect.set(x1 = lx - 3, x2 = hx + 3, y1 = ly - 3, y2 = hy + 3)
+	
+	def move_cursor(self, index):
+		if not self.cursor_node:
+			raise Exception('move_cursor: Not in cursor editing mode!')
+		if index < 0:
+			index += len(self.cursor_text) + 1
+		elif index > len(self.cursor_text):
+			index = len(self.cursor_text)
+		self.cursor_index = index
+		font = load_font('fixed')
+		t = self.cursor_text[:index]
+		if t[-1:] == ' ':
+			t += ' '			# ?!?
+		x = font.measure(t)
+		self.cursor.line.set(points = (x, 0, x, self.cursor_height))
+	
+	def show_cursor(self, node, index = 0):
+		"Move the cursor 'index' within the text of 'node'"
+		if self.cursor_node:
+			group = self.node_to_group[self.cursor_node]
+			group.text.show()
+			self.cursor.destroy()
+			self.hightlight(group, self.cursor_node in self.view.current_nodes)
+			self.cursor_node = None
+		if node:
+			self.cursor_text = self.get_text(node)
+			self.cursor_node = node
+			group = self.node_to_group[node]
+			self.hightlight(group, FALSE)
+			group.text.hide()
+			lx, ly, hx, hy = group.text.get_bounds()
+			x, y = group.i2w(lx, ly)
+			self.cursor_height = hy - ly
+			self.cursor = self.root().add('group', x = x, y = y)
+			self.cursor.rect = self.cursor.add('rect', fill_color = 'white',
+							outline_color = 'black', width_pixels = 1)
+			self.cursor.line = self.cursor.add('line', fill_color = 'red', width_pixels = 2)
+			self.cursor.text = self.cursor.add('text', x = 0, y = 0, anchor = ANCHOR_NW,
+							fill_color = 'black', font = 'fixed')
+			self.set_cursor_text(self.get_text(node))
+			self.move_cursor(index)
 
-	def show_edit(self):
-		edit_node(self, self.view.current)
+	def toggle_edit(self):
+		if self.cursor_node:
+			self.show_cursor(None)
+		else:
+			self.show_cursor(self.view.current, -1)
 
 	def show_del_attrib(self):
 		def do_attrib(attrib, self = self):
@@ -251,7 +347,7 @@ class GUIView(Display):
 
 		ord('^'): ["suck"],
 
-		Tab	: show_edit,
+		Tab	: toggle_edit,
 		at	: show_attrib,
 		exclam	: show_pipe,
 		s	: show_subst,
