@@ -148,6 +148,7 @@ def make_template(op, temp):
 			sub = add(sub, 'mark_switch')
 
 			op.link_to(block, 'next')
+			op = block
 		else:
 			print "Unknown template type", child, "(%s)" % child.__class__
 	return op
