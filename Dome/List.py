@@ -85,7 +85,7 @@ def action_to_text(action):
 		text = 'Select nodes'
 	
 	if len(action) > 1:
-		if action[0] == 'do_search' or action[0] == 'xpath':
+		if action[0] in ('do_search', 'xpath', 'move_selection'):
 			pat = str(action[1])
 			pat = string.replace(pat, 'following-sibling::', '>>')
 			pat = string.replace(pat, 'preceding-sibling::', '<<')
@@ -400,10 +400,10 @@ class ChainOp(ChainNode):
 
 		w.draw_arc(da.style.white_gc, True, self.x, self.y, 10, 10, 0, 400 * 60)
 		w.draw_arc(da.style.black_gc, False, self.x, self.y, 10, 10, 0, 400 * 60)
-		w.draw_layout(da.style.black_gc, self.x + 12, self.y, self.layout)
+		w.draw_layout(da.style.black_gc, self.x + 12, self.y - 2, self.layout)
 	
 		self.draw_link(self.next, 5, 10, 'black')
-		self.draw_link(self.fail, 5, 14, 'red')
+		self.draw_link(self.fail, 5, 12, 'red')
 
 		if (op, 'next') in self.da.view.breakpoints:
 			w.draw_arc(da.style.black_gc, True,

@@ -1286,6 +1286,8 @@ class View:
 			request = self.request_from_node(x, attrib)
 			try:
 				new = self.suck_node(x, request, md5_only = md5_only)
+				if not new:
+					raise Beep
 				final.append(new)
 			finally:
 				self.move_to(x)
@@ -1299,6 +1301,7 @@ class View:
 		sucked data."""
 		uri = request.get_full_url()
 		self.set_status("Fetching %s (connecting)..." % uri)
+		new = None
 		try:
 			if uri.startswith('file:///'):
 				assert not request.has_data()

@@ -30,6 +30,14 @@ def calc_node(display, node, pos):
 		text = ' %s=%s' % (unicode(text), unicode(node.value))
 	elif node.nodeType == Node.COMMENT_NODE:
 		text = node.nodeValue.strip()
+	elif node.nodeType == Node.DOCUMENT_NODE:
+		chroots = len(display.view.chroots)
+		if chroots > 1:
+			text = "subtree (%d levels)" % chroots
+		elif chroots == 1:
+			text = 'subtree (one level)'
+		else:
+			text = display.view.model.uri
 	elif node.nodeName:
 		text = node.nodeName
 	elif node.nodeValue:
@@ -55,8 +63,15 @@ def calc_node(display, node, pos):
 
 		if node.nodeType != Node.ATTRIBUTE_NODE:
 			marker = True
-			surface.draw_rectangle(fg[g.STATE_NORMAL], True,
-						x, y, 8, height - 1)
+			if node.nodeType == Node.ELEMENT_NODE:
+				surface.draw_rectangle(fg[g.STATE_NORMAL], True,
+							x, y, 8, height - 1)
+			elif node.nodeType == Node.DOCUMENT_NODE:
+				surface.draw_rectangle(fg[g.STATE_NORMAL], False,
+							x + 2, y + height / 2 - 2, 4, 4)
+				marker = False
+			else:
+				surface.draw_rectangle(bg[g.STATE_NORMAL], True, x, y, 8, height - 1)
 			if node in display.view.model.hidden:
 				surface.draw_layout(fg[g.STATE_PRELIGHT], text_x + width + 2, y,
 					display.create_pango_layout('(%s)' % display.view.model.hidden[node]))
