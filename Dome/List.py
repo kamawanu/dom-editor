@@ -424,8 +424,8 @@ class ChainDisplay(GnomeCanvas):
 			self.create_node(op.fail, g)
 			(lx, ly, hx, hy) = g.get_bounds()
 			x = 20 - lx
-			x += op.next.dx
-			y += op.next.dy
+			x += op.fail.dx
+			y += op.fail.dy
 			g.move(x, y)
 		group.fail_line = group.add('line',
 					fill_color = '#ff6666',
