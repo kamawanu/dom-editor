@@ -658,7 +658,10 @@ class ChainDisplay(GnomeCanvas):
 			# Too far... put the line back to the disconnected state...
 			self.join_nodes(src_op, exit)
 			return
-		src_op.link_to(node, exit)
+		try:
+			src_op.link_to(node, exit)
+		finally:
+			self.update_all()
 
 	def line_event(self, item, event, op, exit):
 		# Item may be rec_point or exec_point...

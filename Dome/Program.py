@@ -241,8 +241,13 @@ class Op:
 	
 	def link_to(self, child, exit):
 		# Create a link from this exit to this child Op
+		# Can't link both exits to the same node (bad for tree-walking code in List)
 		assert self.action[0] != 'Start' or exit == 'next'
 		assert child.action[0] != 'Start'
+
+		if (exit == 'next' and self.fail == child) or \
+		   (exit == 'fail' and self.next == child):
+			raise Exception("Can't link both exits (of %s) to the same node!" % self)
 
 		#print "Link %s:%s -> %s" % (self, exit, child)
 		
@@ -320,7 +325,7 @@ class Op:
 				exit = 'fail'
 
 		# Remove all links to us
-		for p in self.prev:
+		for p in self.prev[:]:
 			if p.next == self:
 				p.unlink('next')
 			if p.fail == self:
