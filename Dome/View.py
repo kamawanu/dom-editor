@@ -1298,86 +1298,44 @@ class View:
 		"""Load the resource specified by request and replace 'node' with the
 		sucked data."""
 		uri = request.get_full_url()
-		if uri.startswith('file:///'):
-			print "Loading", uri
-
-			assert not request.has_data()
-			stream = open(uri[7:])
-			# (could read the mod time here...)
-			last_mod = None
-		else:
-			print "Sucking", uri
-
-			if request.has_data():
-				print "POSTING", request.get_data()
-			stream = urllib2.urlopen(request)
-			headers = stream.info().headers
-			last_mod = None
-			for x in headers:
-				if x.lower().startswith('last-modified:'):
-					last_mod = x[14:].strip()
-					break
-		
-		current_last_mod = node.getAttributeNS(None, 'last-modified')
-		if current_last_mod and last_mod:
-			if current_last_mod == last_mod:
-				self.model.set_attrib(node, 'modified', None)
-				print "not modified => not sucking!\n"
-				return node
-
-		print "Fetching page contents..."
-		data = stream.read()
-		print "got data... tidying..."
-
-		if data.startswith('<?xml'):
-			pass
-		else:
-			data = support.to_html_doc(data)
-			#print "Converted to", data
-		
-		old_md5 = node.getAttributeNS(None, 'md5_sum')
-		
-		import md5
-		new_md5 = md5.new(data).hexdigest()
-		
-		if old_md5 and new_md5 == old_md5:
-			self.model.set_attrib(node, 'modified', None)
-			print "MD5 sums match => not parsing!"
-			return node
-
-		if md5_only:
-			# This is a nasty hack left in for backwards compat.
-			self.model.set_attrib(node, 'md5_sum', new_md5)
-			return node
-		
-		print "parsing...",
-
+		self.set_status("Fetching %s (connecting)..." % uri)
 		try:
-			root = support.parse_data(data, uri)
-		except:
-			raise Beep
-		
-		new = self.model.import_with_ns(root.documentElement)
-		new.setAttributeNS(None, 'uri', uri)
+			if uri.startswith('file:///'):
+				assert not request.has_data()
+				stream = open(uri[7:])
+			else:
+				if request.has_data(): print "POSTING", request.get_data()
+				stream = urllib2.urlopen(request)
+				headers = stream.info().headers
+			
+			self.set_status("Fetching %s (downloading)..." % uri)
+			data = stream.read()
+			self.set_status("Fetching %s (parsing)..." % uri)
 
-		if last_mod:
-			new.setAttributeNS(None, 'last-modified', last_mod)
-		new.setAttributeNS(None, 'modified', 'yes')
-		new.setAttributeNS(None, 'md5_sum', new_md5)
+			if not data.startswith('<?xml'): data = support.to_html_doc(data)
+			
+			try:
+				root = support.parse_data(data, uri)
+			except:
+				raise Beep
+			
+			new = self.model.import_with_ns(root.documentElement)
+			new.setAttributeNS(None, 'uri', uri)
 
-		self.move_to([])
-		if node == self.root:
-			self.model.unlock(self.root)
-			self.model.replace_node(self.root, new)
-			self.model.strip_space(new)
-			self.model.lock(new)
-			self.root = new
-		else:
-			self.model.replace_node(node, new)
-			self.model.strip_space(new)
+			self.move_to([])
+			if node == self.root:
+				self.model.unlock(self.root)
+				self.model.replace_node(self.root, new)
+				self.model.strip_space(new)
+				self.model.lock(new)
+				self.root = new
+			else:
+				self.model.replace_node(node, new)
+				self.model.strip_space(new)
 
-		print "Loaded."
-		return new
+		finally:
+			self.set_status()
+			return new
 	
 	def put_before(self):
 		node = self.get_current()

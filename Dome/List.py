@@ -614,10 +614,16 @@ class ChainDisplay(g.EventBox):
 			size = 6
 			x += 2
 			colour = 'yellow'
+		y = obj.y
+		if exit == 'fail':
+			x += 4
+			y += 4
+		else:
+			y += 5
 		pen = self.style.white_gc
 		pen.set_rgb_fg_color(g.gdk.color_parse(colour))
-		w.draw_rectangle(self.style.black_gc, False, x, obj.y + 5, size, size)
-		w.draw_rectangle(pen, True, x + 1, obj.y + 5 + 1, size - 1, size - 1)
+		w.draw_rectangle(self.style.black_gc, False, x, y, size, size)
+		w.draw_rectangle(pen, True, x + 1, y + 1, size - 1, size - 1)
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
 	def destroyed(self, widget):

@@ -97,7 +97,7 @@ class Namespaces(g.GenericTreeModel):
 				while suggested_prefix + `x` in self.uri: x += 1
 				suggested_prefix += `x`
 			self[suggested_prefix] = uri
-			print "Added", suggested_prefix, uri
+			#print "Added", suggested_prefix, uri
 			return suggested_prefix
 	
 	def to_xml(self, doc):

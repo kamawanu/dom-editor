@@ -54,7 +54,6 @@ class GetArg(g.Dialog):
 		self.add_button(g.STOCK_OK, g.RESPONSE_OK)
 
 		def resp(widget, resp):
-			print "Rest", resp
 			if resp == g.RESPONSE_OK:
 				self.do_it()
 			widget.destroy()

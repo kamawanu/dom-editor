@@ -39,7 +39,11 @@ class Model:
 			if not doc and not root_program:
 				from Ft.Xml.InputSource import InputSourceFactory
 				isrc = InputSourceFactory()
-				doc = nonvalParse(isrc.fromUri(path))
+				try:
+					doc = nonvalParse(isrc.fromUri(path))
+				except:
+					import rox
+					rox.report_exception()
 		if not doc:
 			doc = implementation.createDocument(None, 'root', None)
 		root = doc.documentElement

@@ -51,10 +51,9 @@ def load(node, parent, ns):
 					action[0] = 'map'
 				elif action[0] == 'add_attrib':
 					action[1] = "UNUSED"
-				elif action[0] == 'do_search' and len(action) > 2 and \
-				  action[2] != 'unused':
+				elif action[0] == 'do_search' and type(action[-1]) is dict:
 					print "Converting search namespaces..."
-					for p, u in action[2].iteritems():
+					for p, u in action[-1].iteritems():
 						print "Convert", p, u
 						old = p
 						if p.startswith('_'): p = None
