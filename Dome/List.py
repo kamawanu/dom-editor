@@ -76,6 +76,7 @@ expand_history = {}	# Prog name -> expanded flag
 
 def action_to_text(action):
 	text = action[0]
+	if text == 'Start': return ''
 	if text[:3] == 'do_':
 		text = text[3:]
 	text = string.capitalize(string.replace(text, '_', ' '))
@@ -391,19 +392,22 @@ class ChainOp(ChainNode):
 		w = da.window
 		op = self.op
 
-		w.draw_arc(da.style.black_gc, False, self.x, self.y, 10, 10, 0, 360 * 60)
+		w.draw_arc(da.style.white_gc, True, self.x, self.y, 10, 10, 0, 400 * 60)
+		w.draw_arc(da.style.black_gc, False, self.x, self.y, 10, 10, 0, 400 * 60)
 		w.draw_layout(da.style.black_gc, self.x + 12, self.y, self.layout)
+	
+		self.draw_link(self.next, 5, 10, 'black')
+		self.draw_link(self.fail, 10, 10, 'red')
 
-		if self.next:
-			self.next.expose()
-			w.draw_line(da.style.black_gc, self.x + 5, self.y + 10, self.next.x + 5, self.next.y)
-			
-		if self.fail:
-			self.fail.expose()
-			pen = da.style.white_gc
-			pen.set_rgb_fg_color(g.gdk.color_parse('red'))
-			w.draw_line(pen, self.x + 10, self.y + 10, self.fail.x + 5, self.fail.y)
-			pen.set_rgb_fg_color(g.gdk.color_parse('white'))
+	def draw_link(self, dest, dx, dy, colour):
+		if not dest: return
+
+		dest.expose()
+		da = self.da
+		pen = da.style.white_gc
+		pen.set_rgb_fg_color(g.gdk.color_parse(colour))
+		da.window.draw_line(pen, self.x + dx, self.y + dy, dest.x + 5, dest.y)
+		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
 	def maybe_clicked(self, event):
 		if self.x <= event.x and self.y <= event.y and \
@@ -483,8 +487,8 @@ class ChainBlock(ChainOp):
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 		self.start.expose()
 
-		if self.next: self.next.expose()
-		if self.fail: self.fail.expose()
+		self.draw_link(self.next, 5, self.height, 'black')
+		self.draw_link(self.fail, self.width, self.height, 'red')
 	
 	def maybe_clicked(self, event):
 		return False
