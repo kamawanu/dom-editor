@@ -908,11 +908,11 @@ class View:
 		"Continuing is 'next' or 'fail' if we reached the end of the block."
 		#print "Start interation"
 		if not self.foreach_stack:
-			raise Exception("Reached the end of a block we never entered!")
+			raise Exception("Reached the end of a block we never entered")
 		stack_block, nodes_list, restore = self.foreach_stack[-1]
 		if stack_block != block:
 			self.foreach_stack = []
-			raise Exception("Reached the end of a block we never entered!")
+			raise Exception("Reached the end of a block we never entered")
 
 		if continuing and block.enter:
 			self.leave()
