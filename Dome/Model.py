@@ -15,13 +15,6 @@ from xml.dom import Node
 import support
 from Beep import Beep
 
-def get_xslt_source(doc, dome_data):
-	print "get_xslt_source", dome_data
-	src = doc.createElementNS(None, 'Source')
-	if file:
-		src.appendChild(support.import_with_ns(doc, dome_data.documentElement))
-	return src
-
 class Model:
 	def __init__(self, path, root_program = None, dome_data = None, do_load = 1):
 		"If root_program is given, then no data is loaded (used for lock_and_copy)."
@@ -74,7 +67,11 @@ class Model:
 			self.root_program = xslt.import_sheet(doc)
 			x = implementation.createDocument(None, 'xslt', None)
 			data_to_load = x.documentElement
-			src = get_xslt_source(x, dome_data)
+			src = doc.createElementNS(None, 'Source')
+			if file:
+				# TODO: import_with_ns?
+				src.appendChild(self.import_with_ns(doc,
+								dome_data.documentElement))
 			data_to_load.appendChild(x.createElementNS(None, 'Result'))
 			data_to_load.appendChild(src)
 			dome_data = None
@@ -171,7 +168,7 @@ class Model:
 		if self.get_locks(node):
 			raise Exception("Can't enter locked node!")
 		m = Model(self.get_base_uri(node), root_program = self.root_program, do_load = 0)
-		copy = support.import_with_ns(m.doc, node)
+		copy = self.doc.importNode(node, 1)
 		root = m.get_root()
 		m.replace_node(root, copy)
 		self.lock(node)

@@ -49,22 +49,6 @@ def send_to_file(data, path):
 
 	return 1
 
-def import_with_ns(doc, node):
-	nss = GetAllNs(node)
-	
-	node = doc.importNode(node, 1)
-	for ns in nss.keys():
-		if ns == 'xml':
-			continue
-		uri = nss[ns]
-		if ns or uri:
-			if ns is None:
-				ns = 'xmlns'
-			else:
-				ns = 'xmlns:' + ns
-			node.setAttributeNS(XMLNS_NAMESPACE, ns, uri)
-	return node
-
 def fix_broken_html(data):
 	"""Pre-parse the data before sending to tidy to fix really really broken
 stuff (eg, MS Word output). Returns None if data is OK"""

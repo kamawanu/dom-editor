@@ -452,7 +452,7 @@ class View:
 		(old_model, old_node, old_marked) = self.chroots.pop()
 		self.update_stack()
 
-		copy = old_model.doc.importNode(self.model.get_root(), 1)
+		copy = old_model.import_with_ns(self.model.get_root())
 		old_model.unlock(old_node)
 		old_model.replace_node(old_node, copy)
 		self.set_model(old_model)
