@@ -440,11 +440,19 @@ class ChainBlock(ChainOp):
 		x = self.x
 		y = self.y
 
-		self.start = self.da.create_op(self.op.start,
-						x + 4 + self.op.foreach * 6,
-						y + 4 + (self.op.enter + self.op.restore) * 6)
+		if self.op.comment:
+			self.layout = self.da.create_pango_layout(self.op.comment.replace('\\n', '\n'))
+			self.width, height = self.layout.get_pixel_size()
+			y += height + 4
+		else:
+			self.layout = None
+			self.width = 40
 
-		self.width = 40
+		self.margin = (4 + self.op.foreach * 6, 4 + (self.op.enter + self.op.restore) * 6)
+		self.width += self.margin[0]
+
+		self.start = self.da.create_op(self.op.start, x + self.margin[0], y + self.margin[1])
+
 		self.height = 20
 
 		for node in self.start.all_nodes():
@@ -484,7 +492,15 @@ class ChainBlock(ChainOp):
 			w.draw_rectangle(pen, True, x + 1, y + 1 + margin, width - 1, 6)
 			w.draw_rectangle(pen, True, x + 1, y + self.height - 6 - margin, width - 1, 6)
 
+		if self.layout:
+			pen.set_rgb_fg_color(g.gdk.color_parse('blue'))
+			w.draw_layout(pen, self.x + self.margin[0], self.y + self.margin[1], self.layout)
+
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
+
+		w.draw_line(pen, self.x + 1, self.y + 1, self.x + self.width - 2, self.y + 1)
+		w.draw_line(pen, self.x + 1, self.y + 1, self.x + 1, self.y + self.height - 2)
+		
 		self.start.expose()
 
 		self.draw_link(self.next, 5, self.height, 'black')
@@ -527,7 +543,7 @@ class ChainDisplay(g.DrawingArea):
 		if mono:
 			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('white'))
 		elif active:
-			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('#F7F7F7'))
+			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('#B3AA73'))
 		else:
 			self.modify_bg(g.STATE_NORMAL, g.gdk.color_parse('#FFC0C0'))
 	
