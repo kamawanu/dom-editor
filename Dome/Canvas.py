@@ -1,12 +1,12 @@
 from gtk import *
 from GDK import *
-from gnome.ui import *
 
 import sys
 import traceback
 
 class Canvas(GtkWindow):
 	def __init__(self, view, node):
+		from gnome.ui import GnomeCanvas
 		GtkWindow.__init__(self)
 		self.view = view
 		self.display_root = node

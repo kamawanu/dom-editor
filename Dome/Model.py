@@ -38,26 +38,6 @@ class Model:
 		"Return the true root node (not a view root)"
 		return self.doc.documentElement
 	
-	def load_html(self, path):
-		"Replace document with contents of this HTML file."
-		print "Reading HTML..."
-		reader = Html.Reader()
-		root = reader.fromUri(path)
-		new = html_to_xml(self.doc, root)
-		self.doc.replaceChild(new, self.doc.documentElement)
-		self.update_all(self.doc)
-
-	def load_xml(self, path):
-		"Replace document with contents of this XML file."
-		reader = PyExpat.Reader()
-		new_doc = reader.fromUri(path)
-
-		new = self.doc.importNode(new_doc.documentElement, deep = 1)
-		
-		self.doc.replaceChild(new, self.doc.documentElement)
-		self.strip_space()
-		self.update_all(self.doc)
-	
 	def add_view(self, view):
 		"'view' provides:"
 		"'update_all(subtree) - called when a major change occurs."

@@ -14,6 +14,8 @@ from Program import Op
 from Beep import Beep
 from GetArg import GetArg
 
+import time
+
 DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
 
 # An view contains:
@@ -381,7 +383,7 @@ class View:
 		(op, exit) = self.exec_point
 
 		if self.single_step == 0 and self.breakpoints.has_key(self.exec_point):
-			print "Hit a breakpoint!"
+			print "Hit a breakpoint! At " + time.ctime(time.time())
 			self.single_step = 1
 			return
 		
@@ -639,7 +641,7 @@ class View:
 			finally:
 				self.in_callback = 0
 		except Done:
-			print "Done"
+			print "Done, at " + time.ctime(time.time())
 			self.run_new()
 			return 0
 		except InProgress:
@@ -755,8 +757,8 @@ class View:
 			p = node
 			base = None
 			while p:
-				if p.hasAttributeNS(DOME_NS, 'uri'):
-					base = p.getAttributeNS(DOME_NS, 'uri')
+				if p.hasAttributeNS('', 'uri'):
+					base = p.getAttributeNS('', 'uri')
 					break
 				p = p.parentNode
 			if base:
@@ -765,7 +767,7 @@ class View:
 			else:
 				print "Warning: Can't find 'uri' attribute!"
 
-		command = "lynx -source '%s' | tidy" % uri
+		command = "w3m -dump_source '%s' | tidy -asxml 2>/dev/null" % uri
 		print command
 		cout = os.popen(command)
 	
@@ -776,14 +778,22 @@ class View:
 				all[0] += data
 				return
 			input_remove(all[1])
-			reader = Html.Reader()
-			print "Parsing..."
-			root = reader.fromStream(StringIO(all[0]))
 			src.close()
-			print "Converting..."
+			reader = PyExpat.Reader()
+			print "Parsing..."
+			
+			try:
+				root = reader.fromStream(StringIO(all[0]))
+			except:
+				report_exception()
+				raise
+			# print "Converting..."
 			node = self.current
-			new = html_to_xml(node.ownerDocument, root)
-			new.setAttributeNS(DOME_NS, 'dome:uri', uri)
+			# new = html_to_xml(node.ownerDocument, root)
+			new = node.ownerDocument.importNode(
+					root.documentElement, deep = 1)
+			ext.StripHtml(new)
+			new.setAttributeNS('', 'uri', uri)
 			self.model.replace_node(node, new)
 			print "Loaded."
 			self.resume('next')
@@ -936,6 +946,7 @@ class View:
 	
 	def load_html(self, path):
 		"Replace root with contents of this HTML file."
+		# XXX: Broken!
 		print "Reading HTML..."
 		reader = Html.Reader()
 		root = reader.fromUri(path)

@@ -9,17 +9,14 @@ from xml.dom import ext
 from xml.dom import implementation
 from xml.dom.ext.reader import PyExpat
 
-import choices
+from rox import choices
 import Html
 from support import *
-from SaveBox import SaveBox
+from rox.SaveBox import SaveBox
 from Toolbar import Toolbar
 
 from Model import Model
 from View import View
-from List import List
-from GUIView import GUIView
-
 from View import InProgress, Done
 
 class Window(GtkWindow):
@@ -33,6 +30,13 @@ class Window(GtkWindow):
 				      gdk_screen_height() * 2 / 3)
 		self.set_position(WIN_POS_CENTER)
 		self.savebox = None
+
+		self.connect('destroy', self.destroyed)
+		self.show()
+		gdk_flush()
+
+		from GUIView import GUIView
+		from List import List
 
 		vbox = GtkVBox(FALSE, 0)
 		self.add(vbox)
@@ -53,28 +57,29 @@ class Window(GtkWindow):
 		self.uri = "Document"
 
 		swin = GtkScrolledWindow()
+		swin.set_policy(POLICY_AUTOMATIC, POLICY_ALWAYS)
 		hbox.pack_start(swin, TRUE, TRUE, 0)
 
 		self.view = view
+
 		self.gui_view = GUIView(self, view)
 		swin.add(self.gui_view)
 		swin.set_hadjustment(self.gui_view.get_hadjustment())
 		swin.set_vadjustment(self.gui_view.get_vadjustment())
-		swin.set_policy(POLICY_AUTOMATIC, POLICY_ALWAYS)
 
 		vbox.show_all()
 		self.connect('key-press-event', self.key)
 	
 		self.gui_view.grab_focus()
 		self.update_title()
-		self.connect('destroy', self.destroyed)
-		self.show()
-		gdk_flush()
-
+		
 		if path:
-			if path != '-':
-				self.uri = path
-			self.gui_view.load_file(path)
+			idle_add(self.load_file, path)
+	
+	def load_file(self, path):
+		if path != '-':
+			self.uri = path
+		self.gui_view.load_file(path)
 	
 	def destroyed(self, widget):
 		path = choices.save('Dome', 'RootProgram.xml')

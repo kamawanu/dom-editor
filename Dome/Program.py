@@ -108,11 +108,15 @@ class Program:
 	
 	def rename(self, name):
 		p = self.parent
-		if p.subprograms.has_key(name):
-			raise Exception('%s already has a child called %s!' % (p.name, name))
-		p.remove_sub(self)
+		if p:
+			if p.subprograms.has_key(name):
+				raise Exception('%s already has a child called %s!' % (p.name, name))
+			p.remove_sub(self)
 		self.name = name
-		p.add_sub(self)
+		if p:
+			p.add_sub(self)
+		else:
+			self.model.prog_tree_changed(self)
 	
 	def to_xml(self):
 		data = "<dome-program name='%s'>\n" % escape_attval(self.name)

@@ -6,7 +6,7 @@ import string
 from xml.dom.ext.reader import PyExpat
 from StringIO import StringIO
 
-import choices
+import rox.choices
 from Menu import Menu
 from GetArg import GetArg
 from Program import Program, load
