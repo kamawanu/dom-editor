@@ -508,7 +508,7 @@ class ChainDisplay(GnomeCanvas):
 			else:
 				self.join_nodes(op.prev, 'fail')
 			#self.create_node(self.prog.start, self.nodes)
-			#self.update_points()
+			self.update_points()
 
 	def show_op_menu(self, event, op):
 		del_node = None
