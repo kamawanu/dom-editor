@@ -76,9 +76,10 @@ def import_sheet(doc):
 		types = sheet.matchTemplates[mode]
 
 		#loose_ends = []
+		all = []
 		for type in types.keys():
 			if type == Node.ELEMENT_NODE:
-				templates = types[type].values()
+				templates = types[type].values()[:]
 			else:
 				templates = [types[type]]
 
@@ -86,25 +87,37 @@ def import_sheet(doc):
 
 			for tl in templates:
 				for t in tl:
-					sort_key, (used_pattern, axis_type, template) = t
-					pattern = `template._match`
-					#print sort_key, pattern, axis_type, template
-					name = pattern.replace('/', '%')
-					temp = Program(`i` + '-' + name)
-					op = add(temp.code.start, 'mark_switch')
-					make_template(op, template)
-					i += 1
-					prog.add_sub(temp)
-					
-					if pattern.startswith('/'):
-						if pattern == '/':
-							pattern = ''
-						pattern = '/xslt/Source' + pattern # XXX: Hack
-					tests = add(tests, 'fail_if', pattern)
-					op = Op(action = ['play', temp.get_path()])
-					tests.link_to(op, 'fail')
-					add(op, 'mark_switch')
-					#loose_ends.append(op)
+					all.append(t)
+
+		all = all[:]
+		all.sort()
+		all.reverse() # highest numbers first
+		
+		last = None
+		for sort_key, (unused_pattern, axis_type, template) in all:
+			pattern = `template._match`
+
+			if pattern == last:
+				continue
+			last = pattern
+
+			#print sort_key, pattern, axis_type, template
+			name = pattern.replace('/', '%')
+			temp = Program(`i` + '-' + name)
+			op = add(temp.code.start, 'mark_switch')
+			make_template(op, template)
+			i += 1
+			prog.add_sub(temp)
+			
+			if pattern.startswith('/'):
+				if pattern == '/':
+					pattern = ''
+				pattern = '/xslt/Source' + pattern # XXX: Hack
+			tests = add(tests, 'fail_if', pattern)
+			op = Op(action = ['play', temp.get_path()])
+			tests.link_to(op, 'fail')
+			add(op, 'mark_switch')
+			#loose_ends.append(op)
 		# Now add the built-in rules
 
 		#print "Tidy", loose_ends
