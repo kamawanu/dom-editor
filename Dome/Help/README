@@ -1,77 +1,91 @@
 Instructions for using Dome:
 
-The main area shows the XML/HTML document you are editing.
+The main area shows the XML/HTML document you are editing on the right
+and the code to manipulate it on the left. Clicking the right-mouse button
+over the main area gets you a popup menu. You can use this, or the keyboard
+short-cuts to edit the document.
 
 To move to a node, just click on it. Hold down Ctrl to select multiple
-nodes. Double-click a node to collapse/expand it.
+nodes. Double-click a node to collapse/expand it. Shift-click selects
+all nodes between the node clicked and the previously selected node.
 
-There is a right-click popup menu with many operations.
-The following keys can also be used to move around.
+Most of the menu items are fairly obvious. Here are a few notes though:
 
-[ some operations are only available from the keyboard, or only from the menu ]
+- Blank document deletes everything.
 
-		Up	: Move to previous sibling
-		Down	: Move to next sibling
-		Left	: Move to parent node
-		Right	: Move to first child node
-		End	: Move to last child node
-		
-		Home	: Move to root node
-		
-Entering a node makes that node appear to be the root. Useful if you want
-to concentrate on a subtree for a while (allows Home to be used easily).
+- Insert adds a new node just before the current one. Append adds the new
+  node just after. Open puts the new node inside.
 
-		>	: Enter node
-		<	: Leave node
-		
-		t	: Search for some text
-		slash	: Search by XPath
+- 'Shallow' yank/delete only work on the selected nodes themselves, whereas
+  the normal yank/delete affect the child nodes too.
 
-		#	: Select by XPath (use to select multiple nodes)
+- Operations on the root node often can't be undone.
 
-Use # to select multiple nodes. For example, the XPath 'li' will select every
-child node of the current node which is a 'li' element. Useful with map.
+- See www.w3.org for details of the XPath syntax.
 
-Making changes:
-		I	: Insert element (before the current node)
-		A	: Append element (after the current node)
-		O	: Create a child element inside the current node
-		
-		i	: Like I, but creates a text node
-		a	: Like A, but creates a text node
-		o	: Like O, but creates a text node
+- Entering a node makes that node appear to be the root node. You can then
+  edit that subtree without worrying about the rest of the document. It's
+  faster too, because redrawing lots of stuff is really slow.
+  When you're done, use Leave to get back out. Undo will undo all changes
+  made between the enter and the leave in one go.
 
-		y	: Yank (copy selected nodes to clipboard)
-		Y	: Yank attributes (useful to get all attributes,
-			  otherwise just select the attribute and do 'y')
-		P	: Paste clipboard before current node
-		p	: Paste clipboard after current node
-		bracketright : Paste clipboard inside current node
-		R	: Replace current node with clipboard
+- Select by XPath is really useful for processing lists. Here are some
+  useful paths to use:
 
-		^	: Replace current node with page sucked from the web.
-			  The URI is taken from the selected attribute, or
-			  any 'uri' attribute if an element is selected.
+  - '*' selects all child elements of the current node.
+  - 'li' selects all 'li' child nodes.
+  - '//a' selects all anchor nodes anywhere in the document.
+  - './/a' selects all anchor nodes anywhere inside this node.
 
-		Tab	: Edit the current node (press again to finish).
-		Return	: Same as Tab.
-		@	: Select attribute by name (same as clicking the
-			  attribute).
-		+	: Add a new attribute.
-		!	: Replace current node with result of python expression.
-		s	: Regexp search and replace on selected nodes.
+- HTTP suck replaces an anchor node with the HTML document it points to.
+  Select the attribute with the URI before using this.
 
-		x	: Delete current node (to clipboard).
-		X	: Delete attribute by name (or click attribute and
-			  use 'x').
+- Don't worry about SOAP messages.
 
-		.	: Repeat last operation
+- Substitute works on text nodes. Standard regexp format, eg:
+	Replace: .*(\d\d\d\d).*
+	   With: \1
+  will turn 'Born in 1957, England' into '1957'.
 
-		u	: Undo (unlimited number of undos)
-		r	: Redo
+- Python expression lets you do more complex stuff, eg:
+  - 'x.split()' splits the text into words.
+  - 'int(x) + 1' increments a number.
+  - 'x[:-1]' removes the last character.
 
-When writing programs, these two can be useful:
+- The Program menu is described below.
 
-		?	: Get input from user (stored on clipboard).
-		=	: Compare selected nodes (recursive tree comparison).
+- Don't worry about the Show as ... items.
+
+
+
+Once you can edit the document OK, you can start recording operations.
+The green area on the left shows the currently selected program ('Root' to
+begin with).
+
+To record a sequence:
+
+- Click on the black line below the 'Start' node (a yellow dot appears)
+
+- Click on the Record button on the toolbar. The dot will turn red.
+
+- Perform the operations on the document. Every operation you do will be
+  added to the chain.
+
+- Click Record again to stop recording.
+
+
+To play back the recorded sequence, right-click on 'Root' (just above the
+green area) and select Play. The yellow dot moves through the chain as each
+operation is performed. The four buttons after Record can be used to stop,
+step and resume playing.
+
+
+The Program menu:
+
+- Input pops up a dialog box. Whatever the user enters is placed on the
+  clipboard.
+
+- Compare succeeds if all selected nodes have the same value and structure.
+
+- Fail always fails.
 
