@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 import findrox
+
+no_gui_mode = 1
+
 from Beep import Beep
 
 #import gc

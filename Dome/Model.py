@@ -245,10 +245,15 @@ class Model:
 	
 		self.update_replace(old, new)
 
-	def add_undo(self, fn):
-		self.undo_stack.append((self.user_op, fn))
-		if not self.doing_undo:
-			self.redo_stack = []
+	import __main__
+	if __main__.no_gui_mode:
+		def add_undo(self, fn):
+			pass
+	else:
+		def add_undo(self, fn):
+			self.undo_stack.append((self.user_op, fn))
+			if not self.doing_undo:
+				self.redo_stack = []
 
 	def set_data(self, node, data):
 		old_data = node.data
