@@ -2,7 +2,8 @@ import rox
 
 import os, sys
 import traceback
-from Ft.Xml.Domlette import Node, implementation
+from xml.dom import Node
+from Ft.Xml.Domlette import implementation
 from Ft.Xml import XMLNS_NAMESPACE
 from Ft.Xml.Lib.Nss import GetAllNs
 
