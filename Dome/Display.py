@@ -444,6 +444,13 @@ class Display(GnomeCanvas):
 				self.current_attrib = group
 			except KeyError:
 				pass
+	
+	def marked_changed(self, nodes):
+		"nodes is a list of nodes to be rechecked."
+		marked = self.view.marked
+		for n in nodes:
+			group = self.node_to_group[n]
+			group.rect.set(outline_color = (marked.has_key(n) and 'orange') or None)
 
 	def highlight(self, group, state):
 		node = group.node
@@ -460,6 +467,10 @@ class Display(GnomeCanvas):
 				group.text.set(fill_color = 'darkgreen')
 			else:
 				group.text.set(fill_color = 'red')
+		if self.view.marked.has_key(node):
+			group.rect.set(outline_color = 'orange')
+		else:
+			group.rect.set(outline_color = None)
 
 	def world_to_canvas(self, (x, y)):
 		"Canvas routine seems to be broken..."

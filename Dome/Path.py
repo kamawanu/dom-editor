@@ -70,6 +70,9 @@ def make_relative_path(src_node, dst_node, lit, ns):
 	"If 'lit' then the text of the (data) node must match too."
 	"Namespace 'ns' is updated with any required namespaces."
 
+	assert src_node
+	assert dst_node
+
 	if src_node == dst_node:
 		return '.'
 

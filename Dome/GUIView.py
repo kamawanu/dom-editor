@@ -55,8 +55,12 @@ menu = Menu('Dome', 'main', [
 
 		('/Select', None, '<Branch>', ''),
 		('/Select/By XPath', 'menu_show_global', '', 'numbersign'),
-		('/Select/Duplicate siblings', 'do_select_dups', '', ''),
+		('/Select/Duplicate Siblings', 'do_select_dups', '', ''),
 		('/Select/Marked Range', 'menu_select_marked', '', 'minus'),
+
+		('/Mark', None, '<Branch>', ''),
+		('/Mark/Mark Selection', 'do_mark_selection', '', 'm'),
+		('/Mark/Switch with Selection', 'do_mark_switch', '', 'comma'),
 
 		('/Network', None, '<Branch>', ''),
 		('/Network/HTTP GET', 'do_suck', '', '<Shift>asciicircum'),
@@ -456,6 +460,9 @@ class GUIView(Display):
 	do_show_canvas = make_do('show_canvas')
 	do_compare = make_do('compare')
 	do_again = make_do('again')
+
+	do_mark_switch = make_do('mark_switch')
+	do_mark_selection = make_do('mark_selection')
 
 	move_home = make_do('move_home')
 	move_end = make_do('move_end')

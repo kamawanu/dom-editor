@@ -44,6 +44,31 @@ stuff (eg, MS Word output). Returns None if data is OK"""
 	data = re.sub('<!\[[^]]*\]>', '', data)
 	return data
 
+def to_html(data):
+	(r, w) = os.pipe()
+	child = os.fork()
+	fixed = fix_broken_html(data)
+	if child == 0:
+		# We are the child
+		try:
+			os.close(r)
+			os.dup2(w, 1)
+			os.close(w)
+			if fixed:
+				tin = os.popen('tidy -utf8 -asxml 2>/dev/null', 'w')
+			else:
+				tin = os.popen('tidy -asxml 2>/dev/null', 'w')
+			tin.write(fixed or data)
+			tin.close()
+		finally:
+			os._exit(0)
+	os.close(w)
+	
+	data = os.fdopen(r).read()
+	os.waitpid(child, 0)
+
+	return data
+
 # An view contains:
 # - A ref to a DOM document
 # - A set of current nodes
@@ -120,6 +145,7 @@ class View:
 		self.current_nodes = []
 		self.clipboard = None
 		self.current_attrib = None
+		self.marked = {}
 		
 		if not callback_handlers:
 			import gtk
@@ -334,6 +360,7 @@ class View:
 			raise Exception('attrib not of type ATTRIBUTE_NODE!')
 
 		if type(nodes) != types.ListType:
+			assert nodes
 			nodes = [nodes]
 
 		old_nodes = self.current_nodes
@@ -406,6 +433,7 @@ class View:
 		if self.model.doc is not node.ownerDocument:
 			raise Exception('Current node not in view!')
 		self.chroots.append((self.model, node))
+		self.move_to([])
 		self.set_model(self.model.lock_and_copy(node))
 	
 	def leave(self):
@@ -1072,14 +1100,16 @@ class View:
 				pass
 				#print "Warning: Can't find 'uri' attribute!"
 
-		print "Sucking", uri
-
 		if uri.startswith('file:///'):
+			print "Loading", uri
+
 			assert not post_data
 			stream = open(uri[7:])
 			# (could read the mod time here...)
 			last_mod = None
 		else:
+			print "Sucking", uri
+
 			if post_data is not None:
 				print "POSTING", post_data
 			stream = urllib.urlopen(uri, post_data)
@@ -1101,27 +1131,10 @@ class View:
 		data = stream.read()
 		print "got data... tidying..."
 
-		(r, w) = os.pipe()
-		child = os.fork()
-		fixed = fix_broken_html(data)
-		if child == 0:
-			# We are the child
-			try:
-				os.close(r)
-				os.dup2(w, 1)
-				os.close(w)
-				if fixed:
-					tin = os.popen('tidy -utf8 -asxml 2>/dev/null', 'w')
-				else:
-					tin = os.popen('tidy -asxml 2>/dev/null', 'w')
-				tin.write(fixed or data)
-				tin.close()
-			finally:
-				os._exit(0)
-		os.close(w)
-		
-		data = os.fdopen(r).read()
-		os.waitpid(child, 0)
+		if data.startswith('<?xml'):
+			pass
+		else:
+			data = to_html(data)
 		
 		old_md5 = node.getAttributeNS(None, 'md5_sum')
 		
@@ -1623,6 +1636,27 @@ class View:
 		self.move_home()
 		self.clipboard = self.model.doc.createElementNS(None, 'root')
 		self.put_replace()
+	
+	def mark_switch(self):
+		new = self.marked.keys()
+		self.set_marked(self.current_nodes)
+		self.move_to(new)
+	
+	def set_marked(self, new):
+		update = self.marked
+		for x in self.marked.keys():
+			self.model.unlock(x)
+		self.marked = {}
+		for x in new:
+			self.model.lock(x)
+			self.marked[x] = None
+			update[x] = None
+		update = update.keys()
+		for display in self.displays:
+			display.marked_changed(update)
+
+	def mark_selection(self):
+		self.set_marked(self.current_nodes)
 
 class StrGrab:
 	data = ''
