@@ -1741,9 +1741,10 @@ class View:
 		self.model.normalise(self.get_current())
 	
 	def remove_ns(self):
-		node = self.get_current()
+		nodes = self.current_nodes[:]
 		self.move_to([])
-		self.move_to(self.model.remove_ns(node))
+		nodes = map(self.model.remove_ns, nodes)
+		self.move_to(nodes)
 	
 	def convert_to_text(self):
 		nodes = self.current_nodes[:]

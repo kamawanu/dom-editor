@@ -52,10 +52,10 @@ def action_to_text(action):
 			pat = string.replace(pat, '[1]', '')
 			pat = string.replace(pat, 'text()[ext:match', '[')
 			details = ''
-			while len(pat) > 16:
-				i = string.rfind(pat[:16], '/')
+			while len(pat) > 20:
+				i = string.rfind(pat[:20], '/')
 				if i == -1:
-					i = 16
+					i = 20
 				details = details + pat[:i + 1] + '\n'
 				pat = pat[i + 1:]
 			details = details + pat
@@ -79,8 +79,8 @@ def action_to_text(action):
 				details = `action[1:]`
 			else:
 				details = str(action[1])
-			if len(details) > 12:
-				details = `details`[:11] + '...'
+			if len(details) > 20:
+				details = `details`[:19] + '...'
 		text = text + '\n' + details
 	return text
 

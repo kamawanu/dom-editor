@@ -203,16 +203,13 @@ class Model:
 		def ns_clone(node):
 			if node.nodeType != Node.ELEMENT_NODE:
 				return node.cloneNode(1)
-			if node.prefix or node.namespaceURI == dns:
-				new = node.cloneNode(0)
-			else:
-				print "Converting %s to %s" % (node.namespaceURI, dns)
-				new = create(dns, node.localName)
+			new = create(dns, node.nodeName)
 			for a in node.attributes.values():
 				if a.localName == 'xmlns' and a.prefix is None:
 					print "Removing xmlns attrib on", node
 					continue
 				new.setAttributeNS(a.namespaceURI, a.name, a.value)
+			print "Now", new
 			for k in node.childNodes:
 				new.appendChild(ns_clone(k))
 			return new
