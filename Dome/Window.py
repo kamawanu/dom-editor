@@ -6,10 +6,6 @@ import os.path
 
 import __main__
 
-from xml.dom import Node
-from xml.dom import ext
-from xml.dom.ext.reader import PyExpat
-
 from rox import choices
 from support import *
 from rox.SaveBox import SaveBox
@@ -65,6 +61,7 @@ class Window(GtkWindow):
 		global root_program
 		code = choices.load('Dome', 'RootProgram.xml')
 		if code:
+			from xml.dom.ext.reader import PyExpat
 			reader = PyExpat.Reader()
 			doc = reader.fromUri(code)
 			root_program = load_dome_program(doc.documentElement)
@@ -106,6 +103,7 @@ class Window(GtkWindow):
 	
 	def destroyed(self, widget):
 		path = choices.save('Dome', 'RootProgram.xml')
+		path = None # XXX
 		if not path:
 			print "Not saving macros..."
 			return
@@ -169,6 +167,7 @@ class Window(GtkWindow):
 		else:
 			raise Exception('Unknown save type', self.savetype)
 		self.output_data = ''
+		from xml.dom import ext
 		ext.PrettyPrint(doc, stream = self)
 		d = self.output_data
 		self.output_data = ''

@@ -1,4 +1,5 @@
 import string
+from constants import DOME_NS
 
 def el_named(node, name):
 	for n in node.childNodes:
@@ -121,16 +122,16 @@ class Program:
 		else:
 			self.tree_changed()
 	
-	def to_xml(self):
-		from xml.parsers.xmlproc.utils import escape_attval
-		data = "<dome-program name='%s'>\n" % escape_attval(self.name)
-	
-		data += self.start.to_xml_int()
+	def to_xml(self, doc):
+		node = doc.createElementNS(DOME_NS, 'dome-program')
+		node.setAttributeNS(None, 'name', self.name)
+		
+		self.start.to_xml_int(node)
 
 		for p in self.subprograms.values():
-			data += p.to_xml()
+			node.appendChild(p.to_xml(doc))
 
-		return data + "</dome-program>\n"
+		return node
 	
 class Op:
 	"Each node in a chain is an Op. There is no graphical stuff in here."
@@ -236,38 +237,35 @@ class Op:
 
 		self.prev = None
 		self.next = None
-		xml = self.to_xml()
+		doc = self.to_doc()
 		self.action = None
 		self.fail = None
 		self.program = None
 
 		prog.changed()
-		return xml
+		return doc
 	
 	def del_chain(self):
-		xml = self.to_xml()
+		doc = self.to_doc()
 		self.prev.unlink(self)
-		return xml
-	
-	def to_xml(self):
-		return '<dome-program>\n' + self.to_xml_int() + '</dome-program>\n'
-		
-	def to_xml_int(self):
-		"Returns a chain of <Node> elements. So, if you want XML, enclose it "
-		"in something."
-		from xml.parsers.xmlproc.utils import escape_attval
-		next = self.next
-		fail = self.fail
-		act = escape_attval(`self.action`)
-		ret = '<node action="%s"' % act
-		if fail == None:
-			ret += '/>\n'
-		else:
-			ret += '>\n' + self.fail.to_xml_int() + '</node>'
+		return doc
 
+	def to_doc(self):
+		from xml.dom import implementation
+		doc = implementation.createDocument(DOME_NS, 'dome-program', None)
+		self.to_xml_int(doc.documentElement)
+		return doc
+	
+	def to_xml_int(self, parent):
+		"Adds a chain of <Node> elements to 'parent'."
+		node = parent.ownerDocument.createElementNS(DOME_NS, 'node')
+		parent.appendChild(node)
+		node.setAttributeNS(None, 'action', `self.action`)
+		
+		if self.fail:
+			self.fail.to_xml_int(node)
 		if self.next:
-			ret += self.next.to_xml_int()
-		return ret
+			self.next.to_xml_int(parent)
 	
 	def __str__(self):
 		return "{" + `self.action` + "}"

@@ -17,10 +17,7 @@ from Beep import Beep
 import time
 import urllib
 
-FALSE=0
-TRUE=1
-
-DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
+from constants import *
 
 def elements(node):
 	out = []
@@ -1235,6 +1232,7 @@ class View:
 		pass
 	
 	def export_all(self):
+		from xml.dom import implementation
 		doc = implementation.createDocument(DOME_NS, 'dome', None)
 		data = root_program.to_xml()
 		return doc

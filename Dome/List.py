@@ -438,8 +438,7 @@ class ChainDisplay(GnomeCanvas):
 
 	def paste_chain(self, op, exit):
 		print "Paste", self.clipboard
-		reader = PyExpat.Reader()
-		doc = reader.fromStream(StringIO(self.clipboard))
+		doc = self.clipboard
 		new = load(doc.documentElement)
 		op.link_to(new, exit)
 
@@ -464,8 +463,9 @@ class ChainDisplay(GnomeCanvas):
 				next = getattr(op, exit)
 				if next:
 					def yank_chain(self = self, op = next):
-						self.clipboard = op.to_xml()
+						self.clipboard = op.to_doc()
 						print self.clipboard
+						ext.PrettyPrint(self.clipboard)
 					def del_chain(self = self, op = next):
 						self.clipboard = op.del_chain()
 				else:
