@@ -147,7 +147,8 @@ class List(g.VBox):
 		tree.append_column(column)
 
 		sel = tree.get_selection()
-		def change_prog(tree):
+		def change_prog(tree, sel = sel, self = self):	# Huh?
+			print sel, self
 			selected = sel.get_selected()
 			if not selected:
 				return
