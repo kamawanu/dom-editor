@@ -372,21 +372,31 @@ class GUIView(Display, XDSLoader):
 		self.edit_dialog = rox.Dialog()
 		eb = self.edit_dialog
 
-		entry = g.Entry()
 		if node.nodeType == Node.ELEMENT_NODE:
 			if attrib:
 				text = str(attrib)
 			text = node.nodeName
+			entry = g.Entry()
+			entry.set_text(text)
+			entry.set_activates_default(True)
+			def get_text(): return entry.get_text()
 		else:
 			text = node.nodeValue
-		entry.set_text(text)
+			entry = g.TextView()
+			buffer = entry.get_buffer()
+			buffer.insert_at_cursor(text, -1)
+			entry.set_size_request(200, 100)
+
+			def get_text():
+				start = buffer.get_start_iter()
+				end = buffer.get_end_iter()
+				return buffer.get_text(start, end, True)
 		eb.vbox.pack_start(entry, TRUE, FALSE, 0)
 
 		eb.add_button(g.STOCK_CANCEL, g.RESPONSE_CANCEL)
 		eb.add_button(g.STOCK_APPLY, g.RESPONSE_OK)
 		eb.set_default_response(g.RESPONSE_OK)
 		entry.grab_focus()
-		entry.set_activates_default(True)
 		def destroy(eb):
 			self.edit_dialog = None
 		eb.connect('destroy', destroy)
@@ -394,7 +404,7 @@ class GUIView(Display, XDSLoader):
 			if resp == g.RESPONSE_CANCEL:
 				eb.destroy()
 			elif resp == g.RESPONSE_OK:
-				new = entry.get_text()
+				new = get_text()
 				if new != text:
 					if attrib:
 						self.view.may_record(['set_attrib', new])
