@@ -35,11 +35,6 @@ class Window(rox.Window, saving.Saveable):
 			path = os.path.abspath(path)
 			
 		import Model
-		if path and path.endswith('.html'):
-			html_path = path
-			path = None
-		else:
-			html_path = None
 		self.model = Model.Model(path, dome_data = data)
 		self.gui_view = None
 		self.dome_state = ""
@@ -96,9 +91,6 @@ class Window(rox.Window, saving.Saveable):
 				return 1
 			return 0
 		self.connect('delete-event', delete)
-
-		if html_path:
-			view.load_html(html_path)
 	
 	def discard(self):
 		self.destroy()
@@ -133,7 +125,7 @@ class Window(rox.Window, saving.Saveable):
 			(radio_xml, 'xml', 'text/xml', self.save_as_xml),
 			(radio_html, 'html', 'text/html', self.save_as_html))
 				    
-		def changed(toggle):
+		def changed(toggle = None):
 			name = self.savebox.save_area.entry.get_text()
 			if name.endswith('.xml'):
 				name = name[:-4]
@@ -152,6 +144,10 @@ class Window(rox.Window, saving.Saveable):
 			self.savebox.vbox.pack_start(radio, False, True, 0)
 			radio.connect('toggled', changed)
 
+		for radio, ext, mime, fn in self.save_radios:
+			if path.endswith('.' + ext):
+				radio.set_active(True)
+	
 		self.savebox.vbox.show_all()
 		self.savebox.show()
 	
@@ -185,7 +181,7 @@ class Window(rox.Window, saving.Saveable):
 		print >>stream, to_html.to_html(self.view.root.ownerDocument)
 
 	def set_uri(self, uri):
-		if self.save_radios[0].get_active():
+		if self.save_radios[0][0].get_active():
 			self.model.uri = uri
 			self.model.root_program.modified = 0
 			self.update_title()

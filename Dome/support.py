@@ -1,6 +1,6 @@
 import rox
 
-import sys
+import os, sys
 import traceback
 from Ft.Xml.Domlette import Node, implementation
 from Ft.Xml import XMLNS_NAMESPACE
@@ -60,3 +60,70 @@ def import_with_ns(doc, node):
 				ns = 'xmlns:' + ns
 			node.setAttributeNS(XMLNS_NAMESPACE, ns, uri)
 	return node
+
+def fix_broken_html(data):
+	"""Pre-parse the data before sending to tidy to fix really really broken
+stuff (eg, MS Word output). Returns None if data is OK"""
+	if data.find('<o:p>') == -1:
+		return 		# Doesn't need fixing?
+	import re
+	data = data.replace('<o:p></o:p>', '')
+	data = re.sub('<!\[[^]]*\]>', '', data)
+	return data
+
+def to_html_doc(data):
+	(r, w) = os.pipe()
+	child = os.fork()
+	#data = data.replace('&nbsp;', ' ')
+	#data = data.replace('&copy;', '(c)')
+	#data = data.replace('&auml;', '(auml)')
+	#data = data.replace('&ouml;', '(ouml)')
+	fixed = fix_broken_html(data)
+	if child == 0:
+		# We are the child
+		try:
+			os.close(r)
+			os.dup2(w, 1)
+			os.close(w)
+			if fixed:
+				tin = os.popen('tidy --force-output yes -q -utf8 -asxml 2>/dev/null', 'w')
+			else:
+				tin = os.popen('tidy --force-output yes -q -asxml 2>/dev/null', 'w')
+			tin.write(fixed or data)
+			tin.close()
+		finally:
+			os._exit(0)
+	os.close(w)
+	
+	data = os.fdopen(r).read()
+	os.waitpid(child, 0)
+
+	return data
+
+def parse_data(data, path):
+	"""Convert and XML document into a DOM Document."""
+	from Ft.Xml.InputSource import InputSourceFactory
+	#from Ft.Xml.cDomlette import nonvalParse
+	from Ft.Xml.FtMiniDom import nonvalParse
+	isrc = InputSourceFactory()
+
+	try:
+		try:
+			print "Parsing (with entities)..."
+			doc = nonvalParse(isrc.fromString(data, path))
+		except:
+			print "Parse failed.. retry without entities..."
+			data = entrefpattern.sub('&amp;\\1;',data)
+			doc = nonvalParse(isrc.fromString(data, path))
+	except:
+		type, val, tb = sys.exc_info()
+		traceback.print_exception(type, val, tb)
+		print "parsing failed!"
+		print "Data was:"
+		print data
+		#rox.report_exception()
+		raise Beep
+	else:
+		print "parse OK...",
+	return doc
+	

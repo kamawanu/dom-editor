@@ -9,7 +9,7 @@ from Ft.Xml.XPath import FT_EXT_NAMESPACE, Context
 from Ft.Xml.cDomlette import implementation
 from Ft.Xml.Domlette import PrettyPrint
 
-import os, re, string, types, sys
+import re, string, sys
 import urlparse
 from StringIO import StringIO
 
@@ -35,45 +35,6 @@ def elements(node):
 normal_chars = string.letters + string.digits + "-"
 
 fast_global = re.compile('//([-A-Za-z][-A-Za-z0-9]*:)?[-A-Za-z][-A-Za-z0-9]*$')
-
-def fix_broken_html(data):
-	"""Pre-parse the data before sending to tidy to fix really really broken
-stuff (eg, MS Word output). Returns None if data is OK"""
-	if data.find('<o:p>') == -1:
-		return 		# Doesn't need fixing?
-	import re
-	data = data.replace('<o:p></o:p>', '')
-	data = re.sub('<!\[[^]]*\]>', '', data)
-	return data
-
-def to_html(data):
-	(r, w) = os.pipe()
-	child = os.fork()
-	#data = data.replace('&nbsp;', ' ')
-	#data = data.replace('&copy;', '(c)')
-	#data = data.replace('&auml;', '(auml)')
-	#data = data.replace('&ouml;', '(ouml)')
-	fixed = fix_broken_html(data)
-	if child == 0:
-		# We are the child
-		try:
-			os.close(r)
-			os.dup2(w, 1)
-			os.close(w)
-			if fixed:
-				tin = os.popen('tidy --force-output yes -q -utf8 -asxml 2>/dev/null', 'w')
-			else:
-				tin = os.popen('tidy --force-output yes -q -asxml 2>/dev/null', 'w')
-			tin.write(fixed or data)
-			tin.close()
-		finally:
-			os._exit(0)
-	os.close(w)
-	
-	data = os.fdopen(r).read()
-	os.waitpid(child, 0)
-
-	return data
 
 # An view contains:
 # - A ref to a DOM document
@@ -375,7 +336,7 @@ class View:
 		if attrib and attrib.nodeType != Node.ATTRIBUTE_NODE:
 			raise Exception('attrib not of type ATTRIBUTE_NODE!')
 
-		if type(nodes) != types.ListType:
+		if type(nodes) != list:
 			assert nodes
 			nodes = [nodes]
 
@@ -859,7 +820,7 @@ class View:
 
 	def python_to_node(self, data):
 		"Convert a python data structure into a tree and return the root."
-		if type(data) == types.ListType:
+		if type(data) == list:
 			list = self.model.doc.createElementNS(DOME_NS, 'dome:list')
 			list.setAttributeNS(XMLNS_NAMESPACE, 'xmlns:dome', DOME_NS)
 			for x in data:
@@ -1353,7 +1314,7 @@ class View:
 		if data.startswith('<?xml'):
 			pass
 		else:
-			data = to_html(data)
+			data = support.to_html_doc(data)
 			#print "Converted to", data
 		
 		old_md5 = node.getAttributeNS(None, 'md5_sum')
@@ -1373,7 +1334,7 @@ class View:
 		
 		print "parsing...",
 
-		root = self.parse_data(data, uri)
+		root = support.parse_data(data, uri)
 		
 		new = node.ownerDocument.importNode(root.documentElement, 1)
 		new.setAttributeNS(None, 'uri', uri)
@@ -1601,33 +1562,6 @@ class View:
 		a = self.model.set_attrib(node, name, value)
 		self.move_to(node, a)
 	
-	def parse_data(self, data, path):
-		"""Convert and XML document into a DOM Document."""
-		from Ft.Xml.InputSource import InputSourceFactory
-		#from Ft.Xml.cDomlette import nonvalParse
-		from Ft.Xml.FtMiniDom import nonvalParse
-		isrc = InputSourceFactory()
-
-		try:
-			try:
-				print "Parsing (with entities)..."
-				doc = nonvalParse(isrc.fromString(data, path))
-			except:
-				print "Parse failed.. retry without entities..."
-				data = entrefpattern.sub('&amp;\\1;',data)
-				doc = nonvalParse(isrc.fromString(data, path))
-		except:
-			type, val, tb = sys.exc_info()
-			traceback.print_exception(type, val, tb)
-			print "parsing failed!"
-			print "Data was:"
-			print data
-			#rox.report_exception()
-			raise Beep
-		else:
-			print "parse OK...",
-		return doc
-		
 	def set_root_from_doc(self, doc):
 		new = self.root.ownerDocument.importNode(doc.documentElement, 1)
 
@@ -1642,17 +1576,14 @@ class View:
 	def load_html(self, path):
 		"Replace root with contents of this HTML file."
 		print "Reading HTML..."
-		data = file(path).read()
-		data = to_html(data)
-		doc = self.parse_data(data, path)
-		self.model.strip_space(doc)
+		doc = self.model.load_html(path)
 		self.set_root_from_doc(doc)
 		
 	def load_xml(self, path):
 		"Replace root with contents of this XML (or Dome) file."
 		print "Reading XML..."
 		data = file(path).read()
-		doc = self.parse_data(data, path)
+		doc = support.parse_data(data, path)
 		self.set_root_from_doc(doc)
 
 	def load_node(self, root):

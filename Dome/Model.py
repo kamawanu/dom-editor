@@ -38,7 +38,9 @@ class Model:
 		if path:
 			if path != '-':
 				self.uri = path
-			if not root_program:
+			if path.endswith('.html') or path.endswith('.htm'):
+				doc = self.load_html(path)
+			if not doc and not root_program:
 				from Ft.Xml.InputSource import InputSourceFactory
 				isrc = InputSourceFactory()
 				doc = nonvalParse(isrc.fromUri(path))
@@ -434,4 +436,11 @@ class Model:
 				return node.getAttributeNS(None, 'uri')
 			node = node.parentNode
 		return None
-
+	
+	def load_html(self, path):
+		"""Load this HTML file and return the new document."""
+		data = file(path).read()
+		data = support.to_html_doc(data)
+		doc = support.parse_data(data, path)
+		self.strip_space(doc)
+		return doc
