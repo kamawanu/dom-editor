@@ -136,7 +136,10 @@ class Window(GtkWindow):
 	def tool_Stop(self):
 		if self.view.rec_point:
 			self.view.stop_recording()
-		self.view.run_new()
+		if self.view.running():
+			self.view.single_step = 1
+		else:
+			self.view.run_new()
 
 	def tool_Play(self):
 		from View import InProgress, Done

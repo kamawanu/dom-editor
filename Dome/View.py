@@ -566,10 +566,11 @@ class View:
 
 	def subst(self, replace, with):
 		"re search and replace on the current node"
+		check = len(self.current_nodes) == 1
 		for n in self.current_nodes:
 			if n.nodeType == Node.TEXT_NODE:
 				new, num = re.subn(replace, with, n.data)
-				if not num:
+				if check and not num:
 					raise Beep
 				self.model.set_data(n, new)
 			else:

@@ -141,6 +141,8 @@ class GUIView(Display):
 			self.view.may_record(['enter'])
 		elif kev.keyval == Tab:
 			self.toggle_edit()
+		elif kev.keyval == ord('^'):
+			self.view.may_record(['suck'])
 		else:
 			return 0
 		widget.emit_stop_by_name('key-press-event')

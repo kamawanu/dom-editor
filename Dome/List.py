@@ -69,6 +69,11 @@ class List(GtkVBox):
 		self.view = view
 		self.sub_windows = []
 
+		self.stack_frames = GtkLabel()
+		self.pack_start(self.stack_frames, FALSE, TRUE, 0)
+		self.stack_frames.show()
+		self.update_stack(None)
+
 		self.tree = GtkTree()
 		self.tree.unset_flags(CAN_FOCUS)
 		self.chains = ChainDisplay(view, view.model.root_program)
@@ -223,8 +228,15 @@ class List(GtkVBox):
 
 	def update_stack(self, op):
 		"The stack has changed - redraw 'op'"
-		if op.program == self.chains.prog:
+		if op and op.program == self.chains.prog:
 			self.chains.update_all()
+		l = len(self.view.exec_stack)
+		if l == 0:
+			self.stack_frames.set_text('No stack')
+		elif l == 1:
+			self.stack_frames.set_text('1 frame')
+		else:
+			self.stack_frames.set_text('%d frames' % l)
 	
 	def show_prog(self, prog):
 		self.tree.select_child(self.prog_to_tree[prog])
@@ -396,7 +408,7 @@ class ChainDisplay(GnomeCanvas):
 		win.add(vbox)
 		for x in op.action:
 			entry = GtkEntry()
-			entry.set_text(`x`)
+			entry.set_text(str(x))
 			vbox.pack_start(entry, TRUE, FALSE, 0)
 		hbox = GtkHBox(TRUE, 4)
 		vbox.pack_start(hbox, TRUE, FALSE, 0)
