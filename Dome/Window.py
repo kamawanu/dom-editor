@@ -27,13 +27,6 @@ def strip_space(doc):
 				cb(k, cb)
 	cb(doc.documentElement, cb)
 
-def html_to_xml(html):
-	"Takes an HTML DOM and creates a corresponding XML DOM."
-	root = implementation.createDocument('', 'root', None)
-	node = root.importNode(html.documentElement, deep = 1)
-	root.replaceChild(node, root.documentElement)
-	return root
-
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)

@@ -1,5 +1,6 @@
 import sys
 from traceback import format_exception_only
+from xml.dom import implementation
 
 from string import find, lower, join
 from socket import gethostbyaddr, gethostname
@@ -23,6 +24,13 @@ bad_xpm = [
 " ...XXXX... ",
 " ..XXXXXX.. ",
 "            "]
+
+def html_to_xml(html):
+	"Takes an HTML DOM and creates a corresponding XML DOM."
+	root = implementation.createDocument('', 'root', None)
+	node = root.importNode(html.documentElement, deep = 1)
+	root.replaceChild(node, root.documentElement)
+	return root
 
 def load_pixmap(window, path):
 	try:

@@ -1,9 +1,10 @@
 from gtk import *
 from GDK import *
 from _gtk import *
-import string
+import string, os
 from xml.dom import Node
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
+from xml.dom import ext
 import types
 
 from support import *
@@ -14,6 +15,7 @@ import Change
 from SaveBox import SaveBox
 from Exec import Exec
 import Macro
+import Html
 
 class Beep(Exception):
 	pass
@@ -24,6 +26,11 @@ def literal_match(node):
 def get_text(node):
 	if node.nodeType == Node.TEXT_NODE:
 		return string.split(string.strip(node.nodeValue), '\n')
+	elif node.nodeType == Node.ELEMENT_NODE:
+		ret = [node.nodeName]
+		for a in node.attributes:
+			ret[0] += ' ' + a.name
+		return ret
 	elif node.nodeName:
 		return [node.nodeName]
 	elif node.nodeValue:
@@ -658,6 +665,29 @@ class Tree(GtkDrawingArea):
 			
 		return new
 
+	def suck(self, node):
+		if node.nodeType == Node.TEXT_NODE:
+			uri = node.nodeValue
+		else:
+			uri = None
+			for attr in node.attributes:
+				uri = attr.value
+				if uri.find('//') != -1:
+					break
+		if not uri:
+			raise Beep
+		command = "lynx -source '%s'" % uri
+		print command
+		cout = os.popen(command)
+
+		reader = Html.Reader()
+		root = reader.fromStream(cout)
+		cout.close()
+		ext.StripHtml(root)
+		new = node.ownerDocument.importNode(html_to_xml(root).documentElement, deep = 1)
+		Change.replace_node(node, new)
+		return new
+
 	# Undo/redo
 	def undo(self, cur):
 		if Change.can_undo(self.display_root):
@@ -705,6 +735,8 @@ class Tree(GtkDrawingArea):
 		P	: ["put_before"],
 		p	: ["put_after"],
 		bracketright : ["put_as_child"],
+
+		ord('^'): ["suck"],
 
 		Tab	: edit_node,
 
