@@ -937,7 +937,8 @@ class ChainDisplay(g.EventBox):
 	def paste_chain(self, op, exit):
 		print "Paste", self.clipboard
 		doc = self.clipboard
-		new = load(doc.documentElement, op.parent)
+		new = load(doc.documentElement, op.parent,
+				self.view.model.namespaces)
 		start = new.start.next
 		new.start.unlink('next', may_delete = 0)
 		start.set_parent(None)

@@ -4,6 +4,33 @@ from rox import g, TRUE, FALSE
 # text -> last value
 history = {}
 
+class Examples(g.ScrolledWindow):
+	def __init__(self, hints):
+		g.ScrolledWindow.__init__(self)
+		self.set_shadow_type(g.SHADOW_IN)
+		self.set_policy(g.POLICY_NEVER, g.POLICY_AUTOMATIC)
+		self.set_border_width(4)
+		
+		model = g.ListStore(str, str)
+		view = g.TreeView(model)
+		self.add(view)
+		view.show()
+
+		cell = g.CellRendererText()
+		column = g.TreeViewColumn('Example pattern', cell, text = 0)
+		view.append_column(column)
+		column = g.TreeViewColumn('Meaning', cell, text = 1)
+		view.append_column(column)
+
+		for c, m in hints:
+			new = model.append()
+			model.set(new, 0, c, 1, m)
+
+		self.set_size_request(-1, 150)
+
+		view.get_selection().set_mode(g.SELECTION_NONE)
+
+
 # A window which allows the user to enter a string.
 # When this is done, callback(string) or callback(strings) is called.
 # args is a list like ('Replace:', 'With:')
@@ -11,8 +38,10 @@ history = {}
 
 class GetArg(rox.Dialog):
 	def __init__(self, text, callback, args, message = None,
-		     destroy_return = 0, init = None):
+		     destroy_return = 0, init = None, hints = None):
 		rox.Dialog.__init__(self)
+		self.set_has_separator(False)
+		self.set_position(g.WIN_POS_MOUSE)
 
 		if init:
 			init = init[:]
@@ -23,7 +52,9 @@ class GetArg(rox.Dialog):
 		self.set_title(text)
 
 		if message:
-			self.vbox.pack_start(g.Label(message), TRUE, TRUE, 0)
+			self.vbox.pack_start(g.Label(message), not hints, True, 0)
+		if hints:
+			self.vbox.pack_end(Examples(hints), True, True, 0)
 
 		self.args = []
 

@@ -58,7 +58,7 @@ menu = Menu('main', [
 		('/Move/To attribute', 'menu_select_attrib', '<StockItem>', 'At', g.STOCK_JUMP_TO),
 
 		('/Select', None, '<Branch>', ''),
-		('/Select/By XPath', 'menu_show_global', '', 'numbersign'),
+		('/Select/Matching Nodes', 'menu_show_global', '', 'numbersign'),
 		('/Select/Duplicate Siblings', 'do_select_dups', '', ''),
 		('/Select/To Mark', 'do_select_marked', '', 'minus'),
 		('/Select/Child Nodes', 'do_select_children', '', 'asterisk'),
@@ -352,9 +352,19 @@ class GUIView(Display, XDSLoader):
 		def do_global(pattern):
 			action = ["do_global", pattern]
 			self.view.may_record(action)
-		GetArg('Global:', do_global, ['Pattern:'],
-			'(@CURRENT@ is the current node\'s value)\n' +
-			'Perform next action on all nodes matching')
+		GetArg('Select matching nodes', do_global, ['Pattern:'],
+			'Select nodes which match:',
+			hints = (('img', 'all <img> child elements'),
+				 ('//img', 'all <img> elements anywhere'),
+				 ('.//img', 'all <img> descendant elements'),
+				 ('//img[@src]', 'all <img> elements with "src" attributes'),
+				 ('//chapter[title="Intro"]',
+				 	'Any <chapter> with a <title>Intro</title> child.'),
+				 ('img[0]', 'the first child <img> element'),
+				 ('text()', 'the first child text node'),
+				 ('//img[@src="@CURRENT@"]',
+				 	"all <img>s whose src is the current node's value"),
+				 ))
 
 	def menu_show_text_search(self):
 		def do_text_search(pattern):
