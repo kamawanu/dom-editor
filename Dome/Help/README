@@ -110,7 +110,7 @@ Processing a web site:
 
 - Select the 'ul' element, which contains everything we need.
 
-- Paste Replace the body and delete the unneeded 'head'.
+- Yank it, then Paste Replace the body and delete the unneeded 'head'.
 
 - Select the nodes you want. Eg:
 
@@ -157,3 +157,16 @@ Processing a web site:
   continue with the Map.
 
 Dome will no process the rest of the site, until it hits a new error.
+
+
+Running in a cron job:
+
+The GUI is quite slow. Once your program is working you can use the nogui.py
+program to run it without the frontend. The syntax is:
+
+	$ Dome/nogui.py project.dome
+
+This runs the root program in project.dome. When it finishes, the result
+is saved back over project.dome and the data is exported as project.xml.
+
+Tip: get your cron job to make backups too!
