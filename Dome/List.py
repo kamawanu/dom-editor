@@ -551,9 +551,6 @@ class ChainDisplay(GnomeCanvas):
 			if event.button == 1:
 				if not getattr(op, exit):
 					self.drag_last_pos = (event.x, event.y)
-					import Display
-					item.grab(BUTTON_RELEASE | MOTION_NOTIFY,
-						Display.no_cursor, event.time)
 			elif event.button == 2:
 				self.paste_chain(op, exit)
 			elif event.button == 3:
