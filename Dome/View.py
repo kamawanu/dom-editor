@@ -1844,6 +1844,7 @@ class View:
 		self.move_to([])
 		nodes = map(fn, nodes)
 		self.move_to(nodes)
+	def convert_to_element(self): self.convert_to(self.model.convert_to_element)
 	def convert_to_text(self): self.convert_to(self.model.convert_to_text)
 	def convert_to_comment(self): self.convert_to(self.model.convert_to_comment)
 

@@ -174,7 +174,7 @@ class List(g.VBox):
 		swin = g.ScrolledWindow()
 		swin.set_policy(g.POLICY_AUTOMATIC, g.POLICY_AUTOMATIC)
 		pane.add2(swin)
-		swin.add(self.chains)
+		swin.add_with_viewport(self.chains)
 		swin.show_all()
 
 		pane.set_position(200)
@@ -341,10 +341,118 @@ class ChainDummy(g.TreeView):
 	def update_points(self):
 		pass
 
-class ChainDisplay(canvas.Canvas):
+def create_op(op, x, y):
+	if isinstance(op, Block):
+		return ChainBlock(op, x, y)
+	else:
+		return ChainOp(op, x, y)
+
+class ChainNode:
+	"A visual object in the display."
+	def __init__(self, x, y):
+		self.x = x
+		self.y = y
+	
+	def expose(self, da):
+		w = da.window
+		print "draw"
+		w.draw_rectangle(da.style.black_gc, True, self.x, self.y, 10, 10)
+
+class ChainOp(ChainNode):
+	def __init__(self, op, x, y):
+		self.op = op
+		ChainNode.__init__(self, x, y)
+		self.layout = None
+
+		if op.next: self.next = create_op(op.next, x, y + 20)
+		else: self.next = None
+
+		if op.fail: self.fail = create_op(op.fail, x + 100, y + 20)
+		else: self.fail = None
+
+	def expose(self, da):
+		w = da.window
+		op = self.op
+		if not self.layout:
+			text = str(action_to_text(op.action))
+			self.layout = da.create_pango_layout(text)
+
+		w.draw_arc(da.style.black_gc, False, self.x, self.y, 10, 10, 0, 360 * 60)
+		w.draw_layout(da.style.black_gc, self.x + 12, self.y, self.layout)
+
+		if self.next: self.next.expose(da)
+		if self.fail: self.fail.expose(da)
+		return
+
+		text_font = 'verdana 10'
+		text_col = 'black'
+		if op.action[0] == 'Start':
+			text = str(op.parent.comment.replace('\\n', '\n'))
+			text_y = 0
+			if mono:
+				text_font = 'verdana bold 10'
+			else:
+				text_col = 'dark blue'
+		else:
+			text = str(action_to_text(op.action))
+			text_y = -8
+		
+		group.ellipse = group.add(canvas.CanvasEllipse,
+					fill_color = self.op_colour(op),
+					outline_color = 'black',
+					x1 = -4, x2 = 4,
+					y1 = -4, y2 = 4,
+					width_pixels = 1)
+		group.ellipse.connect('event', self.op_event, op)
+		if text:
+			label = group.add(canvas.CanvasText,
+						x = -8, 
+						y = text_y,
+						anchor = g.ANCHOR_NE,
+						justification = 'right',
+						fill_color = text_col,
+						font = text_font,
+						text = text)
+
+			#self.update_now()	# GnomeCanvas bug?
+			(lx, ly, hx, hy) = label.get_bounds()
+			next_off_y = hy
+		else:
+			next_off_y = 0
+		group.width, group.height = 0, 0
+
+class ChainBlock(ChainOp):
+	def __init__(self, block, x, y):
+		assert isinstance(block, Block)
+		ChainOp.__init__(self, block, x, y)
+
+		self.width = 100
+		self.height = 100
+
+		self.start = create_op(block.start, x + 4, y + 4)
+
+	def expose(self, da):
+		w = da.window
+		w.draw_rectangle(da.style.black_gc, False, self.x, self.y, self.width, self.height)
+
+		op = self.op
+		if op.foreach:
+			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + 1, 6, self.height - 2)
+		if op.enter:
+			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + 1, self.width, 6)
+			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + self.height - 5, 6)
+		if op.restore:
+			colour = 'orange'
+			margin = op.enter * 8
+			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + 1 + margin, self.width, 6)
+			w.draw_rectangle(da.style.white_gc, True, self.x + 1, self.y + self.height - 5 - margin, 6)
+
+		self.start.expose(da)
+
+class ChainDisplay(g.DrawingArea):
 	"A graphical display of a chain of nodes."
 	def __init__(self, view, prog = None):
-		canvas.Canvas.__init__(self)
+		g.DrawingArea.__init__(self)
 		self.connect('destroy', self.destroyed)
 
 		self.view = view
@@ -365,6 +473,10 @@ class ChainDisplay(canvas.Canvas):
 
 		self.view.model.root_program.watchers.append(self)
 
+		self.connect('expose-event', self.expose)
+		self.add_events(g.gdk.BUTTON_PRESS_MASK)
+		self.connect('button-press-event', self.button_press)
+
 		self.switch_to(prog)
 	
 	def set_active(self, active):
@@ -383,7 +495,8 @@ class ChainDisplay(canvas.Canvas):
 			self.scroll_to_show(self.rec_point)
 
 	def scroll_to_show(self, item):
-		self.update_now()		# Canvas bug
+		print "XXX"
+		return
 
 		(lx, ly, hx, hy) = item.get_bounds()
 		x, y = item.i2w(0, 0)
@@ -412,6 +525,8 @@ class ChainDisplay(canvas.Canvas):
 		self.scroll_to(sx, sy)
 	
 	def put_point(self, point):
+		print "XXX"; return
+
 		item = getattr(self, point)
 		if item:
 			item.destroy()
@@ -453,15 +568,6 @@ class ChainDisplay(canvas.Canvas):
 				item.move((x1 + x2) / 2, (y1 + y2) / 2)
 	
 	def destroyed(self, widget):
-		print "destroyed!"
-
-		# GnomeCanvas is really buggy...
-		del self.nodes
-		del self.op_to_group
-		
-		p = self.prog
-		while p.parent:
-			p = p.parent
 		self.view.model.root_program.watchers.remove(self)
 		print "(ChainDisplay destroyed)"
 	
@@ -479,21 +585,26 @@ class ChainDisplay(canvas.Canvas):
 			self.update_all()
 	
 	def update_all(self):
-		if self.nodes:
-			self.nodes.destroy()
-
-		self.op_to_group = {}
-		self.nodes = self.root().add(canvas.CanvasGroup, x = 0, y = 0)
-		
+		self.op_to_obj = {}
 		if self.prog:
-			self.create_node(self.prog.code, self.nodes)
-
-		self.update_links()
-		self.update_points()
-
-		self.set_bounds()
-	
+			self.root_object = create_op(self.prog.code, 4, 4)
+		else:
+			self.root_object = None
+		self.queue_draw()
 		return 1
+	
+	def expose(self, da, event):
+		print "expose"
+		if self.root_object:
+			self.root_object.expose(da)
+		#self.update_links()
+		#self.update_points()
+
+		#self.set_bounds()
+	
+	def button_press(self, da, event):
+		print "click"
+		self.view.set_exec((self.root_object.op.start, 'next'))
 	
 	def op_colour(self, op):
 		if op in self.view.exec_stack:
@@ -521,77 +632,10 @@ class ChainDisplay(canvas.Canvas):
 		if isinstance(op, Block):
 			self.update_links(op.start)
 	
-	def create_node(self, op, group):
-		self.op_to_group[op] = group
-
-		if isinstance(op, Block):
-			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
-			self.create_node(op.start, gr)
-			#self.update_now()	# GnomeCanvas bug?
-			(lx, ly, hx, hy) = gr.get_bounds()
-			minx = lx - 4
-			if op.foreach:
-				minx -= 8
-			border = gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = ly + 4, y2 = hy + 4,
-					outline_color = 'black', width_pixels = 1)
-			border.lower_to_bottom()
-			if op.foreach:
-				gr.add(canvas.CanvasRect, x1 = minx, x2 = minx + 8, y1 = ly + 4, y2 = hy + 4,
-					fill_color = 'blue').lower_to_bottom()
-			if op.enter:
-				colour = 'yellow'
-				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = ly + 5, y2 = ly + 13,
-					fill_color = colour).lower_to_bottom()
-				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = hy - 4, y2 = hy + 4,
-					fill_color = colour).lower_to_bottom()
-			if op.restore:
-				colour = 'orange'
-				margin = op.enter * 8
-				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = ly + 5 + margin, y2 = ly + 13 + margin,
-					fill_color = colour).lower_to_bottom()
-				gr.add(canvas.CanvasRect, x1 = minx, x2 = hx + 4, y1 = hy - 4 - margin, y2 = hy + 4 - margin,
-					fill_color = colour).lower_to_bottom()
-			next_off_y = 0
-			group.width, group.height = hx, hy
-			if op.is_toplevel():
-				return
-		else:
-			text_font = 'verdana 10'
-			text_col = 'black'
-			if op.action[0] == 'Start':
-				text = str(op.parent.comment.replace('\\n', '\n'))
-				text_y = 0
-				if mono:
-					text_font = 'verdana bold 10'
-				else:
-					text_col = 'dark blue'
-			else:
-				text = str(action_to_text(op.action))
-				text_y = -8
-			
-			group.ellipse = group.add(canvas.CanvasEllipse,
-						fill_color = self.op_colour(op),
-						outline_color = 'black',
-						x1 = -4, x2 = 4,
-						y1 = -4, y2 = 4,
-						width_pixels = 1)
-			group.ellipse.connect('event', self.op_event, op)
-			if text:
-				label = group.add(canvas.CanvasText,
-							x = -8, 
-							y = text_y,
-							anchor = g.ANCHOR_NE,
-							justification = 'right',
-							fill_color = text_col,
-							font = text_font,
-							text = text)
-
-				#self.update_now()	# GnomeCanvas bug?
-				(lx, ly, hx, hy) = label.get_bounds()
-				next_off_y = hy
-			else:
-				next_off_y = 0
-			group.width, group.height = 0, 0
+	def create_node(self, op, parent):
+		if op.is_toplevel():
+			return obj
+		return
 
 		if op.next and op.next.prev[0] == op:
 			sx, sy = self.get_arrow_start(op, 'next')

@@ -208,10 +208,20 @@ class Model:
 		self.add_undo(lambda: self.replace_node(node, old))
 		self.update_all(node)
 	
-	def convert_to_text(self, node):
+	def convert_to_element(self, node):
 		assert node.nodeType in (Node.COMMENT_NODE, Node.PROCESSING_INSTRUCTION_NODE,
 					 Node.TEXT_NODE)
-		new = self.doc.createTextNode(node.data)
+		new = self.doc.createElementNS(None, node.data.strip())
+		self.replace_node(node, new)
+		return new
+	
+	def convert_to_text(self, node):
+		assert node.nodeType in (Node.COMMENT_NODE, Node.PROCESSING_INSTRUCTION_NODE,
+					 Node.TEXT_NODE, Node.ELEMENT_NODE)
+		if node.nodeType == Node.ELEMENT_NODE:
+			new = self.doc.createTextNode(node.localName)
+		else:
+			new = self.doc.createTextNode(node.data)
 		self.replace_node(node, new)
 		return new
 	
