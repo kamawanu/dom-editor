@@ -1,0 +1,39 @@
+Subtrees don't layout properly when there are several subtrees all together
+(nodes and lines draw over the top of other nodes and lines).
+
+It would be nice to be able to return to a chain after a failure case,
+instead of having to copy and paste the same set of nodes onto the bottom of
+a load of subtrees.
+
+Better labels on programs
+
+Make modify button work.
+
+Back arrow (undo last program step and move back position of execution)
+
+Ability to load files from within program.
+
+After selecting a new program the program window should select the start
+position (so you can click run straight away).
+
+Menubar would be nice!
+
+More sub-division in meus.
+
+Labels on boxes that pop-up.
+
+Clicking on program nodes should not bring up their contents (make this an
+option on the right click menu instead?)
+
+Clicking on the text of a node brigns it up for editing.
+
+Double click on node attributes should not close the node but bring it up
+for edit.
+
+Clicking play in record mode should stop record mode.
+
+There should be an extra type of undo - can undo a program node (remove
+node) and undo actions of node at same time.
+
+There should be an option to run the program without updating the gui until
+it end/fails (if this speeds up execution).
