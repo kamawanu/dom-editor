@@ -42,11 +42,6 @@ class Namespaces(g.GenericTreeModel):
 		if iter < len(self.list) - 1:
 			return iter + 1
 	
-	def add_new(self):
-		x = 1
-		while ('ns%d' % x) in self.dict: x += 1
-		self['ns%d' % x] = 'http://example.com'
-	
 	def __setitem__(self, prefix, uri):
 		if prefix in self.dict and self.dict[prefix] == uri:
 			return
@@ -55,13 +50,16 @@ class Namespaces(g.GenericTreeModel):
 		if prefix in fixed_ns:
 			raise Exception('That namespace prefix cannot be changed')
 
-		if prefix in self.dict:
-			del self[self.get_iter((self.list.index(prefix)))]
+		modifed = prefix in self.dict
 
 		self.dict[prefix] = uri
 		self.update_list()
 		path = (self.list.index(prefix),)
-		self.emit('row-inserted', path, self.get_iter(path))
+
+		if modifed:
+			self.emit('row-changed', path, self.get_iter(path))
+		else:
+			self.emit('row-inserted', path, self.get_iter(path))
 	
 	def __delitem__(self, iter):
 		prefix = self[iter][0]
