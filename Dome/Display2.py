@@ -41,7 +41,7 @@ def calc_node(display, node, pos):
 	layout = display.surface_layout
 	layout.set_text(text)
 	width, height = layout.get_pixel_size()
-	x, y = pos
+	x, y = map(int, pos)
 
 	text_x = x
 	if node.nodeType != Node.ATTRIBUTE_NODE:

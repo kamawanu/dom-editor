@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import findrox
+import findrox; findrox.version(1, 9, 8)
 
 no_gui_mode = 1
 

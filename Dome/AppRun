@@ -4,7 +4,7 @@
 import gc
 show_leaks = False
 
-import findrox
+import findrox; findrox.version(1, 9, 8)
 import rox
 
 #rox.setup_app_options('Dome')
