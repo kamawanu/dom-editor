@@ -12,7 +12,7 @@ def el_named(node, name):
 	
 # Node is a DOM <dome-program> or <node> node.
 # Returns the start Op.
-def load(program, chain):
+def load(chain):
 	start = None
 	prev = None
 	for op_node in chain.childNodes:
@@ -33,7 +33,7 @@ def load(program, chain):
 		elif action[0] == 'playback':
 			action[0] = 'map'
 
-		op = Op(program, action)
+		op = Op(action)
 
 		if not start:
 			start = op
@@ -41,7 +41,7 @@ def load(program, chain):
 			prev.link_to(op, 'next')
 		prev = op
 		
-		fail = load(program, op_node)
+		fail = load(op_node)
 		if fail:
 			op.link_to(fail, 'fail')
 	return start
@@ -53,7 +53,7 @@ def load_dome_program(model, prog):
 
 	new = Program(model, str(prog.getAttributeNS('', 'name')))
 
-	start = load(new, prog)
+	start = load(prog)
 	if start:
 		new.set_start(start)
 
@@ -69,7 +69,8 @@ class Program:
 	"A program contains a Start Op and any number of sub-programs."
 	def __init__(self, model, name, start = None):
 		if not start:
-			start = Op(self)
+			start = Op()
+			start.program = self
 		self.model = model
 		self.start = start
 		self.name = name
@@ -78,6 +79,7 @@ class Program:
 		self.parent = None
 	
 	def set_start(self, start):
+		start.set_program(self)
 		self.start = start
 		self.changed(None)
 
@@ -125,20 +127,28 @@ class Program:
 class Op:
 	"Each node in a chain is an Op. There is no graphical stuff in here."
 
-	def __init__(self, program, action = None):
+	def __init__(self, action = None):
 		"Creates a new node (can be linked into another node later)"
 		if not action:
 			action = ['Start']
-		if not isinstance(program, Program):
-			raise Exception('Not a program!')
-		self.program = program
+		self.program = None
 		self.action = action
 		self.next = None
 		self.fail = None
 		self.prev = None
 	
+	def set_program(self, program):
+		if self.program:
+			raise Exception('%s already has a program!' % start)
+	 	self.program = program
+		if self.next:
+			self.next.set_program(program)
+		if self.fail:
+			self.fail.set_program(program)
+	
 	def changed(self):
-		self.program.changed(self)
+		if self.program:
+			self.program.changed(self)
 	
 	def swap_nf(self):
 		(self.next, self.fail) = (self.fail, self.next)
@@ -146,7 +156,7 @@ class Op:
 	
 	def link_to(self, child, exit):
 		# Create a link from this exit to this child Op
-		if child.prev:
+		if child.prev or child.program:
 			raise Exception('%s is already in a chain!' % child)
 		current = getattr(self, exit)
 		if current:
@@ -155,6 +165,7 @@ class Op:
 			self.unlink(current)
 			child.link_to(current, 'next')
 		child.prev = self
+		child.program = self.program
 		setattr(self, exit, child)
 		self.changed()
 	
@@ -163,6 +174,7 @@ class Op:
 		if child.prev != self:
 			raise Exception('forget_child: not my child!')
 		child.prev = None
+		child.program = None
 
 		if child == self.next:
 			exit = 'next'
@@ -190,7 +202,7 @@ class Op:
 			next = self.fail
 
 		if next:
-			next.prev = None
+			self.unlink(next)
 
 		prev = self.prev
 		if prev.next == self:

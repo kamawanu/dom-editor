@@ -128,7 +128,7 @@ class View:
 		if rec:
 			print "RECORD:", rec, action
 			(op, old_exit) = rec
-			new_op = Op(op.program, action)
+			new_op = Op(action)
 			op.link_to(new_op, old_exit)
 			self.set_rec((new_op, exit))
 	
@@ -713,10 +713,18 @@ class View:
 		if self.clipboard == None:
 			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
+		if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
+			to = []
+			for n in new.childNodes:
+				to.append(n)
+		else:
+			to = new
 		try:
 			self.model.insert(node, new, index = 0)
 		except:
 			raise Beep
+
+		self.move_to(to)
 	
 	def yank_value(self):
 		if not self.current_attrib:

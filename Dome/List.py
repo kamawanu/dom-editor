@@ -11,6 +11,11 @@ from Menu import Menu
 from GetArg import GetArg
 from Program import Program, load
 
+def trunc(text):
+	if len(text) < 18:
+		return text
+	return text[:16] + '...'
+
 def action_to_text(action):
 	text = action[0]
 	if text[:3] == 'do_':
@@ -34,13 +39,13 @@ def action_to_text(action):
 				pat = pat[i + 1:]
 			details = details + pat
 		elif action[0] == 'attribute':
-			details = str(action[2])
+			details = trunc(str(action[2]))
 		elif action[0] == 'set_attrib':
-			details = str(action[1])
+			details = trunc(str(action[1]))
 		elif action[0] == 'add_attrib':
-			details = str(action[2])
+			details = trunc(str(action[2]))
 		elif action[0] == 'add_node':
-			details = action[2]
+			details = trunc(action[2])
 		elif action[0] == 'play' or action[0] == 'map':
 			if len(action[1]) > 10:
 				details = '...' + str(action[1][-9:])
@@ -120,7 +125,8 @@ class List(GtkVBox):
 	def run_return(self):
 		(op, exit) = self.view.exec_point
 		if exit != 'next':
-			self.view.set_exec((self.view.innermost_failure, 'fail'))
+			op = self.view.innermost_failure
+			self.view.set_exec((op, 'fail'))
 			self.tree.select_child(self.prog_to_tree[op.program])
 			def cb(choice, self = self):
 				if choice == 0:
@@ -332,7 +338,7 @@ class ChainDisplay(GnomeCanvas):
 	def op_event(self, item, event, op):
 		if event.type == BUTTON_PRESS:
 			if event.button == 1:
-				print op
+				print "Clicked", op, "(in", op.program.name + ")"
 			else:
 				self.show_op_menu(event, op)
 		elif event.type == ENTER_NOTIFY:
