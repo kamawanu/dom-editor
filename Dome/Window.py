@@ -20,8 +20,8 @@ class Window(rox.Window, saving.Saveable):
 		rox.Window.__init__(self)
 
 		self.status = g.Statusbar()
-		self.status.push(0, 'Welcome to Dome. Click the right-hand mouse button for menus.')
 		self.showing_message = False
+		self.set_status('Welcome to Dome. Click the right-hand mouse button for menus.')
 		
 		# Make it square, to cope with Xinerama
 		size = min(g.gdk.screen_width(), g.gdk.screen_height())
@@ -105,7 +105,7 @@ class Window(rox.Window, saving.Saveable):
 		if message:
 			self.status.push(0, message)
 		self.showing_message = bool(message)
-		self.status.queue_draw()#(0, 0, self.status.allocation.width, self.status.allocation.height))
+		self.status.draw((0, 0, self.status.allocation.width, self.status.allocation.height))
 		g.gdk.flush()
 	
 	def discard(self):
