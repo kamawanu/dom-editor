@@ -324,10 +324,10 @@ class View:
 	def ask(self, q):
 		def ask_cb(result, self = self):
 			self.clipboard = self.model.doc.createTextNode(result)
-			if self.exec_state.where:
+			if self.exec_state.where and not self.recording_where:
 				self.exec_state.unfreeze('next')
 		self.exec_state = Exec.exec_state	# XXX
-		if self.exec_state.where:
+		if self.exec_state.where and not self.recording_where:
 			self.exec_state.freeze()
 		GetArg('Input:', ask_cb, [q])
 
@@ -551,24 +551,23 @@ class View:
 				raise Beep
 			attribs = [self.current.getAttributeNode(name)]
 		else:
-			attribs = self.current.attributes
+			attribs = []
+			for a in self.current.attributes:
+				attribs.append(a)
+
+		# Make sure the attributes always come out in the same order
+		# (helps with macros).
+		def by_name(a, b):
+			diff = cmp(a.name, b.name)
+			if diff == 0:
+				diff = cmp(a.namespaceURI, b.namespaceURI)
+			return diff
 			
-		print attribs
+		attribs.sort(by_name)
 		for a in attribs:
-			n = self.model.doc.createElementNS(DOME_NS, 'dome:attribute')
-			ns = self.model.doc.createElementNS(DOME_NS, 'dome:namespaceURI')
-			name = self.model.doc.createElementNS(DOME_NS, 'dome:name')
-			val = self.model.doc.createElementNS(DOME_NS, 'dome:value')
-			
-			n.appendChild(ns)
-			n.appendChild(name)
-			n.appendChild(val)
-
+			n = self.model.doc.createElementNS(a.namespaceURI, a.nodeName)
+			n.appendChild(self.model.doc.createTextNode(a.value))
 			self.clipboard.appendChild(n)
-
-			ns.appendChild(self.model.doc.createTextNode(a.namespaceURI))
-			name.appendChild(self.model.doc.createTextNode(a.nodeName))
-			val.appendChild(self.model.doc.createTextNode(a.value))
 		print "Clip now", self.clipboard
 	
 	def paste_attribs(self):
@@ -581,11 +580,8 @@ class View:
 			return a.getElementsByTagNameNS(DOME_NS, name)[0].childNodes[0].data
 		for a in attribs:
 			try:
-				namespaceURI = get(a, 'namespaceURI')
-				nodename = get(a, 'name')
-				value = get(a, 'value')
-				new.append((namespaceURI, nodename, value))
-			except IndexError:
+				new.append((a.namespaceURI, a.nodeName, a.childNodes[0].data))
+			except:
 				raise Beep
 		for node in self.current_nodes:
 			for (ns, local, value) in new:

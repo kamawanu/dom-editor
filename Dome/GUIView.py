@@ -74,7 +74,7 @@ class GUIView(Display):
 	
 	def show_menu(self, bev):
 		def do(action, self = self):
-			return lambda self = self: self.view.may_record([action])
+			return lambda self = self, action = action: self.view.may_record([action])
 
 		items = [
 			('Search', self.show_search),
@@ -83,7 +83,7 @@ class GUIView(Display):
 			(None, None),
 			('Yank attributes', self.show_yank_attribs),
 			('Paste attributes', do('paste_attribs')),
-			('Yank attrib value', self.show_yank_attrib),
+			('Yank attrib value', do('yank_value')),
 			(None, None),
 			('Cut', do('delete_node')),
 			('Paste (replace)', do('put_replace')),
