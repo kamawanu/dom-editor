@@ -6,7 +6,6 @@ import GDK
 from gnome.ui import *
 from support import *
 import string
-from xml.dom.ext.reader import PyExpat
 from StringIO import StringIO
 import math
 

@@ -357,7 +357,7 @@ class Op:
 		return doc
 	
 	def to_doc(self):
-		from xml.dom import implementation
+		from Ft.Xml.cDomlette import implementation
 		doc = implementation.createDocument(DOME_NS, 'dome-program', None)
 		self.to_xml_int(doc.documentElement)
 		return doc

@@ -3,15 +3,14 @@ from __future__ import nested_scopes
 import GDK
 from support import *
 from rox import support
-from xml.dom import Node, ext, XMLNS_NAMESPACE
+from xml.dom import Node, XMLNS_NAMESPACE
 from Ft.Xml import XPath
 from Ft.Xml.XPath import FT_EXT_NAMESPACE, Context
-from xml.dom.ext.reader import PyExpat		# XXX
 from Ft.Xml.cDomlette import implementation
+from Ft.Xml.Domlette import PrettyPrint
 
 import os, re, string, types, sys
 import urlparse
-import Html
 from StringIO import StringIO
 
 from Program import Op, Block
@@ -609,7 +608,7 @@ class View:
 
 		ns = {}
 		if not ns:
-			ns = ext.GetAllNs(self.current_nodes[0])
+			ns = GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
 		#print "ns is", ns
 		c = Context.Context(self.get_current(), processorNss = ns)
@@ -625,7 +624,7 @@ class View:
 			raise Beep
 		src = self.current_nodes[-1]
 		if not ns:
-			ns = ext.GetAllNs(src)
+			ns = GetAllNs(src)
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
 		rt = XPath.Evaluate(path, context = c)
@@ -683,7 +682,7 @@ class View:
 				self.op_in_progress.cached_code = code
 
 		if not ns:
-			ns = ext.GetAllNs(src)
+			ns = GetAllNs(src)
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src, [src], processorNss = ns)
 		
@@ -1250,7 +1249,6 @@ class View:
 			print "MD5 sums match => not parsing!"
 			return node
 		
-		reader = PyExpat.Reader()
 		print "parsing...",
 
 		from Ft.Xml.InputSource import InputSourceFactory
@@ -1259,7 +1257,7 @@ class View:
 
 		try:
 			root = nonvalParse(isrc.fromString(data, uri))
-			ext.StripHtml(root)
+			#ext.StripHtml(root)
 		except:
 			type, val, tb = sys.exc_info()
 			traceback.print_exception(type, val, tb)
@@ -1440,7 +1438,7 @@ class View:
 	def fail_if(self, xpath):
 		"""Evaluate xpath as a boolean, and fail if true."""
 		src = self.get_current()
-		ns = ext.GetAllNs(src)
+		ns = GetAllNs(src)
 		ns['ext'] = FT_EXT_NAMESPACE
 		c = Context.Context(src.parentNode, [src.parentNode], processorNss = ns)
 		
@@ -1518,7 +1516,7 @@ class View:
 		data = file(path).read()
 		data = to_html(data)
 		doc = self.parse_data(data, path)
-		doc = ext.StripHtml(doc)
+		#doc = ext.StripHtml(doc)
 		self.set_root_from_doc(doc)
 		
 	def load_xml(self, path):
@@ -1660,7 +1658,7 @@ class View:
 			raise Done()
 
 		stream = StrGrab()
-		ext.PrettyPrint(copy, stream = stream)
+		PrettyPrint(copy, stream = stream)
 		message = stream.data
 
 		conn = httplib.HTTP(addr)

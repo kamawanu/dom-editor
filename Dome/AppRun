@@ -6,8 +6,8 @@ import findrox
 no_gui_mode = 0
 
 # Ugly hack to stop wierd chars appearing...
-import xml.dom.html
-xml.dom.html.HTML_CHARACTER_ENTITIES = {}
+#import xml.dom.html
+#xml.dom.html.HTML_CHARACTER_ENTITIES = {}
 
 import sys
 from os.path import dirname

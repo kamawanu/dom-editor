@@ -8,12 +8,11 @@ from __future__ import nested_scopes
 # Notification to views of changes is done.
 
 from Ft.Xml.cDomlette import implementation, nonvalParse
+from Ft.Xml.Domlette import GetAllNs
 from Ft.Xml import XMLNS_NAMESPACE
-from xml.dom import ext
+
 from xml.dom import Node
-from xml.dom.Document import Document
 import string
-import Html
 import support
 from Beep import Beep
 
@@ -46,7 +45,6 @@ class Model:
 			if path != '-':
 				self.uri = path
 			if not root_program:
-				#from xml.dom.ext.reader import PyExpat
 				from Ft.Xml.InputSource import InputSourceFactory
 				isrc = InputSourceFactory()
 				doc = nonvalParse(isrc.fromUri(path))
@@ -197,7 +195,7 @@ class Model:
 		return new
 	
 	def remove_ns(self, node):
-		nss = ext.GetAllNs(node.parentNode)
+		nss = GetAllNs(node.parentNode)
 		dns = nss.get(None, None)
 		create = node.ownerDocument.createElementNS
 		def ns_clone(node):
@@ -400,7 +398,7 @@ class Model:
 	
 	def prefix_to_namespace(self, node, prefix):
 		"Use the xmlns attributes to workout the namespace."
-		nss = ext.GetAllNs(node)
+		nss = GetAllNs(node)
 		if nss.has_key(prefix):
 			return nss[prefix] or None
 		if prefix:
