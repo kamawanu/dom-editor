@@ -15,13 +15,14 @@ import Change
 from Beep import Beep
 
 class Model:
-	def __init__(self, path, load = 1):
+	def __init__(self, path, root_program = None):
+		"If root_program is given, then no data is loaded (used for lock_and_copy)."
 		self.uri = 'Document'
 		root = None
 		if path:
 			if path != '-':
 				self.uri = path
-			if load:
+			if not root_program:
 				from xml.dom.ext.reader import PyExpat
 				reader = PyExpat.Reader()
 				doc = reader.fromUri(path)
@@ -46,12 +47,15 @@ class Model:
 		else:
 			data_to_load = root
 
-		if not self.root_program:
-			self.root_program = Program('Root')
+		if root_program:
+			self.root_program = root_program
+		else:
+			if not self.root_program:
+				self.root_program = Program('Root')
 
 		if data_to_load:
 			self.doc = implementation.createDocument(None, 'root', None)
-			if load:
+			if not root_program:
 				node = self.doc.importNode(data_to_load, deep = 1)
 				self.doc.replaceChild(node, self.doc.documentElement)
 				self.strip_space()
@@ -94,7 +98,7 @@ class Model:
 		"""Locks 'node' in the current model and returns a new model
 		with a copy of the subtree."""
 		self.lock(node)
-		m = Model(self.get_base_uri(node), load = 0)
+		m = Model(self.get_base_uri(node), root_program = self.root_program)
 		copy = m.doc.importNode(node, deep = 1)
 		root = m.get_root()
 		m.replace_node(root, copy)
