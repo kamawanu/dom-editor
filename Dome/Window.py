@@ -74,6 +74,7 @@ class Window(GtkWindow):
 		swin = GtkScrolledWindow()
 		swin.set_policy(POLICY_AUTOMATIC, POLICY_ALWAYS)
 		paned.add2(swin)
+		paned.set_position(200)
 
 		self.gui_view = GUIView(self, view)
 		swin.add(self.gui_view)

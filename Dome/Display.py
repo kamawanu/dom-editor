@@ -139,7 +139,6 @@ class Display(GnomeCanvas):
 						print "(node missing)"
 						pass
 					else:
-						print "adjust", node
 						for i in group.children():
 							i.destroy()
 						self.create_tree(node, group, cramped = group.cramped)
@@ -147,11 +146,9 @@ class Display(GnomeCanvas):
 						self.child_group_resized(node)
 				else:
 					# Need to rebuild everything...
-					print "Rebuilding..."
 					if self.root_group:
 						self.root_group.destroy()
 					self.node_to_group = {}
-					print "new group..."
 					self.root_group = self.root().add('group', x = 0, y = 0)
 					group = self.root_group
 					node = self.view.root
@@ -160,13 +157,10 @@ class Display(GnomeCanvas):
 					self.create_tree(node, group)
 					print "highlighting..."
 					self.auto_highlight(node, rec = 1)
-					print "done"
-			print "move"
 			self.move_from()
 			self.set_bounds()
 			if self.view.current_nodes:
 				self.scroll_to_show(self.view.current_nodes[0])
-			print "really done"
 		finally:
 			set_busy(self, FALSE)
 			self.update_nodes = {}

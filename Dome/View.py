@@ -219,6 +219,9 @@ class View:
 	def set_exec(self, pos):
 		if self.op_in_progress:
 			raise Exception("Operation in progress...")
+		if pos is not None:
+			assert isinstance(pos[0], Op)
+			assert pos[1] in ['next', 'fail']
 		self.exec_point = pos
 		#if pos:
 		#print "set_exec: %s:%s" % pos
@@ -506,8 +509,6 @@ class View:
 			return
 		
 		next = getattr(op, exit)
-		while isinstance(next, Block):
-			next = next.start.next
 		if next:
 			self.set_oip(next)
 			self.do_action(next.action)	# May raise InProgress
@@ -525,6 +526,7 @@ class View:
 			raise Done()
 
 	def set_oip(self, op):
+		print "set_oip:", self.exec_point
 		if op:
 			self.set_exec(None)
 		self.op_in_progress = op
@@ -886,15 +888,32 @@ class View:
 		if self.op_in_progress:
 			self.push_stack(self.op_in_progress)
 			self.set_oip(None)
-		self.run_block(prog.code)
+		self.play_block(self, prog.code)
 		self.sched()
 		self.status_changed()
 		raise InProgress
 	
-	def run_block(self, block):
-		while isinstance(block.start, Block):
-			block = block.start
+	def play_block(self, block):
+		assert isinstance(block, Block)
+
+		old_cbor = self.callback_on_return
+		def cbor():
+			# Called from do_one_step...
+			self.callback_on_return = old_cbor
+			op, exit = self.exec_point
+			self.set_exec((block, exit))
+			print "End of block"
+
+		self.callback_on_return = cbor
 		self.set_exec((block.start, 'next'))
+	
+	def Block(self):
+		print "Enter Block!"
+		assert self.op_in_progress
+		oip = self.op_in_progress
+		self.set_oip(None)
+		self.play_block(oip)
+		raise InProgress
 	
 	def sched(self):
 		if self.op_in_progress:

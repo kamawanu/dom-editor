@@ -328,7 +328,8 @@ class ChainDisplay(GnomeCanvas):
 		
 		opexit = getattr(self.view, point)
 		if point == 'exec_point' and self.view.op_in_progress:
-			opexit = (self.view.op_in_progress, None)
+			pass
+			#opexit = (self.view.op_in_progress, None)
 		if opexit:
 			g = None
 			(op, exit) = opexit
@@ -353,21 +354,11 @@ class ChainDisplay(GnomeCanvas):
 			item.connect('event', self.line_event, op, exit)
 
 			if g:
-				(x1, y1) = g.i2w(0, 0)
-				if exit == 'next':
-					if op.next and self.op_to_group.has_key(op.next):
-						(x2, y2) = self.op_to_group[op.next].i2w(0, 0)
-					else:
-						(x2, y2) = g.i2w(0, 20)
-				elif exit == 'fail':
-					if op.fail and self.op_to_group.has_key(op.fail):
-						(x2, y2) = self.op_to_group[op.fail].i2w(0, 0)
-					else:
-						(x2, y2) = g.i2w(20, 20)
-				else:
-					(x2, y2) = (x1, y1)
-				sx, sy = self.get_arrow_start(op, exit)
-				item.move(sx + (x1 + x2) / 2, sy + (y1 + y2) / 2)
+				print op, exit
+				x1, y1, x2, y2 = self.get_arrow_ends(op, exit)
+				x1, y1 = g.i2w(x1, y1)
+				x2, y2 = g.i2w(x2, y2)
+				item.move((x1 + x2) / 2, (y1 + y2) / 2)
 	
 	def destroyed(self, widget):
 		p = self.prog
@@ -544,27 +535,12 @@ class ChainDisplay(GnomeCanvas):
 	
 	def join_nodes(self, op, exit):
 		try:
-			op2 = getattr(op, exit)
+			x1, y1, x2, y2 = self.get_arrow_ends(op, exit)
 
 			prev_group = self.op_to_group[op]
 			line = getattr(prev_group, exit + '_line')
-			sx, sy = self.get_arrow_start(op, exit)
-
-			if op2:
-				group = self.op_to_group[op2]
-				x, y = group.i2w(0, 0)
-				x, y = prev_group.w2i(x, y)
-			elif exit == 'next':
-				x, y = DEFAULT_NEXT
-				x += sx
-				y += sy
-			else:
-				x, y = DEFAULT_FAIL
-				x += sx
-				y += sy
-
-			line.set(points = connect(sx, sy, x, y))
-		except:
+			line.set(points = connect(x1, y1, x2, y2))
+		except Block:
 			print "*** ERROR setting arc from %s:%s" % (op, exit)
 	
 	def op_event(self, item, event, op):
@@ -740,6 +716,28 @@ class ChainDisplay(GnomeCanvas):
 	def get_arrow_start(self, op, exit):
 		g = self.op_to_group[op]
 		return ((exit == 'fail' and g.width) or 0, g.height)
+	
+	def get_arrow_ends(self, op, exit):
+		"""Return coords of arrow, relative to op's group."""
+		op2 = getattr(op, exit)
+
+		prev_group = self.op_to_group[op]
+
+		x1, y1 = self.get_arrow_start(op, exit)
+
+		if op2:
+			group = self.op_to_group[op2]
+			x2, y2 = group.i2w(0, 0)
+			x2, y2 = prev_group.w2i(x2, y2)
+		elif exit == 'next':
+			x2, y2 = DEFAULT_NEXT
+			x2 += x1
+			y2 += y1
+		else:
+			x2, y2 = DEFAULT_FAIL
+			x2 += x1
+			y2 += y1
+		return (x1, y1, x2, y2)
 	
 	def set_bounds(self):
 		min_x, min_y, max_x, max_y = self.root().get_bounds()
