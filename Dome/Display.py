@@ -175,9 +175,8 @@ class Display(GnomeCanvas):
 		(lx, ly, hx, hy) = group.text.get_bounds()
 		group.rect = group.add('rect',
 					x1 = lx - 1, y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
-					fill_color = 'blue')
+					fill_color = '')
 		group.rect.lower_to_bottom()
-		group.rect.hide()
 	
 	def create_tree(self, node, group, cramped = 0):
 		if node.nodeType == Node.ELEMENT_NODE:
@@ -213,7 +212,7 @@ class Display(GnomeCanvas):
 		group.rect = group.add('rect',
 					x1 = -8 , y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
 					fill_color = 'blue')
-		group.rect.hide()
+		#group.rect.hide()
 
 		if hbox:
 			cramped = 1
@@ -378,13 +377,13 @@ class Display(GnomeCanvas):
 	def set_current_attrib(self, attrib):
 		"Select 'attrib' attribute node of the current node. None to unselect."
 		if self.current_attrib:
-			self.current_attrib.rect.hide()
+			self.current_attrib.rect.set(fill_color = '')
 			self.current_attrib.text.set(fill_color = 'grey40')
 			self.current_attrib = None
 		if attrib:
 			try:
 				group = self.node_to_group[self.view.get_current()].attrib_to_group[attrib]
-				group.rect.show()
+				group.rect.set(fill_color = 'blue')
 				group.text.set(fill_color = 'white')
 				self.current_attrib = group
 			except KeyError:
@@ -393,10 +392,10 @@ class Display(GnomeCanvas):
 	def hightlight(self, group, state):
 		node = group.node
 		if state:
-			group.rect.show()
+			group.rect.set(fill_color = 'blue')
 			group.text.set(fill_color = 'white')
 		else:
-			group.rect.hide()
+			group.rect.set(fill_color = '')
 			if node.nodeType == Node.ELEMENT_NODE:
 				group.text.set(fill_color = 'black')
 			elif node.nodeType == Node.TEXT_NODE:

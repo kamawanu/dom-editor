@@ -98,7 +98,9 @@ class GUIView(Display):
 			('Search', self.show_search),
 			('Text search', self.show_text_search),
 			('Global', self.show_global),
+			('HTTP suck', do('suck')),
 			(None, None),
+			('Add attribute', self.show_add_attrib),
 			('Yank attributes', self.show_yank_attribs),
 			('Paste attributes', do('paste_attribs')),
 			('Yank attrib value', do('yank_value')),
@@ -409,6 +411,7 @@ class GUIView(Display):
 		Return	: toggle_edit,
 		at	: show_attrib,
 		plus	: show_add_attrib,
+		KP_Add	: show_add_attrib,
 		exclam	: show_pipe,
 		s	: show_subst,
 
