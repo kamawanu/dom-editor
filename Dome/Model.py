@@ -120,3 +120,8 @@ class Model:
 			parent = node.parentNode
 		Change.insert_before(node, new, parent)
 		self.update_all(parent)
+	
+	def set_attrib(self, node, name, value):
+		"Set an attribute's value. If value is None, remove the attribute."
+		Change.set_attrib(node, name, value)
+		self.update_all(node)

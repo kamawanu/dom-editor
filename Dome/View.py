@@ -388,3 +388,19 @@ class View:
 		except:
 			raise Beep
 	
+	def attrib(self, name, value):
+		for n in self.current_nodes:
+			self.model.set_attrib(n, name, value)
+	
+	def yank_attrib(self, name):
+		try:
+			value = self.current.getAttribute(name)
+		except:
+			raise Beep
+		self.clipboard = self.model.doc.createTextNode(value)
+	
+	def del_attrib(self, name):
+		if len(self.current_nodes) == 1:
+			self.yank_attrib(name)
+		for n in self.current_nodes:
+			self.model.set_attrib(n, name, None)

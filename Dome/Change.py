@@ -43,6 +43,18 @@ def set_data(node, new):
 		lambda node = node, old = old:
 			set_data(node, old))
 
+def set_attrib(node, attrib, value = None):
+	if node.hasAttribute(attrib):
+		old = node.getAttribute(attrib)
+	else:
+		old = None
+	if value != None:
+		node.setAttribute(attrib, value)
+	else:
+		node.removeAttribute(attrib)
+
+	add_undo(node, lambda node = node, attrib = attrib, old = old: set_attrib(node, attrib, old))
+
 # Support
 
 op = 0

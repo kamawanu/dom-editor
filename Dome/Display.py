@@ -128,7 +128,10 @@ class Display(GtkDrawingArea):
 		elif node.nodeType == Node.ELEMENT_NODE:
 			ret = [node.nodeName]
 			for a in node.attributes:
-				ret[0] += ' ' + a.name
+				val = a.value
+				if len(val) > 15:
+					val = '...' + val[-12:]
+				ret[0] += ' ' + a.name + '=' + val
 			return ret
 		elif node.nodeName:
 			return [node.nodeName]

@@ -150,6 +150,24 @@ class GUIView(Display):
 	def show_edit(self):
 		edit_node(self, self.view.current)
 
+	def show_del_attrib(self):
+		def do_attrib(attrib, self = self):
+			action = ["del_attrib", attrib]
+			self.may_record(action)
+		GetArg('Delete attribute:', do_attrib, ['Name:'])
+
+	def show_yank_attrib(self):
+		def do_attrib(attrib, self = self):
+			action = ["yank_attrib", attrib]
+			self.may_record(action)
+		GetArg('Yank attribute:', do_attrib, ['Name:'])
+
+	def show_attrib(self):
+		def do_attrib(args, self = self):
+			action = ["attrib", args[0], args[1]]
+			self.may_record(action)
+		GetArg('Set attribute:', do_attrib, ['Name:', 'Value:'])
+
 	def show_pipe(self):
 		def do_pipe(expr, self = self):
 			action = ["python", expr]
@@ -240,6 +258,7 @@ class GUIView(Display):
 		o	: open_text,
 
 		y	: ["yank"],
+		Y	: show_yank_attrib,
 		P	: ["put_before"],
 		p	: ["put_after"],
 		bracketright : ["put_as_child"],
@@ -248,10 +267,12 @@ class GUIView(Display):
 		ord('^'): ["suck"],
 
 		Tab	: show_edit,
+		at	: show_attrib,
 		exclam	: show_pipe,
 		s	: show_subst,
 
 		x	: ["delete_node"],
+		X	: show_del_attrib,
 
 		# Undo/redo
 		u	: ["undo"],
