@@ -201,6 +201,7 @@ class GUIView(Display):
 		eb.set_line_wrap(FALSE)
 		self.size_eb()
 		eb.grab_focus()
+		eb.select_region(0, -1)
 		eb.show()
 	
 	def get_edit_text(self):

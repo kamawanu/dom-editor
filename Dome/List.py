@@ -226,6 +226,9 @@ class List(GtkVBox):
 		if op.program == self.chains.prog:
 			self.chains.update_all()
 	
+	def show_prog(self, prog):
+		self.chains.switch_to(prog)
+	
 class ChainDisplay(GnomeCanvas):
 	"A graphical display of a chain of nodes."
 	def __init__(self, view, prog):
