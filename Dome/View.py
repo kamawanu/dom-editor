@@ -1810,7 +1810,8 @@ class View:
 
 		new_doc = support.parse_data(reply, dest)
 
-		new = self.model.doc.importNode(new_doc.documentElement, 1)
+		#new = self.model.doc.importNode(new_doc.documentElement, 1)
+		new = self.model.import_with_ns(new_doc.documentElement)
 		
 		self.model.strip_space(new)
 

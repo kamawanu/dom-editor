@@ -130,8 +130,11 @@ class Model:
 			else:
 				new = doc.createElementNS(None, node.localName)
 			for a in node.attributes.values():
-				if a.namespaceURI == XMLNS_NAMESPACE: continue
-				new.setAttributeNS(a.namespaceURI, a.name, a.value)
+				if a.namespaceURI == XMLNS_NAMESPACE:
+					# Also add explicit namespaces (for type="xsd:foo", etc)
+					prefix = self.namespaces.ensure_ns(a.localName, a.value)
+				else:
+					new.setAttributeNS(a.namespaceURI, a.name, a.value)
 			for k in node.childNodes:
 				new.appendChild(clone(k, clone))
 			return new
