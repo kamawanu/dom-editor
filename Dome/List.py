@@ -351,6 +351,8 @@ class ChainDisplay(canvas.Canvas):
 			self.scroll_to_show(self.rec_point)
 
 	def scroll_to_show(self, item):
+		self.update_now()		# Canvas bug
+
 		(lx, ly, hx, hy) = item.get_bounds()
 		x, y = item.i2w(0, 0)
 		x, y = self.w2c(x, y)
