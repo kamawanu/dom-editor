@@ -93,6 +93,7 @@ menu = Menu('Dome', 'main', [
 		('/Program/Input', 'menu_show_ask', '', 'question'),
 		('/Program/Compare', 'do_compare', '', 'equal'),
 		('/Program/Fail', 'do_fail', '', ''),
+		('/Program/Pass', 'do_pass', '', ''),
 		('/Program/Repeat last', 'do_again', '', 'dot'),
 
 		('/View', None, '<Branch>', ''),
@@ -464,6 +465,7 @@ class GUIView(Display):
 	do_undo = make_do('undo')
 	do_redo = make_do('redo')
 	do_fail = make_do('fail')
+	do_pass = make_do('do_pass')
 	do_toggle_hidden = make_do('toggle_hidden')
 	do_show_html = make_do('show_html')
 	do_show_canvas = make_do('show_canvas')

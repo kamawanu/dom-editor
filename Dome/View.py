@@ -103,6 +103,7 @@ record_again = [
 	"paste_attribs",
 	"compare",
 	"fail",
+	"do_pass",
 	"attribute",
 	"set_attrib",
 	"add_attrib",
@@ -923,6 +924,11 @@ class View:
 			self.foreach_stack.pop()
 			return 0
 
+		if continuing:
+			while nodes_list and nodes_list[0].parentNode == None:
+				print "Skipping deleted node", nodes_list[0]
+				del nodes_list[0]
+
 		if not nodes_list:
 			self.foreach_stack.pop()
 			if block.enter:
@@ -1421,6 +1427,9 @@ class View:
 	
 	def fail(self):
 		raise Beep(may_record = 1)
+	
+	def do_pass(self):
+		pass
 	
 	def fail_if(self, xpath):
 		"""Evaluate xpath as a boolean, and fail if true."""
