@@ -40,8 +40,8 @@ menu = Menu('Dome', 'main', [
 		('/Move', None, '<Branch>', ''),
 		('/Move/XPath search', 'menu_show_search', '', 'slash'),
 		('/Move/Text search', 'menu_show_text_search', '', 'T'),
-		('/Move/Enter', 'do_enter', '', 'greater'),
-		('/Move/Leave', 'do_leave', '', 'less'),
+		('/Move/Enter', 'do_enter', '', '<Shift>greater'),
+		('/Move/Leave', 'do_leave', '', '<Shift>less'),
 		
 		('/Move/Root node', 'move_home', '', 'Home'),
 		('/Move/Previous sibling', 'move_prev_sib', '', 'Up'),
@@ -56,7 +56,7 @@ menu = Menu('Dome', 'main', [
 		('/Select/By XPath', 'menu_show_global', '', 'numbersign'),
 
 		('/Network', None, '<Branch>', ''),
-		('/Network/HTTP suck', 'do_suck', '', 'asciicircum'),
+		('/Network/HTTP suck', 'do_suck', '', '<Shift>asciicircum'),
 		('/Network/Send SOAP message', 'do_soap_send', '', ''),
 
 		('/Create', None, '<Branch>', ''),
@@ -68,11 +68,11 @@ menu = Menu('Dome', 'main', [
 		('/Create/Append text node', 'menu_append_text', '', 'A'),
 		('/Create/Open text node', 'menu_open_text', '', 'O'),
 
-		('/Create/Attribute', 'menu_show_add_attrib', '', 'plus'),
+		('/Create/Attribute', 'menu_show_add_attrib', '', '<Shift>plus'),
 
 		('/Process', None, '<Branch>', ''),
 		('/Process/Substitute', 'menu_show_subst', '', 's'),
-		('/Process/Python expression', 'menu_show_pipe', '', 'exclam'),
+		('/Process/Python expression', 'menu_show_pipe', '', '<Shift>exclam'),
 
 		('/Program', None, '<Branch>', ''),
 		('/Program/Input', 'menu_show_ask', '', 'question'),
@@ -133,16 +133,10 @@ class GUIView(Display):
 			self.view.may_record(['move_left'])
 		elif kev.keyval == Right:
 			self.view.may_record(['move_right'])
-		elif kev.keyval == plus or kev.keyval == KP_Add:
+		elif kev.keyval == KP_Add:
 			self.menu_show_add_attrib()
-		elif kev.keyval == less:
-			self.view.may_record(['leave'])
-		elif kev.keyval == greater:
-			self.view.may_record(['enter'])
 		elif kev.keyval == Tab:
 			self.toggle_edit()
-		elif kev.keyval == ord('^'):
-			self.view.may_record(['suck'])
 		else:
 			return 0
 		widget.emit_stop_by_name('key-press-event')

@@ -157,6 +157,7 @@ class View:
 		self.status_changed()
 
 	def push_stack(self, op):
+		print "Push", op
 		if not isinstance(op, Op):
 			raise Exception('push_stack: not an Op', op)
 		self.exec_stack.append(op)
@@ -165,6 +166,7 @@ class View:
 
 	def pop_stack(self):
 		op = self.exec_stack.pop()
+		print "Pop", op
 		for l in self.lists:
 			l.update_stack(op)
 
@@ -203,6 +205,24 @@ class View:
 		"Perform and, possibly, record this action"
 		rec = self.rec_point
 
+		if rec:
+			print "RECORD:", rec, action
+			(op, old_exit) = rec
+			new_op = Op(action)
+			op.link_to(new_op, old_exit)
+			self.set_exec(rec)
+			try:
+				self.do_one_step()
+			except InProgress:
+				self.set_rec((new_op, 'next'))
+				return
+			play_op, exit = self.exec_point
+			# (do_one_step may have stopped recording)
+			if self.rec_point:
+				self.set_rec((new_op, exit))
+				self.set_exec(None)
+			return
+
 		exit = 'next'
 		try:
 			self.do_action(action)
@@ -212,20 +232,12 @@ class View:
 			import gtk
 			gtk.gdk_beep()
 			(type, val, tb) = sys.exc_info()
-			if not val.may_record:
-				return 0
+			#if not val.may_record:
+			#	return 0
 			exit = 'fail'
 		except:
 			support.report_exception()
 			raise
-
-		# Only record if we were recording when this action started
-		if rec:
-			print "RECORD:", rec, action
-			(op, old_exit) = rec
-			new_op = Op(action)
-			op.link_to(new_op, old_exit)
-			self.set_rec((new_op, exit))
 	
 	def add_display(self, display):
 		"Calls move_from(old_node) when we move and update_all() on updates."
@@ -701,6 +713,7 @@ class View:
 		"Play this macro. When it returns, restore the current op_in_progress (if any)"
 		"and call done(exit). Default for done() moves exec_point."
 		"done() is called from do_one_step() - usual rules apply."
+
 		prog = self.name_to_prog(name)
 		self.innermost_failure = None
 
@@ -862,6 +875,7 @@ class View:
 	def suck(self):
 		node = self.get_current()
 
+		uri = None
 		if node.nodeType == Node.TEXT_NODE:
 			uri = node.nodeValue
 		else:

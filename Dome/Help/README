@@ -79,8 +79,12 @@ green area) and select Play. The yellow dot moves through the chain as each
 operation is performed. The four buttons after Record can be used to stop,
 step and resume playing.
 
+You can also use this menu to create new programs. If you want to run a
+program once for each selected node, use Map instead of Play.
 
-The Program menu:
+
+The Program menu has these, which are only really useful when recording
+programs:
 
 - Input pops up a dialog box. Whatever the user enters is placed on the
   clipboard.
@@ -89,3 +93,67 @@ The Program menu:
 
 - Fail always fails.
 
+
+Processing a web site:
+
+- Start a new blank document.
+
+- Begin recording the root program.
+
+- Add an attribute 'uri'.
+
+- Edit the value to the URI of the index page. Eg:
+
+	http://www.ibiblio.org/wm/paint/auth/
+
+- Network -> HTTP suck.
+
+- Select the 'ul' element, which contains everything we need.
+
+- Paste Replace the body and delete the unneeded 'head'.
+
+- Select the nodes you want. Eg:
+
+  - Click on the 'ul' element with the list of names.
+  - Use Select -> By XPath to select all the 'li' nodes.
+
+- Create a new program (right click on 'Root'). Call it 'Artist' or
+  somesuch. This program will turn a 'li' into an 'Artist'.
+
+- Right click on Artist and choose Map. This will run the Artist program
+  on each li element.
+
+- Since the Artist program is empty, execution stops immediately, inside the
+  map operation. Above Root the message '1 frame' is displayed. This
+  indicates that when the Artist sequence finishes, there is a suspended
+  operation to return to.
+
+- Click on Record to start recording the Artist program.
+
+- Choose Move -> Enter so we can concentrate on just this element.
+
+- Rename 'li' to 'Artist' and add 'Name' and 'Years' elements.
+
+- Select the 'href' attribute and suck.
+
+- Select the name and yank it. Put it in the Name element.
+  Tip: Not all pages have the name in the 'strong' element, but they all
+  have the name in the heading.
+
+- Do a text search for '.*\(.*\d\d\d\d/.*\)'. This selects the first text
+  node containing a four digit number in brackets. Without the escapes,
+  it looks a bit clearer: '*(*DDDD*)'. Note the leading *.
+  
+- Yank this and put this in the Years element.
+  Tip: use Home before clicking on Years so that this will work whereever
+  the text was found. If you click directly on Years then it will be
+  recorded as 'Up three parent nodes, then back one to Years'.
+
+- Delete the html node.
+
+- Leave.
+
+- Stop recording by clicking on Record a second time. Click on Play to
+  continue with the Map.
+
+Dome will no process the rest of the site, until it hits a new error.
