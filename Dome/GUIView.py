@@ -135,6 +135,10 @@ class GUIView(Display):
 			self.view.may_record(['move_right'])
 		elif kev.keyval == plus or kev.keyval == KP_Add:
 			self.menu_show_add_attrib()
+		elif kev.keyval == less:
+			self.view.may_record(['leave'])
+		elif kev.keyval == greater:
+			self.view.may_record(['enter'])
 		elif kev.keyval == Tab:
 			self.toggle_edit()
 		else:

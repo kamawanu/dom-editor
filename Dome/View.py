@@ -568,8 +568,8 @@ class View:
 		"re search and replace on the current node"
 		for n in self.current_nodes:
 			if n.nodeType == Node.TEXT_NODE:
-				new, n = re.subn(replace, with, n.data)
-				if not n:
+				new, num = re.subn(replace, with, n.data)
+				if not num:
 					raise Beep
 				self.model.set_data(n, new)
 			else:
