@@ -142,7 +142,7 @@ class View:
 		self.single_step = 1	# 0 = Play   1 = Step-into   2 = Step-over
 		self.model = None
 		self.chroots = []	# (model, node, marked)
-		self.foreach_stack = []	# (block, [nodes])
+		self.foreach_stack = []	# (block, [nodes], restore-nodes)
 		self.current_nodes = []
 		self.clipboard = None
 		self.current_attrib = None
@@ -425,6 +425,7 @@ class View:
 			raise Beep
 
 		self.set_marked([])
+		self.move_to([])
 		model = self.model
 
 		(old_model, old_node, old_marked) = self.chroots.pop()
@@ -521,7 +522,7 @@ class View:
 
 		# If we're in a block, try exiting from it...
 		if isinstance(op.parent, Block):
-			if self.start_block_iteration(op.parent):
+			if self.start_block_iteration(op.parent, continuing = 1):
 				return			# Looping...
 			if not op.parent.is_toplevel():
 				self.set_exec((op.parent, exit))
@@ -902,16 +903,22 @@ class View:
 		self.status_changed()
 		raise InProgress
 	
-	def start_block_iteration(self, block):
+	def start_block_iteration(self, block, continuing = 0):
 		"True if we are going to run the block, False to exit the loop"
 		if not self.foreach_stack:
 			raise Exception("Reached the end of a block we never entered!")
-		stack_block, nodes_list = self.foreach_stack[-1]
+		stack_block, nodes_list, restore = self.foreach_stack[-1]
 		if stack_block != block:
 			self.foreach_stack = []
 			raise Exception("Reached the end of a block we never entered!")
+
+		if continuing and block.enter:
+			self.leave()
+			restore.append(self.get_current())
+
 		if not nodes_list:
 			self.foreach_stack.pop()
+			self.move_to(restore)
 			return 0	# Nothing left to do
 		nodes = nodes_list[0]
 		del nodes_list[0]
@@ -930,7 +937,7 @@ class View:
 		else:
 			list = [self.current_nodes[:]]	# List of one item, containing everything
 			
-		self.foreach_stack.append((block, list))
+		self.foreach_stack.append((block, list, []))
 		self.start_block_iteration(block)
 	
 	def Block(self):

@@ -389,7 +389,7 @@ class Op:
 	
 	def get_program(self):
 		p = self.parent
-		while not isinstance(p, Program):
+		while p and not isinstance(p, Program):
 			p = p.parent
 		return p
 

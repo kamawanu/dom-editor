@@ -146,7 +146,7 @@ class List(GtkVBox):
 			return 0
 		idle_add(cb)
 
-		# Check for deleted programs still being displayed
+		# Check for now deleted programs still being displayed
 		root = self.view.model.root_program
 		if self.chains and not self.chains.prog.parent and self.chains.prog is not root:
 			self.chains.switch_to(self.view.model.root_program)
