@@ -56,7 +56,7 @@ def set_data(node, new):
 			set_data(node, old))
 
 def set_attrib(node, namespaceURI, localName, value = None):
-	print "set_attrib", `namespaceURI`, `localName`, `value`
+	#print "set_attrib", `namespaceURI`, `localName`, `value`
 	if node.hasAttributeNS(namespaceURI, localName):
 		old = node.getAttributeNS(namespaceURI, localName)
 	else:

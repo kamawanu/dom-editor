@@ -823,6 +823,8 @@ class View:
 				pass
 				#print "Warning: Can't find 'uri' attribute!"
 
+		print "Sucking", uri
+
 		stream = urllib.urlopen(uri)
 		headers = stream.info().headers
 		last_mod = None
