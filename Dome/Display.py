@@ -383,7 +383,7 @@ class Display(GnomeCanvas):
 					self.highlight(self.node_to_group[n], FALSE)
 				except KeyError:
 					pass
-		if self.update_timeout or self.visible:
+		if self.update_timeout or not self.visible:
 			return		# We'll highlight on the callback...
 		# We can update without structural problems...
 		if self.view.current_nodes:
