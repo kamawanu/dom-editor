@@ -680,11 +680,11 @@ class View:
 	
 	def undo(self):
 		self.move_to([])
-		self.model.undo(self.root)
+		self.model.undo()
 
 	def redo(self):
 		self.move_to([])
-		self.model.redo(self.root)
+		self.model.redo()
 	
 	def default_done(self, exit):
 		"Called when execution of a program returns. op_in_progress has been "

@@ -1,3 +1,5 @@
+from __future__ import nested_scopes
+
 # An model contains:
 # - A DOM document
 # - The undo history
@@ -11,7 +13,6 @@ from xml.dom import Node
 from xml.dom.Document import Document
 import string
 import Html
-import Change
 import support
 from Beep import Beep
 
@@ -19,6 +20,17 @@ class Model:
 	def __init__(self, path, root_program = None):
 		"If root_program is given, then no data is loaded (used for lock_and_copy)."
 		self.uri = 'Document'
+
+		# Pop an (op_number, function) off one of these and call the function to
+		# move forwards or backwards in the undo history.
+		self.undo_stack = []
+		self.redo_stack = []
+		self.doing_undo = 0
+
+		# Each series of suboperations in an undo stack which are part of a single
+		# user op will have the same number...
+		self.user_op = 1
+		
 		root = None
 		if path:
 			if path != '-':
@@ -108,7 +120,7 @@ class Model:
 	def mark(self):
 		"Increment the user_op counter. Undo will undo every operation between"
 		"two marks."
-		Change.user_op += 1
+		self.user_op += 1
 	
 	def get_root(self):
 		"Return the true root node (not a view root)"
@@ -163,17 +175,37 @@ class Model:
 	# Changes
 	
 	def set_name(self, node, namespace, name):
-		Change.set_name(node, namespace, name)
-		self.update_all(node)
+		old_name = node.nodeName
+		self.add_undo(lambda: self.set_name(node, namespace, old_name))
 	
+		# XXX: Hack!
+		tmp = node.ownerDocument.createElementNS(namespace, name)
+		node.__dict__['__nodeName'] = tmp.__dict__['__nodeName']
+		node.__dict__['__namespaceURI'] = tmp.__dict__['__namespaceURI']
+		node.__dict__['__prefix'] = tmp.__dict__['__prefix']
+		node.__dict__['__localName'] = tmp.__dict__['__localName']
+
+		self.update_all(node)
+
+	def add_undo(self, fn):
+		self.undo_stack.append((self.user_op, fn))
+		print "Undo stack is now:", self.undo_stack
+		if not self.doing_undo:
+			self.redo_stack = []
+
 	def set_data(self, node, data):
-		Change.set_data(node, data)
+		old_data = node.data
+		node.data = data
+		self.add_undo(lambda: self.set_data(node, old_data))
 		self.update_all(node)
 	
 	def replace_node(self, old, new):
 		if self.get_locks(old):
 			raise Exception('Attempt to replace locked node %s' % old)
-		Change.replace_node(old, new)
+		print "Replace %s -> %s" % (old, new)
+		old.parentNode.replaceChild(new, old)
+		self.add_undo(lambda: self.replace_node(new, old))
+		
 		self.update_replace(old, new)
 
 	def delete_shallow(self, node):
@@ -185,10 +217,10 @@ class Model:
 			if self.get_locks(n):
 				raise Exception('Attempt to move/delete locked node %s' % n)
 		for k in kids:
-			Change.delete(k)
-		Change.delete(node)
+			self.delete_internal(k)
+		self.delete_internal(node)
 		for k in kids:
-			Change.insert_before(next, k, parent)
+			self.insert_before_interal(next, k, parent)
 		self.update_all(parent)
 	
 	def delete_nodes(self, nodes):
@@ -198,28 +230,54 @@ class Model:
 				raise Exception('Attempt to delete locked node %s' % n)
 		for n in nodes:
 			p = n.parentNode
-			Change.delete(n)
+			self.delete_internal(n)
 			self.update_all(p)
+	
+	def delete_internal(self, node):
+		"Doesn't update display."
+		next = node.nextSibling
+		parent = node.parentNode
+		parent.removeChild(node)
+		self.add_undo(lambda: self.insert_before(next, node, parent = parent))
+	
+	def insert_before_interal(self, node, new, parent):
+		"Insert 'new' before 'node'. If 'node' is None then insert at the end"
+		"of parent's children."
+		assert new.nodeType != Node.DOCUMENT_FRAGMENT_NODE
+		parent.insertBefore(new, node)
+		self.add_undo(lambda: self.delete_nodes([new]))
 
-	def undo(self, node):
-		uop = None
-		while 1:
-			result = Change.do_undo(node, uop)
-			if result is None:
-				return
-			alt_node, uop = result
-			#print "Undid with uop =", uop
-			self.update_all(alt_node)
+	def undo(self):
+		if not self.undo_stack:
+			raise Exception('Nothing to undo')
 
-	def redo(self, node):
-		uop = None
-		while 1:
-			result = Change.do_redo(node, uop)
-			if result is None:
-				return
-			alt_node, uop = result
-			#print "Redid with uop =", uop
-			self.update_all(alt_node)
+		assert not self.doing_undo
+
+		uop = self.undo_stack[-1][0]
+		ops = []
+		while self.undo_stack and self.undo_stack[-1][0] == uop:
+			ops.append(self.undo_stack.pop()[1])
+
+		# Swap stacks so that the undo actions will populate the redo stack...
+		(self.undo_stack, self.redo_stack) = (self.redo_stack, self.undo_stack)
+		self.doing_undo = 1
+		try:
+			map(apply, ops)
+		finally:
+			(self.undo_stack, self.redo_stack) = (self.redo_stack, self.undo_stack)
+			self.doing_undo = 0
+
+	def redo(self):
+		if not self.redo_stack:
+			raise Exception('Nothing to redo')
+
+		uop = self.redo_stack[-1][0]
+		self.doing_undo = 1
+		try:
+			while self.redo_stack and self.redo_stack[-1][0] == uop:
+				self.redo_stack.pop()[1]()
+		finally:
+			self.doing_undo = 0
 	
 	def insert(self, node, new, index = 0):
 		if len(node.childNodes) > index:
@@ -237,14 +295,26 @@ class Model:
 			parent = node.parentNode
 		if new.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
 			for n in new.childNodes[:]:
-				Change.insert_before(node, n, parent)
+				self.insert_before_interal(node, n, parent)
 		else:
-			Change.insert_before(node, new, parent)
+			self.insert_before_interal(node, new, parent)
 		self.update_all(parent)
 	
 	def set_attrib(self, node, namespaceURI, localName, value):
 		"Set an attribute's value. If value is None, remove the attribute."
-		Change.set_attrib(node, namespaceURI, localName, value)
+		if node.hasAttributeNS(namespaceURI, localName):
+			old = node.getAttributeNS(namespaceURI, localName)
+		else:
+			old = None
+		if value != None:
+			if localName == None:
+				localName = 'xmlns'
+			node.setAttributeNS(namespaceURI, localName, value)
+		else:
+			node.removeAttributeNS(namespaceURI, localName)
+
+		self.add_undo(lambda: self.set_attrib(node, namespaceURI, localName, old))
+		
 		self.update_all(node)
 	
 	def prefix_to_namespace(self, node, prefix):
