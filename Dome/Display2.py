@@ -137,7 +137,7 @@ class Display(g.HBox):
 			g.timeout_remove(self.update_timeout)
 			self.update_timeout = 0
 
-		del self.selection
+		#del self.selection
 		del self.view
 		del self.parent_window
 		del self.ref_node
@@ -171,7 +171,7 @@ class Display(g.HBox):
 		self.update_timeout = 0
 
 		if not self.pm: return 0
-		print "update"
+		#print "update"
 
 		self.pm.draw_rectangle(self.surface.style.bg_gc[g.STATE_NORMAL], True,
 				  0, 0, self.last_alloc[0], self.last_alloc[1])
@@ -357,7 +357,10 @@ class Display(g.HBox):
 
 		self.backup_ref_node()
 
-		self.do_update_now()
+		if self.update_timeout:
+			g.timeout_remove(self.update_timeout)
+			self.update_timeout = 0
+		self.update()
 		
 		return 1
 	

@@ -1193,6 +1193,9 @@ class View:
 				(prefix, localName) = (None, data)
 			namespaceURI = self.model.prefix_to_namespace(self.get_current(), prefix)
 			new = self.model.doc.createElementNS(namespaceURI, data)
+		elif where[1] == 'a':
+			self.add_attrib(None, data)
+			return
 		else:
 			new = self.model.doc.createTextNode(data)
 		

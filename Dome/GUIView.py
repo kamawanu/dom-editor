@@ -75,21 +75,10 @@ menu = Menu('main', [
 		('/Network/Send SOAP message', 'do_soap_send', '', ''),
 
 		('/Create', None, '<Branch>', ''),
-		('/Create/Insert element', 'menu_insert_element', '', '<Shift>I'),
-		('/Create/Append element', 'menu_append_element', '', '<Shift>A'),
-		('/Create/Open element', 'menu_open_element', '', '<Shift>O'),
-		('/Create/Open element at end', 'menu_open_element_end', '', '<Shift>E'),
-
-		('/Create/', '', '', '<separator>'),
-
-		('/Create/Insert text node', 'menu_insert_text', '', 'I'),
-		('/Create/Append text node', 'menu_append_text', '', 'A'),
-		('/Create/Open text node', 'menu_open_text', '', 'O'),
-		('/Create/Open text node at end', 'menu_open_text_end', '', 'E'),
-
-		('/Create/', '', '', '<separator>'),
-
-		('/Create/Attribute', 'menu_show_add_attrib', '', '<Shift>plus'),
+		('/Create/Insert node', 'menu_insert_element', '', 'I'),
+		('/Create/Append node', 'menu_append_element', '', 'A'),
+		('/Create/Open node inside', 'menu_open_element', '', 'O'),
+		('/Create/Open node at end', 'menu_open_element_end', '', 'E'),
 
 		('/Process', None, '<Branch>', ''),
 		('/Process/Substitute', 'menu_show_subst', '', 's'),
@@ -487,6 +476,26 @@ class GUIView(Display, XDSLoader):
 		GetArg('Rename to:', do, ['New name:'])
 
 
+	def do_create(self, action, nodeType, data):
+		action = action[0]
+		qname = True
+		if nodeType == Node.ELEMENT_NODE:
+			action += 'e'
+		elif nodeType == Node.TEXT_NODE:
+			action += 't'
+			qname = False
+		elif nodeType == Node.ATTRIBUTE_NODE:
+			action += 'a'
+
+		if qname:
+			# Check name is valid
+			# XXX: Should be more strict
+			data = data.strip()
+			assert '\n' not in data
+			assert ' ' not in data
+
+		self.view.may_record(['add_node', action, data])
+
 	def show_add_box(self, action):
 		if action[0] == 'i':
 			text = 'Insert'
@@ -507,9 +516,32 @@ class GUIView(Display, XDSLoader):
 		else:
 			assert 0
 
-		def cb(value):
-			self.view.may_record(['add_node', action, value])
-		GetArg('Add node', cb, [prompt], text)
+		box = g.Dialog()
+		text = g.TextView()
+		box.vbox.pack_start(text, TRUE, FALSE, 0)
+		text.set_size_request(400, 200)
+		box.set_has_separator(False)
+
+		box.add_button(g.STOCK_CANCEL, g.RESPONSE_CANCEL)
+		box.add_button('Add _Element', Node.ELEMENT_NODE)
+		box.add_button('Add _Text', Node.TEXT_NODE)
+		box.add_button('Add _Attribute', Node.ATTRIBUTE_NODE)
+		box.set_default_response(g.RESPONSE_OK)
+		text.grab_focus()
+		def response(box, resp):
+			if resp == g.RESPONSE_CANCEL:
+				box.destroy()
+				return
+			buffer = text.get_buffer()
+			start = buffer.get_start_iter()
+			end = buffer.get_end_iter()
+			new = buffer.get_text(start, end, True)
+			if new:
+				self.do_create(action, resp, new)
+			box.destroy()
+		box.connect('response', response)
+
+		box.show_all()
 	
 	def new_name(self):
 		cur = self.view.get_current()
