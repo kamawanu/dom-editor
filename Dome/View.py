@@ -915,23 +915,22 @@ class View:
 			self.foreach_stack = []
 			raise Exception("Reached the end of a block we never entered")
 
-		if continuing and block.enter:
-			self.leave()
-			restore.append(self.get_current())
-
-		if continuing == 'fail':
-			print "Error in block; exiting early in program", block.get_program()
-			self.foreach_stack.pop()
-			return 0
-
 		if continuing:
+			if block.enter:
+				self.leave()
+			if block.foreach:
+				restore.append(self.get_current())
+			if continuing == 'fail':
+				print "Error in block; exiting early in program", block.get_program()
+				self.foreach_stack.pop()
+				return 0
 			while nodes_list and nodes_list[0].parentNode == None:
 				print "Skipping deleted node", nodes_list[0]
 				del nodes_list[0]
 
 		if not nodes_list:
 			self.foreach_stack.pop()
-			if block.enter:
+			if block.foreach:
 				self.move_to(restore)
 			return 0	# Nothing left to do
 		nodes = nodes_list[0]
