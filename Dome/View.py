@@ -47,6 +47,7 @@ def to_html(data):
 	(r, w) = os.pipe()
 	child = os.fork()
 	data = data.replace('&nbsp;', ' ')
+	data = data.replace('&copy;', '(c)')
 	fixed = fix_broken_html(data)
 	if child == 0:
 		# We are the child
