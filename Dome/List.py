@@ -7,6 +7,7 @@ from xml.dom.ext.reader import PyExpat
 from StringIO import StringIO
 
 import rox.choices
+from rox.MultipleChoice import MultipleChoice
 from Menu import Menu
 from GetArg import GetArg
 from Program import Program, load
@@ -127,13 +128,16 @@ class List(GtkVBox):
 	def run_return(self, exit):
 		if exit != 'next':
 			op = self.view.innermost_failure
+			print "run_return: Innermost failed is", op
 			self.view.set_exec((op, 'fail'))
 			self.tree.select_child(self.prog_to_tree[op.program])
 			def cb(choice, self = self):
 				if choice == 0:
 					self.view.record_at_point()
-			get_choice("Program failed - record a failure case?", "Dome",
-				buttons = ['Record', 'Cancel'], callback = cb)
+			box = MultipleChoice("Program failed - record a failure case?",
+					[('Record', self.view.record_at_point), 'Cancel'])
+			box.set_title('Dome')
+			box.show()
 		print "List: execution done!"
 
 	def prog_event(self, item, event, prog):
@@ -275,7 +279,6 @@ class ChainDisplay(GnomeCanvas):
 		self.update_all()
 	
 	def program_changed(self, op):
-		print "op", op, "updated"
 		self.update_all()
 	
 	def update_all(self):
@@ -308,8 +311,8 @@ class ChainDisplay(GnomeCanvas):
 		group.ellipse.connect('event', self.op_event, op)
 		label = group.add('text',
 					x = -8, 
-					y = 0,
-					anchor = ANCHOR_EAST,
+					y = -8,
+					anchor = ANCHOR_NE,
 					justification = 'right',
 					font = 'fixed',
 					fill_color = 'black',
@@ -317,11 +320,14 @@ class ChainDisplay(GnomeCanvas):
 
 		y = 20
 		if op.next:
-			g = group.add('group', x = 0, y = 40)
-			(lx, ly, hx, hy) = g.get_bounds()
-			g.move(0, 45 - ly)
+			(lx, ly, hx, label_bottom) = label.get_bounds()
+			g = group.add('group', x = 0, y = 0)
 			self.create_node(op.next, g)
-			y = 40
+			(lx, ly, hx, hy) = g.get_bounds()
+			drop = max(20, label_bottom + 10)
+			y = drop - ly
+			g.move(0, y)
+			y -= 5
 		group.next_line = group.add('line',
 					fill_color = 'black',
 					points = (0, 6, 0, y),
@@ -335,7 +341,6 @@ class ChainDisplay(GnomeCanvas):
 			self.create_node(op.fail, g)
 			(lx, ly, hx, hy) = g.get_bounds()
 			x = 20 - lx
-			print "lx", lx
 			g.move(x, y)
 		group.fail_line = group.add('line',
 					fill_color = '#ff6666',
@@ -424,5 +429,4 @@ class ChainDisplay(GnomeCanvas):
 		mx, my, maxx, maxy = self.get_scroll_region()
 		sx = self.get_hadjustment().value
 		sy = self.get_hadjustment().value
-		print sy
 		return (x + mx + sx , y + my + sy)

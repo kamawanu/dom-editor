@@ -101,7 +101,7 @@ class Display(GnomeCanvas):
 	
 	def update_callback(self):
 		self.update_timeout = 0
-		print "Update...", self.update_nodes
+		#print "Update...", self.update_nodes
 		set_busy(self)
 		try:
 			#XXX: self.node_to_group = {}

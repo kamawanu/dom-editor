@@ -144,8 +144,8 @@ class View:
 		if pos and not isinstance(pos[0], Op):
 			raise Exception("Not an (operation, exit) tuple", pos)
 		self.exec_point = pos
-		if pos:
-			print "set_exec: %s:%s" % pos
+		#if pos:
+		#print "set_exec: %s:%s" % pos
 		for l in self.lists:
 			l.update_points()
 
@@ -743,8 +743,9 @@ class View:
 		else:
 			if self.current_attrib:
 				uri = self.current_attrib.value
+			elif node.hasAttributeNS('', 'uri'):
+				uri = node.getAttributeNS('', 'uri')
 			else:
-				uri = None
 				for attr in node.attributes:
 					uri = attr.value
 					if uri.find('//') != -1 or uri.find('.htm') != -1:
@@ -798,10 +799,10 @@ class View:
 			
 			try:
 				root = reader.fromStream(StringIO(all[0]))
+				ext.StripHtml(root)
 			except:
 				report_exception()
-				raise
-			ext.StripHtml(root)
+				root = None
 			cb(root)
 			
 		all[1] = input_add(cout, GDK.INPUT_READ, got_html)

@@ -32,7 +32,6 @@ class Model:
 		"Increment the user_op counter. Undo will undo every operation between"
 		"two marks."
 		Change.user_op += 1
-		print "Mark", Change.user_op
 	
 	def get_root(self):
 		"Return the true root node (not a view root)"
