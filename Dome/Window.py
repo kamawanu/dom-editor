@@ -176,8 +176,6 @@ class Window(GtkWindow):
 	
 	def tool_Next(self):
 		from View import InProgress, Done
-		if not self.view.callback_on_return:
-			self.view.run_new(self.list.run_return)
 		self.view.single_step = 2
 		try:
 			self.view.do_one_step()
@@ -186,8 +184,6 @@ class Window(GtkWindow):
 	
 	def tool_Step(self):
 		from View import InProgress, Done
-		if not self.view.callback_on_return:
-			self.view.run_new(self.list.run_return)
 		self.view.single_step = 1
 		try:
 			self.view.do_one_step()
