@@ -433,6 +433,8 @@ class View:
 		node = self.get_current()
 		if node is self.root:
 			raise Beep		# Locking problems if this happens...
+		if node.nodeType != Node.ELEMENT_NODE:
+			raise Exception('Can only enter an element!')
 		if self.model.doc is not node.ownerDocument:
 			raise Exception('Current node not in view!')
 		self.move_to([])

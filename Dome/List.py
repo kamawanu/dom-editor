@@ -947,20 +947,27 @@ class ChainDisplay(g.EventBox):
 		
 		resp = box.run()
 		box.destroy()
-		if resp == g.RESPONSE_OK:
-			b = Block(op.parent)
-			if foreach.get_active():
-				b.toggle_foreach()
-			if enter.get_active():
-				b.toggle_enter()
-			op.link_to(b, exit)
-			if self.view.rec_point == (op, exit):
-				self.view.single_step = 1
-				self.view.stop_recording()
-				try:
-					self.view.do_one_step()
-				except View.InProgress:
-					pass
+		if resp != g.RESPONSE_OK:
+			return
+
+		b = Block(op.parent)
+		if foreach.get_active():
+			b.toggle_foreach()
+		if enter.get_active():
+			b.toggle_enter()
+		op.link_to(b, exit)
+		#if self.view.rec_point == (op, exit):
+		self.view.single_step = 1
+		if self.view.rec_point:
+			self.view.stop_recording()
+		self.view.set_exec((op, exit))
+		try:
+			self.view.do_one_step()
+			assert 0
+		except View.InProgress:
+			pass
+		print self.exec_point
+		self.view.record_at_point()
 		
 	def line_toggle_breakpoint(self):
 		op, exit = self.line_menu_line
