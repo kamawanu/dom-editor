@@ -516,7 +516,10 @@ class View:
 			vars = {'x': self.get_current().data, 're': re, 'sub': re.sub, 'string': string}
 			result = eval(expr, vars)
 			new = self.python_to_node(result)
-			self.model.replace_node(self.get_current(), new)
+			node = self.get_current()
+			self.move_to([])
+			self.model.replace_node(node, new)
+			self.move_to(new)
 		else:
 			raise Beep
 
