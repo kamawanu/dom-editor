@@ -44,7 +44,7 @@ op_menu = Menu('op', [
 	('/Remove node', 'op_del_node', '', '')
 ])
 
-#from GetArg import GetArg
+from GetArg import GetArg
 from Program import Program, load, Block
 
 no_cursor = g.gdk.Cursor(g.gdk.TCROSS)
@@ -597,7 +597,7 @@ class ChainDisplay(canvas.Canvas):
 			group.fail_line.set(line_style = g.gdk.LINE_ON_OFF_DASH)
 	
 	def edit_op(self, op):
-		def modify(widget):
+		def modify():
 			if op.action[0] == 'do_search' or op.action[0] == 'do_global':
 				t = editables[0].get_text()
 				print "Checking", t
@@ -617,20 +617,17 @@ class ChainDisplay(canvas.Canvas):
 			print "Done editing!"
 			win.destroy()
 			
-		win = g.Window()
-		win.set_border_width(8)
-		vbox = g.VBox(TRUE, 8)
-		win.add(vbox)
-		vbox.pack_start(g.Label(op.action[0]), TRUE, FALSE, 0)
+		win = g.Dialog()
+		win.vbox.pack_start(g.Label(op.action[0]), TRUE, FALSE, 0)
 		editables = []	# [ Entry | None ]
 		focus = None
 		for x in op.action[1:]:
 			entry = g.Entry()
 			entry.set_text(str(x))
-			vbox.pack_start(entry, TRUE, FALSE, 0)
+			win.vbox.pack_start(entry, TRUE, FALSE, 0)
 			if type(x) == str or type(x) == unicode:
 				editables.append(entry)
-				entry.connect('activate', lambda e: modify(e))
+				entry.connect('activate', lambda e: modify())
 				if not focus:
 					focus = entry
 					entry.grab_focus()
@@ -638,19 +635,17 @@ class ChainDisplay(canvas.Canvas):
 				entry.set_editable(FALSE)
 				editables.append(None)
 			
-		hbox = g.HBox(TRUE, 4)
-		vbox.pack_start(hbox, TRUE, FALSE, 0)
+		win.add_button(g.STOCK_CANCEL, g.RESPONSE_CANCEL)
+		win.add_button(g.STOCK_OK, g.RESPONSE_OK)
 
-		button = g.Button("Cancel")
-		hbox.pack_start(button, TRUE, TRUE, 0)
-		button.connect('clicked', lambda b, win = win: win.destroy())
+		def response(box, resp):
+			box.destroy()
+			if resp == g.RESPONSE_OK:
+				modify()
+		win.connect('response', response)
 		
-		button = g.Button("Modify")
-		if focus:
-			button.connect('clicked', modify)
-		else:
-			button.set_sensitive(FALSE)
-		hbox.pack_start(button, TRUE, TRUE, 0)
+		if not focus:
+			win.set_response_sensitive(g.RESPONSE_OK, FALSE)
 
 		win.show_all()
 	

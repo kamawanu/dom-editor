@@ -220,6 +220,8 @@ class Op:
 		"Creates a new node (can be linked into another node later)"
 		if not action:
 			action = ['Start']
+		else:
+			action = list(action)
 		self.parent = None
 		self.action = action
 		self.next = None
