@@ -97,7 +97,7 @@ class Display(GnomeCanvas):
 
 	def update_all(self, node = None):
 		if not node:
-			node = self.view.model.doc
+			node = self.view.model.doc.documentElement
 
 		if node == self.view.root:
 			self.update_nodes = {node: None}

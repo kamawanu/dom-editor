@@ -82,8 +82,8 @@ def load(chain):
 def load_dome_program(prog):
 	"prog should be a DOM 'dome-program' node."
 	#print "Loading", prog
-	if prog.nodeName != 'dome-program':
-		raise Exception('Not a DOME program!')
+	if prog.localName != 'dome-program':
+		raise Exception('Not a DOME program: %s!' % prog)
 
 	new = Program(str(prog.getAttributeNS(None, 'name')))
 
