@@ -365,7 +365,7 @@ class GUIView(Display, XDSLoader):
 		g.idle_add(cb)
 
 	def toggle_edit(self):
-		node = self.view.get_current()
+		node = self.view.current_nodes[0]
 		attrib = self.view.current_attrib
 
 		if self.edit_dialog:

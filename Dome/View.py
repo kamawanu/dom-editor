@@ -366,14 +366,18 @@ class View:
 			display.move_from(old_nodes)
 	
 	def move_prev_sib(self):
-		if self.get_current() == self.root or not self.get_current().previousSibling:
+		try:
+			new = [n.previousSibling or 1/0 for n in self.current_nodes]
+		except:
 			raise Beep
-		self.move_to(self.get_current().previousSibling)
+		self.move_to(new)
 	
 	def move_next_sib(self):
-		if self.get_current() == self.root or not self.get_current().nextSibling:
+		try:
+			new = [n.nextSibling or 1/0 for n in self.current_nodes]
+		except:
 			raise Beep
-		self.move_to(self.get_current().nextSibling)
+		self.move_to(new)
 	
 	def move_left(self):
 		new = []
@@ -821,11 +825,11 @@ class View:
 	def python_to_node(self, data):
 		"Convert a python data structure into a tree and return the root."
 		if type(data) == list:
-			list = self.model.doc.createElementNS(DOME_NS, 'dome:list')
-			list.setAttributeNS(XMLNS_NAMESPACE, 'xmlns:dome', DOME_NS)
+			nlist = self.model.doc.createElementNS(DOME_NS, 'dome:list')
+			nlist.setAttributeNS(XMLNS_NAMESPACE, 'xmlns:dome', DOME_NS)
 			for x in data:
-				list.appendChild(self.python_to_node(x))
-			return list
+				nlist.appendChild(self.python_to_node(x))
+			return nlist
 		return self.model.doc.createTextNode(str(data))
 	
 	def yank(self, deep = 1):
