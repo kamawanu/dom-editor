@@ -25,7 +25,9 @@ def calc_node(display, node, pos):
 	else:
 		text = '<unknown>'
 
-	layout = display.create_pango_layout(text)
+	# PyGtk leaks PangoLayouts, so just reuse a single one
+	layout = display.surface_layout
+	layout.set_text(text, -1)
 	width, height = layout.get_pixel_size()
 	x, y = pos
 
@@ -83,6 +85,7 @@ class Display(g.HBox):
 		g.HBox.__init__(self, False, 0)
 
 		self.surface = g.EventBox()
+		self.surface_layout = self.surface.create_pango_layout('')
 		self.pack_start(self.surface, True, True, 0)
 		self.surface.show()
 		self.surface.set_app_paintable(True)
