@@ -466,7 +466,17 @@ class View:
 
 	def play(self, name, when_done = None):
 		prog = self.name_to_prog(name)
-		self.single_step = 0
+
+		if self.op_in_progress:
+			def fin(self = self, op = self.op_in_progress, done = self.callback_on_return):
+				print "Up to", op
+				self.set_exec((op, 'next'))
+				self.callback_on_return = done
+			self.set_oip(None)
+		else:
+			fin = None
+		self.callback_on_return = fin
+			
 		self.set_exec((prog.start, 'next'))
 		self.sched()
 		raise InProgress
@@ -479,7 +489,6 @@ class View:
 		self.idle_cb = idle_add(self.play_callback)
 
 	def play_callback(self):
-		print "Callback"
 		idle_remove(self.idle_cb)
 		self.idle_cb = 0
 		try:

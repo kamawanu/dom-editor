@@ -109,6 +109,7 @@ class List(GtkVBox):
 				self.show_menu(event, prog)
 			else:
 				name = self.prog_to_name(prog)
+				self.view.single_step = 0
 				if event.state & SHIFT_MASK:
 					self.view.may_record(['map', name])
 				else:
@@ -138,11 +139,14 @@ class List(GtkVBox):
 		else:
 			dp = None
 		name = self.prog_to_name(prog)
+		def do(play, view = view, name = name):
+			def ret(play = play, view = view, name = name):
+				self.view.single_step = 0
+				self.view.may_record([op, play])
+			return ret
 		items = [
-			('Play', lambda view = view, n = name: \
-						self.view.may_record(['play', n])),
-			('Map', lambda view = view, n = name: \
-						self.view.may_record(['map', n])),
+			('Play', do('play')),
+			('Map', do('map')),
 			('Rename', rename_prog),
 			('Delete', dp),
 			]
