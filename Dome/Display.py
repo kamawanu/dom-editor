@@ -180,7 +180,10 @@ class Display(GnomeCanvas):
 		group.rect.hide()
 	
 	def create_tree(self, node, group, cramped = 0):
-		hidden = node.hasAttributeNS('', 'hidden')
+		if node.nodeType == Node.ELEMENT_NODE:
+			hidden = node.hasAttributeNS('', 'hidden')
+		else:
+			hidden = FALSE
 
 		group.node = node
 		group.cramped = cramped
