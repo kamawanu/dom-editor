@@ -6,6 +6,7 @@ from support import *
 import string
 from StringIO import StringIO
 import math
+import View
 
 from rox.Menu import Menu
 
@@ -850,7 +851,32 @@ class ChainDisplay(canvas.Canvas):
 
 	def line_add_block(self):
 		op, exit = self.line_menu_line
-		op.link_to(Block(op.parent), exit)
+		box = rox.Dialog()
+		box.add_button(g.STOCK_CANCEL, g.RESPONSE_CANCEL)
+		box.add_button(g.STOCK_ADD, g.RESPONSE_OK)
+
+		foreach = g.CheckButton('Foreach block')
+		box.vbox.pack_start(foreach)
+		enter = g.CheckButton('Enter-leave block')
+		box.vbox.pack_start(enter)
+		box.vbox.show_all()
+		
+		resp = box.run()
+		box.destroy()
+		if resp == g.RESPONSE_OK:
+			b = Block(op.parent)
+			if foreach.get_active():
+				b.toggle_foreach()
+			if enter.get_active():
+				b.toggle_enter()
+			op.link_to(b, exit)
+			if self.view.rec_point == (op, exit):
+				self.view.single_step = 1
+				self.view.stop_recording()
+				try:
+					self.view.do_one_step()
+				except View.InProgress:
+					pass
 		
 	def line_toggle_breakpoint(self):
 		op, exit = self.line_menu_line
