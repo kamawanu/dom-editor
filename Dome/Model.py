@@ -167,19 +167,23 @@ class Model:
 	# Changes
 	
 	def set_name(self, node, namespace, name, example = None):
-		"example can be used to optimise..."
-		old_name = node.nodeName
-		self.add_undo(lambda: self.set_name(node, namespace, old_name))
-	
-		# XXX: Hack!
-		if not example:
-			example = node.ownerDocument.createElementNS(namespace, name)
-		node.__dict__['__nodeName'] = example.__dict__['__nodeName']
-		node.__dict__['__namespaceURI'] = example.__dict__['__namespaceURI']
-		node.__dict__['__prefix'] = example.__dict__['__prefix']
-		node.__dict__['__localName'] = example.__dict__['__localName']
+		if self.get_locks(node):
+			raise Exception('Attempt to set name on locked node %s' % node)
 
-		self.update_all(node)
+		old_name = node.nodeName
+		old_ns = node.namespaceURI
+
+		kids = node.childNodes[:]
+		parent = node.parentNode
+		[ node.removeChild(k) for k in kids ]
+		new = node.ownerDocument.createElementNS(namespace, name)
+		parent.replaceChild(new, node)
+		[ new.appendChild(k) for k in kids ]
+
+		self.add_undo(lambda: self.set_name(new, old_ns, old_name))
+	
+		self.update_replace(node, new)
+		return new
 
 	def add_undo(self, fn):
 		self.undo_stack.append((self.user_op, fn))
@@ -326,7 +330,7 @@ class Model:
 		"""Go up through the parents looking for a uri attribute.
 		If there isn't one, use the document's URI."""
 		while node:
-			if isinstance(node, Document):
+			if node.nodeType == Node.DOCUMENT_NODE:
 				return self.uri
 			if node.hasAttributeNS(None, 'uri'):
 				return node.getAttributeNS(None, 'uri')

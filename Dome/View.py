@@ -7,6 +7,7 @@ from xml.dom import Node, ext, XMLNS_NAMESPACE
 from Ft.Xml import XPath
 from Ft.Xml.XPath import FT_EXT_NAMESPACE, Context
 from xml.dom.ext.reader import PyExpat
+from Ft.Xml.cDomlette import implementation
 
 import os, re, string, types
 import urlparse
@@ -537,6 +538,7 @@ class View:
 		if not ns:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
+		ns['_'] = ns[None]
 		print "ns is", ns
 		c = Context.Context(self.get_current(), processorNss = ns)
 		from Ft.Xml.XPath import XPathParser
@@ -937,13 +939,21 @@ class View:
 			else:
 				(prefix, localName) = (None, new_data)
 			namespaceURI = self.model.prefix_to_namespace(nodes[0], prefix)
-			example = nodes[0].ownerDocument.createElementNS(namespaceURI, new_data)
+			out = []
 			for node in nodes:
-				self.model.set_name(node, namespaceURI, new_data, example = example)
+				if node is self.root:
+					self.model.unlock(self.root)
+					new = self.model.set_name(node, namespaceURI, new_data)
+					self.model.lock(new)
+					self.root = new
+				else:
+					new = self.model.set_name(node, namespaceURI, new_data)
+				out.append(new)
+			self.move_to(out)
 		else:
 			for node in nodes:
 				self.model.set_data(node, new_data)
-		self.move_to(nodes)
+			self.move_to(nodes)
 
 	def add_node(self, where, data):
 		cur = self.get_current()
@@ -981,8 +991,8 @@ class View:
 			elif node.hasAttributeNS(None, 'uri'):
 				uri = node.getAttributeNS(None, 'uri')
 			else:
-				for attr in node.attributes:
-					uri = attr.value
+				for attr in node.attributes.keys():
+					uri = node.attributes[attr].value
 					if uri.find('//') != -1 or uri.find('.htm') != -1:
 						break
 		if not uri:
@@ -1218,8 +1228,9 @@ class View:
 			attribs = [self.get_current().getAttributeNode(name)]
 		else:
 			attribs = []
-			for a in self.get_current().attributes:
-				attribs.append(a)
+			dict = self.get_current().attributes
+			for a in dict.keys():
+				attribs.append(dict[a])
 
 		# Make sure the attributes always come out in the same order
 		# (helps with macros).
@@ -1466,7 +1477,6 @@ class View:
 		pass
 	
 	def export_all(self):
-		from xml.dom import implementation
 		doc = implementation.createDocument(DOME_NS, 'dome', None)
 		node = self.model.root_program.to_xml(doc)
 		doc.documentElement.appendChild(node)
@@ -1479,7 +1489,6 @@ class View:
 		return doc
 	
 	def blank_all(self):
-		from xml.dom import implementation
 		doc = implementation.createDocument(None, 'root', None)
 		self.move_home()
 		self.clipboard = self.model.doc.createElementNS(None, 'root')
