@@ -2,7 +2,7 @@
 # vi: set syntax=python : */
 
 import gc
-show_leaks = False
+show_leaks = True
 
 import findrox
 import rox
@@ -65,10 +65,21 @@ if show_leaks:
 	`[]`	# Load repr stuff
 	from Ft.Xml.XPath import XPathParser	# Load XPath stuff
 	XPathParser.new().parse('/')
-	import urllib2
+	import urllib2, urllib
 	r = urllib2.Request('http://www.ecs.soton.ac.uk')	# HTTP
-	stream = urllib2.urlopen(r)
-	Window().destroy()	# Init everything
+	urllib2.urlopen(r).read(1)
+	del r
+	from encodings import ascii
+	from codecs import lookup
+	import random
+	lookup('ascii')
+	
+	w = Window()
+	w.save()
+	w.destroy()	# Init everything
+	del w
+
+	log = file('leak-log', 'w')
 
 	gc.collect()
 	old = {}
@@ -84,12 +95,14 @@ if show_leaks:
 	import GUIView
 	GUIView.menu.__dict__ = {}
 	del GUIView.menu
+	urllib.urlcleanup()
 	gc.collect()
 	for x in gc.get_objects():
 		if id(x) not in old:
-			print "New", type(x)
 			print `x`[:80]
+			print>>log, "New %s: %s" % (type(x), `x`)
 			for y in gc.get_referrers(x):
-				if id(y) in old and y is not globals():
-					print "\t%s" % `y`[:60]
-	sys.exit(0)
+				if y is not globals() and id(y) in old:
+					if type(y) == dict:
+						print>>log, "\t(dict, key is %s)" % [k for k in y if y[k] is x]
+					print>>log, "\t%s" % `y`

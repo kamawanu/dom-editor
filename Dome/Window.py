@@ -116,6 +116,8 @@ class Window(rox.Window, saving.Saveable):
 
 		self.savebox = saving.SaveBox(self, path,
 					'application/x-dome', discard = discard)
+		self.savebox.set_transient_for(self)
+		self.savebox.set_destroy_with_parent(True)
 		radio_dome = g.RadioButton(None, 'Save everything (.dome)')
 		radio_xml = g.RadioButton(radio_dome, 'Export data as XML')
 		radio_html = g.RadioButton(radio_xml, 'Export data as HTML')
