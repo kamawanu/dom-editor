@@ -112,6 +112,8 @@ class Display(g.EventBox):
 	def update(self):
 		if not self.pm: return
 		print "update"
+		if self.view.current_nodes:
+			self.ref_node = self.view.current_nodes[0] # XXX
 
 		self.update_timeout = 0
 
