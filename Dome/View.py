@@ -209,7 +209,8 @@ class View:
 		except InProgress:
 			pass
 		except Beep:
-			gdk_beep()
+			import gtk
+			gtk.gdk_beep()
 			(type, val, tb) = sys.exc_info()
 			if not val.may_record:
 				return 0
@@ -905,12 +906,7 @@ class View:
 			cb(root, new_md5)
 
 		# XXX: only for nogui...
-		try:
-			got_all(cout.read())
-		except:
-			support.report_exception()
-			import gtk
-			mainloop()
+		got_all(cout.read())
 		return
 
 		def got_html(src, cond, all = all, got_all = got_all):
