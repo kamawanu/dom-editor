@@ -468,8 +468,12 @@ class ChainDisplay(GnomeCanvas):
 			(lx, ly, hx, hy) = g.get_bounds()
 			drop = max(20, next_off_y + 10)
 			y = drop - ly
-			y += op.next.dy
-			g.move(sx, sy + y)
+			next = op.next
+			while isinstance(next, Block):
+				next = next.start
+			x = next.dx
+			y += next.dy
+			g.move(sx + x, sy + y)
 		
 		group.next_line = group.add('line',
 					fill_color = 'black',
@@ -489,8 +493,11 @@ class ChainDisplay(GnomeCanvas):
 			self.create_node(op.fail, g)
 			(lx, ly, hx, hy) = g.get_bounds()
 			x = 20 - lx
-			x += op.fail.dx
-			y += op.fail.dy
+			fail = op.fail
+			while isinstance(fail, Block):
+				fail = fail.start
+			x += fail.dx
+			y += fail.dy
 			g.move(sx + x, sy + y)
 		group.fail_line = group.add('line',
 					fill_color = '#ff6666',
@@ -566,11 +573,14 @@ class ChainDisplay(GnomeCanvas):
 			if event.button == 1:
 				if op != op.program.code.start:
 					self.drag_last_pos = (event.x, event.y)
+				else:
+					self.drag_last_pos = None
 			else:
 				self.show_op_menu(event, op)
 		elif event.type == BUTTON_RELEASE:
 			if event.button == 1:
 				self.drag_last_pos = None
+				self.program_changed(None)
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')
 		elif event.type == LEAVE_NOTIFY:

@@ -380,12 +380,17 @@ class Block(Op):
 		Op.__init__(self, action = ['Block'])
 		self.program = program
 		self.start = Op()
+		self.start.block = self
 		self.start.program = program
 
 	def set_start(self, start):
+		assert not start.prev
+
 		start.set_program(self.program)
 		self.start = start
 		self.program.changed(None)
+
+		start.block = self
 
 	def is_toplevel(self):
 		return self.program.code == self

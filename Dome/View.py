@@ -506,6 +506,8 @@ class View:
 			return
 		
 		next = getattr(op, exit)
+		while isinstance(next, Block):
+			next = next.start.next
 		if next:
 			self.set_oip(next)
 			self.do_action(next.action)	# May raise InProgress
