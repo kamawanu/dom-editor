@@ -662,7 +662,10 @@ class View:
 		if node.nodeType == Node.TEXT_NODE:
 			current = node.data
 		else:
-			current = node.nodeName
+			if self.current_attrib:
+                                current = self.current_attrib.value
+                        else:
+                                current = node.nodeName
 		pattern = pattern.replace('@CURRENT@', current)
 		#print "Searching for", pattern
 		return pattern
