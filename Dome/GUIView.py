@@ -112,7 +112,7 @@ menu = Menu('main', [
 		('/View/Show as canvas', 'do_show_canvas', '', ''),
 		('/View/Close Window', 'menu_close_window', '', '<Ctrl>Q'),
 
-		('/Options...', 'menu_options', '', '<Ctrl>O'),
+		#('/Options...', 'menu_options', '', '<Ctrl>O'),
 		])
 
 def make_do(action):

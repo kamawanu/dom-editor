@@ -1720,6 +1720,8 @@ class View:
 		nodes = self.current_nodes[:]
 		self.move_to([])
 		for node in nodes:
+			if node.nodeType != Node.ELEMENT_NODE:
+				raise Beep
 			if node.hasAttributeNS(None, 'hidden'):
 				new = None
 			else:

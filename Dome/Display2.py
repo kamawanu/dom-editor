@@ -3,6 +3,10 @@ from __future__ import generators
 import rox
 from rox import g
 from xml.dom import Node
+import pango
+
+import __main__
+default_font = __main__.default_font
 
 def calc_node(display, node, pos):
 	attribs = []
@@ -36,20 +40,31 @@ def calc_node(display, node, pos):
 		bg = display.style.bg_gc
 
 		if node.nodeType != Node.ATTRIBUTE_NODE:
+			marker = True
 			surface.draw_rectangle(fg[g.STATE_NORMAL], True,
 						x, y, 8, height - 1)
-			surface.draw_rectangle(display.style.white_gc, True,
-						x + 1, y + 1, 6, height - 3)
+			if node.nodeType == Node.ELEMENT_NODE and node.hasAttributeNS(None, 'hidden'):
+				surface.draw_layout(fg[g.STATE_PRELIGHT], text_x + width + 2, y,
+					display.create_pango_layout('(hidden)'))
+		else:
+			marker = False
 		
 		if node in display.selection:
+			if marker:
+				surface.draw_rectangle(style.bg_gc[g.STATE_SELECTED], True,
+							x + 1, y + 1, 6, height - 3)
 			surface.draw_rectangle(bg[g.STATE_SELECTED], True,
 				text_x, y, width - 1, height - 1)
 			surface.draw_layout(fg[g.STATE_SELECTED], text_x, y, layout)
 		else:
+			if marker:
+				surface.draw_rectangle(style.white_gc, True, x + 1, y + 1, 6, height - 3)
 			if node.nodeType == Node.TEXT_NODE:
 				gc = style.text_gc[g.STATE_NORMAL]
 			elif node.nodeType == Node.ATTRIBUTE_NODE:
 				gc = style.fg_gc[g.STATE_INSENSITIVE]
+			elif node.nodeType == Node.COMMENT_NODE:
+				gc = style.text_gc[g.STATE_INSENSITIVE]
 			else:
 				gc = style.fg_gc[g.STATE_NORMAL]
 			surface.draw_layout(gc, text_x, y, layout)
@@ -78,9 +93,11 @@ class Display(g.EventBox):
 		s.bg[g.STATE_NORMAL] = g.gdk.color_parse('old lace')
 		s.text[g.STATE_NORMAL] = g.gdk.color_parse('blue')
 		s.text[g.STATE_PRELIGHT] = g.gdk.color_parse('orange')	# Mark
+		s.text[g.STATE_INSENSITIVE] = g.gdk.color_parse('dark green')# Comment
+		s.fg[g.STATE_PRELIGHT] = g.gdk.color_parse('red')	# Hidden
 		self.set_style(s)
 
-		#self.connect('destroy', self.destroyed)
+		self.connect('destroy', self.destroyed)
 		self.connect('button-press-event', self.bg_event)
 		self.connect('button-release-event', self.bg_event)
 
@@ -101,6 +118,12 @@ class Display(g.EventBox):
 		self.pan_timeout = None
 		self.h_limits = (0, 0)
 		self.set_view(view)
+
+		rox.app_options.add_notify(self.options_changed)
+	
+	def destroyed(self, widget):
+		self.view.remove_display(self)
+		rox.app_options.remove_notify(self.options_changed)
 	
 	def size_allocate(self, alloc):
 		new = (alloc.width, alloc.height)
@@ -156,7 +179,7 @@ class Display(g.EventBox):
 				attr_parent = node
 				self.drawn[node] = (bbox, None)
 
-			if bbox[1] < 0:
+			if bbox[1] < 0 and node.nodeType != Node.ATTRIBUTE_NODE:
 				self.ref_node = node
 				self.ref_pos = bbox[:2]
 			self.h_limits = (min(self.h_limits[0], bbox[0]),
@@ -173,16 +196,19 @@ class Display(g.EventBox):
 			bbox, draw_fn = calc_node(self, node, pos)
 			yield (node, bbox, draw_fn)
 
+			hidden = False
 			if node.nodeType == Node.ELEMENT_NODE:
-				apos = [bbox[2] + 4, bbox[0]]
-				for key in node.attributes:
-					a = node.attributes[key]
-					abbox, draw_fn = calc_node(self, a, apos)
-					apos[0] = abbox[2] + 4
-					yield (a, abbox, draw_fn)
+				hidden = node.hasAttributeNS(None, 'hidden')
+				if not hidden:
+					apos = [bbox[2] + 4, bbox[1]]
+					for key in node.attributes:
+						a = node.attributes[key]
+						abbox, draw_fn = calc_node(self, a, apos)
+						apos[0] = abbox[2] + 4
+						yield (a, abbox, draw_fn)
 			
 			pos[1] = bbox[3] + 2
-			if node.childNodes:
+			if node.childNodes and not hidden:
 				node = node.childNodes[0]
 				pos[0] += 16
 			else:
@@ -247,6 +273,7 @@ class Display(g.EventBox):
 		for (n, ((x1, y1, x2, y2), attrib_parent)) in self.drawn.iteritems():
 			if x >= x1 and x <= x2 and y >= y1 and y <= y2:
 				return n, attrib_parent
+		return None, None
 	
 	def pan(self):
 		def scale(x):
@@ -337,3 +364,8 @@ class Display(g.EventBox):
 	def marked_changed(self, nodes):
 		"nodes is a list of nodes to be rechecked."
 		self.update_all()
+
+	def options_changed(self):
+		if default_font.has_changed:
+			#self.modify_font(pango.FontDescription(default_font.value))
+			self.update_all()
