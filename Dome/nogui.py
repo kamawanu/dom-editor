@@ -29,8 +29,14 @@ from Model import Model
 from View import View, Done, InProgress
 from Program import Program, load_dome_program
 
+if len(sys.argv) > 1 and sys.argv[1] == '--profile':
+	profiling = 1
+	del sys.argv[1]
+else:
+	profiling = 0
+
 if len(sys.argv) < 2:
-	print "Usage: python nogui.py <document>"
+	print "Usage: python nogui.py [--profile] <document>"
 	sys.exit(0)
 
 idle_list = []
@@ -55,24 +61,32 @@ model = Model(source)
 
 view = View(model, callback_handlers = (idle_add, idle_remove))
 
-print "Starting root program of", source
+def run_nogui():
+	print "Starting root program of", source
 
-view.run_new(None)
+	view.run_new(None)
 
-try:
-	view.do_action(['play', model.root_program.name])
-except InProgress:
-	pass
-except Beep:
-	print "*** BEEP ***"
-	raise
+	try:
+		view.do_action(['play', model.root_program.name])
+	except InProgress:
+		pass
+	except Beep:
+		print "*** BEEP ***"
+		raise
 
-while idle_list:
-	for i in idle_list[:]:
-		if not i.fn():
-			idle_remove(i)
+	while idle_list:
+		for i in idle_list[:]:
+			if not i.fn():
+				idle_remove(i)
 
-print "Done!"
+	print "Done!"
+
+if profiling:
+	import profile
+	print "Profiling..."
+	profile.run('run_nogui()')
+else:
+	run_nogui()
 
 if view.chroots:
 	raise Exception("Processing stopped in a chroot! -- not saving")
