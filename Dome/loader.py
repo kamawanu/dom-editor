@@ -3,7 +3,7 @@ import string
 from gtk import *
 from GDK import *
 
-from support import get_local_path
+from rox.support import get_local_path
 
 TARGET_URILIST = 0
 TARGET_RAW = 1

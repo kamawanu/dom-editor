@@ -187,7 +187,6 @@ class Model:
 	
 	def set_attrib(self, node, namespaceURI, localName, value):
 		"Set an attribute's value. If value is None, remove the attribute."
-		print "set_attrib", `namespaceURI`, `localName`
 		Change.set_attrib(node, namespaceURI, localName, value)
 		self.update_all(node)
 	

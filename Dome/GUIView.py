@@ -4,7 +4,7 @@ from xml.dom import Node
 import string
 from loader import make_xds_loader
 
-from support import report_exception
+from rox.support import report_exception
 
 from View import View
 from Display import Display

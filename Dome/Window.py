@@ -157,11 +157,8 @@ class Window(GtkWindow):
 			file = file[:i + 1] + type
 		else:
 			file += '.' + type
-		if dir[:1] == '/':
-			dir += '/'
-		else:
-			dir = ''
-		self.savebox = SaveBox(self, dir + file, 'text/' + type)
+		path = os.path.join(dir, file)
+		self.savebox = SaveBox(self, path, 'text/' + type)
 		self.savetype = type
 		self.savebox.show()
 	

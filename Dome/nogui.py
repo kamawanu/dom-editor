@@ -44,7 +44,7 @@ def idle_remove(tag):
 	try:
 		idle_list.remove(tag)
 	except ValueError:
-		print "(not in list; skipping)"
+		pass
 
 model = Model('Document')
 view = View(model, root_program, callback_handlers = (idle_add, idle_remove))

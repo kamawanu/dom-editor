@@ -1,5 +1,6 @@
 import GDK
 from support import *
+from rox import support
 from xml.dom import Node, ext, XMLNS_NAMESPACE
 from xml import xpath
 from xml.xpath import FT_EXT_NAMESPACE, Context
@@ -186,7 +187,7 @@ class View:
 	
 	def record_at_point(self):
 		if not self.exec_point:
-			report_error("No current point!")
+			support.report_error("No current point!")
 			return
 		self.set_rec(self.exec_point)
 		self.set_exec(None)
@@ -196,7 +197,7 @@ class View:
 			self.set_exec(self.rec_point)
 			self.set_rec(None)
 		else:
-			report_error("Not recording!")
+			support.report_error("Not recording!")
 
 	def may_record(self, action):
 		"Perform and, possibly, record this action"
@@ -214,7 +215,7 @@ class View:
 				return 0
 			exit = 'fail'
 		except:
-			report_exception()
+			support.report_exception()
 			raise
 
 		# Only record if we were recording when this action started
@@ -426,10 +427,10 @@ class View:
 		"- if the operation is started but not complete, raise InProgress and "
 		"  arrange to resume() later."
 		if self.op_in_progress:
-			report_error("Already executing something.")
+			support.report_error("Already executing something.")
 			raise Done()
 		if not self.exec_point:
-			report_error("No current playback point.")
+			support.report_error("No current playback point.")
 			raise Done()
 		(op, exit) = self.exec_point
 
@@ -894,14 +895,12 @@ class View:
 			reader = PyExpat.Reader()
 			print "Parsing..."
 
-			print data, "---"
-			
 			try:
 				root = reader.fromStream(StringIO(data))
 				ext.StripHtml(root)
 			except:
 				print "dom_from_command: parsing failed"
-				report_exception()
+				support.report_exception()
 				root = None
 			cb(root, new_md5)
 
@@ -909,7 +908,7 @@ class View:
 		try:
 			got_all(cout.read())
 		except:
-			report_exception()
+			support.report_exception()
 			import gtk
 			mainloop()
 		return
@@ -1139,14 +1138,14 @@ class View:
 		env = copy.documentElement
 
 		if env.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/':
-			report_error("Not a SOAP-ENV:Envelope (bad namespace)")
+			support.report_error("Not a SOAP-ENV:Envelope (bad namespace)")
 			raise Done()
 		if env.localName != 'Envelope':
-			report_error("Not a SOAP-ENV:Envelope (bad local name)")
+			support.report_error("Not a SOAP-ENV:Envelope (bad local name)")
 			raise Done()
 
 		if len(env.childNodes) != 2:
-			report_error("SOAP-ENV:Envelope must have one header and one body")
+			support.report_error("SOAP-ENV:Envelope must have one header and one body")
 			raise Done()
 
 		kids = elements(env)
@@ -1155,12 +1154,12 @@ class View:
 
 		if head.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/' or \
 		   head.localName != 'Head':
-			report_error("First child must be a SOAP-ENV:Head element")
+			support.report_error("First child must be a SOAP-ENV:Head element")
 			raise Done()
 
 		if body.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/' or \
 		   body.localName != 'Body':
-			report_error("Second child must be a SOAP-ENV:Body element")
+			support.report_error("Second child must be a SOAP-ENV:Body element")
 			raise Done()
 
 		sft = None
@@ -1172,7 +1171,7 @@ class View:
 			print header.localName
 
 		if not sft:
-			report_error("Head must contain a dome:soap-forward-to element")
+			support.report_error("Head must contain a dome:soap-forward-to element")
 			raise Done()
 
 		dest = sft.childNodes[0].data
@@ -1186,7 +1185,7 @@ class View:
 
 		(scheme, addr, path, p, q, f) = urlparse.urlparse(dest, allow_fragments = 0)
 		if scheme != 'http':
-			report_error("SOAP is only supported for 'http:' -- sorry!")
+			support.report_error("SOAP is only supported for 'http:' -- sorry!")
 			raise Done()
 
 		stream = StrGrab()

@@ -56,11 +56,14 @@ def set_data(node, new):
 			set_data(node, old))
 
 def set_attrib(node, namespaceURI, localName, value = None):
+	print "set_attrib", `namespaceURI`, `localName`, `value`
 	if node.hasAttributeNS(namespaceURI, localName):
 		old = node.getAttributeNS(namespaceURI, localName)
 	else:
 		old = None
 	if value != None:
+		if localName == None:
+			localName = 'xmlns'
 		node.setAttributeNS(namespaceURI, localName, value)
 	else:
 		node.removeAttributeNS(namespaceURI, localName)
