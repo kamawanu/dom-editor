@@ -71,7 +71,6 @@ def load(chain):
 				to_link.append((op, 'next', link))
 		return start
 	tree = _load(chain)
-	print "IDs:", id_hash
 	for (op, exit, child) in to_link:
 		try:
 			to = id_hash[child]
@@ -200,7 +199,6 @@ class Op:
 		if self.fail:
 			nearby.append(self.fail)
 		self.program = program
-		print nearby
 		[x.set_program(program) for x in nearby if x.program is not program]
 	
 	def changed(self):
@@ -212,7 +210,6 @@ class Op:
 		self.changed()
 	
 	def link_to(self, child, exit):
-		print "Link %s->%s->%s" % (self, exit, child)
 		# Create a link from this exit to this child Op
 		if child.program and child.program is not self.program:
 			raise Exception('%s is from a different program (%s)!' % (child, child.program))
@@ -237,7 +234,6 @@ class Op:
 	
 	def _unlink(self, exit, may_delete = 1):
 		child = getattr(self, exit)
-		print "break %s:%s -> %s" % (self, exit, child)
 		if not child:
 			raise Exception('%s has no child on exit %s' % (self, exit))
 		if self not in child.prev:
@@ -246,12 +242,10 @@ class Op:
 		child.prev.remove(self)	# Only remove one copy
 		setattr(self, exit, None)
 
-		print "Prev:"
 		for x in child.prev: print x
 
 		if may_delete and not child.prev:
 			# There is no way to reach this child now, so unlink its children.
-			print "rec %s, %s" % (child.next, child.fail)
 			child.program = None
 			if child.next:
 				child._unlink('next')

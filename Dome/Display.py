@@ -42,14 +42,29 @@ class Display(GnomeCanvas):
 		self.current_attrib = None		# Canvas group
 		self.node_to_group = {}
 
+		self.visible = 1
+
 		s = self.get_style().copy()
 		s.bg[STATE_NORMAL] = self.get_color('old lace')
 		self.set_style(s)
 
+		self.connect('size-allocate', self.size_allocate)
 		self.connect('destroy', self.destroyed)
 		self.connect('button-press-event', self.bg_event)
 
 		self.set_view(view)
+	
+	def size_allocate(self, canvas, size):
+		x, y, width, height = self.get_allocation()
+		if self.visible:
+			if width < 4:
+				self.visible = 0
+				print "hide"
+		else:
+			if width > 4:
+				self.visible = 1
+				self.update_all()
+				print "show"
 	
 	def set_view(self, view):
 		if self.view:
@@ -87,7 +102,7 @@ class Display(GnomeCanvas):
 			# here because it takes *ages*
 			self.update_nodes.append(node)
 
-		if self.update_timeout:
+		if self.update_timeout or not self.visible:
 			return		# Going to update anyway...
 
 		if self.view.running():
@@ -368,7 +383,7 @@ class Display(GnomeCanvas):
 					self.highlight(self.node_to_group[n], FALSE)
 				except KeyError:
 					pass
-		if self.update_timeout:
+		if self.update_timeout or self.visible:
 			return		# We'll highlight on the callback...
 		# We can update without structural problems...
 		if self.view.current_nodes:
