@@ -165,7 +165,7 @@ class Window(GtkWindow):
 		self.save('xml')
 	
 	def tool_Stop(self):
-		Exec.exec_state.stop()
+		self.view.single_step = 1
 
 	def tool_Play(self):
 		self.view.single_step = 0

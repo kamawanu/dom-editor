@@ -77,12 +77,11 @@ class Display(GnomeCanvas):
 		if not node:
 			node = self.view.model.doc
 
-		if node not in self.update_nodes:
-			for n in self.update_nodes[:]:
-				if self.view.has_ancestor(node, n):
-					return		# Going to update the parent...
-				if self.view.has_ancestor(n, node):
-					self.update_nodes.remove(n)
+		if node == self.view.root:
+			self.update_nodes = [node]
+		elif node not in self.update_nodes:
+			# Note: we don't eliminate duplicates (parent and child) nodes
+			# here because it takes *ages*
 			self.update_nodes.append(node)
 
 		if self.update_timeout:

@@ -148,6 +148,6 @@ class Model:
 		else:
 			return ''
 
-	def prog_tree_changed(self):
+	def prog_tree_changed(self, prog):
 		for v in self.views:
-			v.prog_tree_changed()
+			v.prog_tree_changed(prog)

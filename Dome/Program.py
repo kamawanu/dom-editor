@@ -97,19 +97,22 @@ class Program:
 			raise Exception('Subprogram is from a different model!')
 		prog.parent = self
 		self.subprograms[prog.name] = prog
-		self.model.prog_tree_changed()
+		self.model.prog_tree_changed(prog)
 	
 	def remove_sub(self, prog):
 		if prog.parent != self:
 			raise Exception('%s is no child of mime!' % prog)
 		prog.parent = None
 		del self.subprograms[prog.name]
-		self.model.prog_tree_changed()
+		self.model.prog_tree_changed(self)
 	
 	def rename(self, name):
-		self.parent.remove_sub(self)
+		p = self.parent
+		if p.subprograms.has_key(name):
+			raise Exception('%s already has a child called %s!' % (p.name, name))
+		p.remove_sub(self)
 		self.name = name
-		self.parent.add_sub(self)
+		p.add_sub(self)
 	
 	def to_xml(self):
 		data = "<dome-program name='%s'>\n" % escape_attval(self.name)

@@ -1,4 +1,5 @@
 from gtk import *
+import GDK
 from support import *
 from xml.dom import Node, ext
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
@@ -6,6 +7,7 @@ from xml.dom.ext.reader import PyExpat
 import os, re, string, types
 import urlparse
 import Html
+from StringIO import StringIO
 
 from Program import Op
 from Beep import Beep
@@ -68,12 +70,12 @@ class View:
 		raise Exception('Bad View attribute "%s"' % attr)
 	
 	def running(self):
-		#TODO: Return 1 iff a macro is running
-		return 0
+		return self.idle_cb != 0
 
 	def set_exec(self, pos):
 		if self.op_in_progress:
 			raise Exception("Operation in progress...")
+		print "set_exec:", pos
 		if pos and not isinstance(pos[0], Op):
 			raise Exception("Not an (operation, exit) tuple", pos)
 		self.exec_point = pos
@@ -389,6 +391,17 @@ class View:
 		else:
 			raise Beep
 
+	def resume(self, exit = 'next'):
+		"After raising InProgress, call this to start moving again."
+		if self.op_in_progress:
+			op = self.op_in_progress
+			self.set_oip(None)
+			self.set_exec((op, exit))
+			if not self.single_step:
+				self.sched()
+		else:
+			print "(nothing to resume)"
+		
 	def ask(self, q):
 		def ask_cb(result, self = self):
 			if result is None:
@@ -396,12 +409,7 @@ class View:
 			else:
 				self.clipboard = self.model.doc.createTextNode(result)
 				exit = 'next'
-			if self.op_in_progress:
-				op = self.op_in_progress
-				self.set_oip(None)
-				self.set_exec((op, exit))
-				if not self.single_step:
-					self.sched()
+			self.resume(exit)
 		box = GetArg('Input:', ask_cb, [q], destroy_return = 1)
 		raise InProgress
 
@@ -417,20 +425,15 @@ class View:
 	def yank(self, deep = 1):
 		if self.current_attrib:
 			a = self.current_attrib
-			self.clipboard = self.model.doc.createElementNS(DOME_NS, 'attribute')
-			n = self.model.doc.createElementNS(DOME_NS, 'dome:namespaceURI')
-			n.appendChild(self.model.doc.createTextNode(a.namespaceURI))
-			self.clipboard.appendChild(n)
-			n = self.model.doc.createElementNS(DOME_NS, 'dome:name')
-			n.appendChild(self.model.doc.createTextNode(a.localName))
-			self.clipboard.appendChild(n)
-			n = self.model.doc.createElementNS(DOME_NS, 'dome:value')
-			n.appendChild(self.model.doc.createTextNode(a.value))
-			self.clipboard.appendChild(n)
+
+			self.clipboard = self.model.doc.createElementNS(a.namespaceURI, a.nodeName)
+			self.clipboard.appendChild(self.model.doc.createTextNode(a.value))
 		else:
 			self.clipboard = self.model.doc.createDocumentFragment()
 			for n in self.current_nodes:
-				self.clipboard.appendChild(n.cloneNode(deep = deep))
+				c = n.cloneNode(deep = deep)
+				print n, "->", c
+				self.clipboard.appendChild(c)
 		
 		print "Clip now", self.clipboard
 	
@@ -447,6 +450,7 @@ class View:
 			self.current_attrib = None
 			self.model.set_attrib(self.current, ca.namespaceURI, ca.localName, None)
 			return
+		self.move_to([])	# Makes things go *much* faster!
 		new = []
 		for x in nodes:
 			if x != self.root:
@@ -457,6 +461,7 @@ class View:
 			raise Beep
 		for x in nodes:
 			if self.has_ancestor(x, self.root):
+				print "Deleting", x
 				self.model.delete_node(x)
 		self.move_to(new)
 	
@@ -471,10 +476,10 @@ class View:
 
 		if self.op_in_progress:
 			def fin(self = self, op = self.op_in_progress, done = self.callback_on_return):
-				print "Up to", op
-				self.set_exec((op, 'next'))
+				(end, exit) = self.exec_point
+				print "Up to", op, exit
+				self.set_exec((op, exit))
 				self.callback_on_return = done
-				self.sched()
 			self.set_oip(None)
 			self.callback_on_return = fin
 			
@@ -497,6 +502,9 @@ class View:
 		except Done:
 			print "Done"
 			return 0
+		except InProgress:
+			print "InProgress"
+			return 0
 		except:
 			type, val, tb = sys.exc_info()
 			list = traceback.extract_tb(tb)
@@ -517,9 +525,14 @@ class View:
 		print "Map", name
 
 		nodes = self.current_nodes[:]
-		inp = [nodes, None]
+		inp = [nodes, None, FALSE]	# Nodes, next, check-errors
 		def next(self = self, name = name, inp = inp, old_cb = self.callback_on_return):
-			nodes, next = inp
+			nodes, next, check = inp
+			if check:
+				(op, exit) = self.exec_point
+				if exit != 'next':
+					return self.resume(exit)
+			inp[2] = TRUE
 			self.move_to(nodes[0])
 			print "Next:", self.current
 			del nodes[0]
@@ -609,13 +622,28 @@ class View:
 		command = "lynx -source '%s' | tidy" % uri
 		print command
 		cout = os.popen(command)
-
-		reader = Html.Reader()
-		root = reader.fromStream(cout)
-		cout.close()
-		new = html_to_xml(node.ownerDocument, root)
-		new.setAttributeNS(DOME_NS, 'dome:uri', uri)
-		self.model.replace_node(node, new)
+	
+		all = ["", None]
+		def got_html(src, cond, all = all, self = self, uri = uri):
+			data = src.read(100)
+			if data:
+				all[0] += data
+				return
+			input_remove(all[1])
+			reader = Html.Reader()
+			print "Parsing..."
+			root = reader.fromStream(StringIO(all[0]))
+			src.close()
+			print "Converting..."
+			node = self.current
+			new = html_to_xml(node.ownerDocument, root)
+			new.setAttributeNS(DOME_NS, 'dome:uri', uri)
+			self.model.replace_node(node, new)
+			print "Loaded."
+			self.resume('next')
+			
+		all[1] = input_add(cout, GDK.INPUT_READ, got_html)
+		raise InProgress
 	
 	def put_before(self):
 		node = self.current
@@ -765,6 +793,6 @@ class View:
 		self.model.strip_space(new)
 		self.model.replace_node(self.root, new)
 	
-	def prog_tree_changed(self):
+	def prog_tree_changed(self, prog):
 		for l in self.lists:
-			l.prog_tree_changed()
+			l.prog_tree_changed(prog)

@@ -57,6 +57,7 @@ class List(GtkVBox):
 		self.tree = GtkTree()
 		self.tree.unset_flags(CAN_FOCUS)
 		self.chains = ChainDisplay(view, view.model.root_program)
+		self.prog_tree_changed(self.view.model.root_program)
 
 		self.pack_start(self.tree, expand = 0, fill = 1)
 
@@ -67,19 +68,24 @@ class List(GtkVBox):
 		hbox.pack_start(sb, 0, 1)
 		self.chains.connect('size-allocate', self.chain_resize, sb)
 
-		self.build_tree(self.tree, view.model.root_program)
 		self.chains.show()
 		self.tree.show()
-		for i in self.tree.children():
-			i.expand()
 		self.view.lists.append(self)
 	
 	def update_points(self):
 		self.chains.update_points()
 	
-	def prog_tree_changed(self):
+	def prog_tree_changed(self, prog = None):
+		self.prog_to_tree = {}
 		self.tree.clear_items(0, -1)
 		self.build_tree(self.tree, self.view.model.root_program)
+		# Redraw goes wrong if we don't use a callback...
+		def cb(self = self, prog = prog):
+			while prog:
+				self.prog_to_tree[prog].expand()
+				prog = prog.parent
+			return 0
+		idle_add(cb)
 	
 	def chain_resize(self, canvas, c, sb):
 		adj = canvas.get_vadjustment()
@@ -95,6 +101,7 @@ class List(GtkVBox):
 							c.switch_to(p))
 		item.show()
 		tree.append(item)
+		self.prog_to_tree[prog] = item
 		if prog.subprograms:
 			subtree = GtkTree()
 			subtree.append(GtkTreeItem('Marker'))
