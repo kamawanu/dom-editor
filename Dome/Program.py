@@ -158,74 +158,70 @@ class Op:
 		self.action = action
 		self.next = None
 		self.fail = None
-		self.prev = None
+		self.prev = []		# First parent is used for rendering as a tree
 		self.dx, self.dy = (0, 0)
-	
-	def set_program(self, program):
-		if self.program:
-			raise Exception('%s already has a program!' % start)
-	 	self.program = program
-		if self.next:
-			self.next.set_program(program)
-		if self.fail:
-			self.fail.set_program(program)
-	
-	def changed(self):
-		if self.program:
-			self.program.changed(self)
-	
-	def swap_nf(self):
-		(self.next, self.fail) = (self.fail, self.next)
-		self.changed()
-	
-	def link_to(self, child, exit):
-		# Create a link from this exit to this child Op
-		if child.prev or child.program:
-			raise Exception('%s is already in a chain!' % child)
-		current = getattr(self, exit)
-		if current:
-			if child.next:
-				raise Exception('%s already has a next exit' % child)
-			self.unlink(current)
-			child.link_to(current, 'next')
-		child.prev = self
-		child.set_program(self.program)
-		setattr(self, exit, child)
-		self.changed()
 	
 	def set_program(self, program):
 		if self.program == program:
 			return
 		if self.program:
 			raise Exception('Already got a program!')
-		self.program = program
+		nearby = self.prev
 		if self.next:
-			self.next.set_program(program)
+			nearby.append(self.next)
 		if self.fail:
-			self.fail.set_program(program)
+			nearby.append(self.fail)
+		self.program = program
+		print nearby
+		[x.set_program(program) for x in nearby if x.program is not program]
 	
-	def unlink(self, child):
-		"child becomes a Start node"
-		if child.prev != self:
-			raise Exception('forget_child: not my child!')
-		child.prev = None
-		child.program = None
-
-		if child == self.next:
-			exit = 'next'
-		else:
-			exit = 'fail'
-		setattr(self, exit, None)
-
-		self.changed()
-
+	def changed(self):
+		if self.program:
+			self.program.changed(self)
+	
 	def swap_nf(self):
 		self.next, self.fail = (self.fail, self.next)
 		self.changed()
 	
+	def link_to(self, child, exit):
+		# Create a link from this exit to this child Op
+		if child.program and child.program is not self.program:
+			raise Exception('%s is from a different program!' % child)
+		# If we already have something on this exit, and the new node has a
+		# clear next exit, move the rest of the chain there.
+		current = getattr(self, exit)
+		if current:
+			if child.next:
+				raise Exception('%s already has a next exit' % child)
+			self.unlink(exit)
+			child.link_to(current, 'next')
+		child.prev.append(self)
+		child.set_program(self.program)
+		setattr(self, exit, child)
+		self.changed()
+	
+	def unlink(self, exit):
+		"Remove link from us to child"
+		assert exit in ['next', 'fail']
+		child = getattr(self, exit)
+		if not child:
+			raise Exception('%s has no child on exit %s' % (self, exit))
+		if self not in child.prev:
+			raise Exception('Internal error: %s not my child!' % child)
+
+		child.prev.remove(self)	# Only remove one copy
+		if not child.prev:
+			child.program = None
+
+		setattr(self, exit, None)
+
+		self.changed()
+
 	def del_node(self):
-		"Remove this node, linking our next and previous nodes."
-		"Error if we have fail and next nodes..., or if we have no prev node"
+		"""Remove this node. It there is exactly one out-going arc and one incoming one,
+		join them together. Error if:"
+		- There are multiple out-going arcs
+		- There is a single out-going arc but multiple parents"""
 		if self.next and self.fail:
 			raise Exception("Can't delete a node with both fail and next exits in use.")
 		if not self.prev:
@@ -233,38 +229,42 @@ class Op:
 
 		prog = self.program
 
+		# Find the chain to preserve (can't have both set here)
 		if self.next:
-			next = self.next
-		else:
-			next = self.fail
-
-		if next:
-			self.unlink(next)
-
-		prev = self.prev
-		if prev.next == self:
 			exit = 'next'
-		else:
+		elif self.fail:
 			exit = 'fail'
-		prev.unlink(self)
-		if next:
-			prev.link_to(next, exit)
+		else:
+			exit = None
+			
+		if exit:
+			if len(self.prev) != 1:
+				raise Exception("Deleted node-chain must have a single link in")
+			prev = self.prev[0]
+			preserve = getattr(self, exit)
+			self.unlink(exit)
 
-		self.prev = None
-		self.next = None
+		# Remove all links to us
+		for p in self.prev:
+			if p.next == self:
+				p.unlink('next')
+			if p.fail == self:
+				p.unlink('fail')
+
+		if exit:
+			# Relink following nodes to our (single) parent
+			prev.link_to(preserve, exit)
+
+		assert not self.prev
+		assert not self.next
+		assert not self.fail
 		doc = self.to_doc()
 		self.action = None
-		self.fail = None
 		self.program = None
 
 		prog.changed()
 		return doc
 	
-	def del_chain(self):
-		doc = self.to_doc()
-		self.prev.unlink(self)
-		return doc
-
 	def to_doc(self):
 		from xml.dom import implementation
 		doc = implementation.createDocument(DOME_NS, 'dome-program', None)
@@ -272,16 +272,17 @@ class Op:
 		return doc
 	
 	def to_xml_int(self, parent):
-		"Adds a chain of <Node> elements to 'parent'."
+		"""Adds a chain of <Node> elements to 'parent'. Links only followed when node is
+		first parent."""
 		node = parent.ownerDocument.createElementNS(DOME_NS, 'node')
 		parent.appendChild(node)
 		node.setAttributeNS(None, 'action', `self.action`)
 		node.setAttributeNS(None, 'dx', str(self.dx))
 		node.setAttributeNS(None, 'dy', str(self.dy))
 		
-		if self.fail:
+		if self.fail and self.fail.prev[0] == self:
 			self.fail.to_xml_int(node)
-		if self.next:
+		if self.next and self.next.prev[0] == self:
 			self.next.to_xml_int(parent)
 	
 	def __str__(self):

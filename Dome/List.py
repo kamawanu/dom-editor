@@ -418,7 +418,7 @@ class ChainDisplay(GnomeCanvas):
 					fill_color = 'black',
 					text = text)
 		(x, y) = DEFAULT_NEXT
-		if op.next:
+		if op.next and op.next.prev[0] == op:
 			(lx, ly, hx, label_bottom) = label.get_bounds()
 			g = group.add('group', x = 0, y = 0)
 			self.create_node(op.next, g)
@@ -432,11 +432,15 @@ class ChainDisplay(GnomeCanvas):
 		group.next_line = group.add('line',
 					fill_color = 'black',
 					points = connect(0, 0, x, y),
-					width_pixels = 4)
+					width_pixels = 4,
+					last_arrowhead = 1,
+					arrow_shape_a = 5,
+					arrow_shape_b = 5,
+					arrow_shape_c = 5)
 		group.next_line.connect('event', self.line_event, op, 'next')
 
 		(x, y) = DEFAULT_FAIL
-		if op.fail:
+		if op.fail and op.fail.prev[0] == op:
 			y = 46
 			g = group.add('group', x = 0, y = 0)
 			self.create_node(op.fail, g)
@@ -448,7 +452,11 @@ class ChainDisplay(GnomeCanvas):
 		group.fail_line = group.add('line',
 					fill_color = '#ff6666',
 					points = connect(0, 0, x, y),
-					width_pixels = 4)
+					width_pixels = 4,
+					last_arrowhead = 1,
+					arrow_shape_a = 5,
+					arrow_shape_b = 5,
+					arrow_shape_c = 5)
 		group.fail_line.lower_to_bottom()
 		group.fail_line.connect('event', self.line_event, op, 'fail')
 
@@ -521,10 +529,11 @@ class ChainDisplay(GnomeCanvas):
 			self.drag_last_pos = (x, y)
 
 			self.op_to_group[op].move(dx, dy)
-			if op.prev.next == op:
-				self.join_nodes(op.prev, 'next')
-			else:
-				self.join_nodes(op.prev, 'fail')
+			for p in op.prev:
+				if p.next == op:
+					self.join_nodes(p, 'next')
+				if p.fail == op:
+					self.join_nodes(p, 'fail')
 			#self.create_node(self.prog.start, self.nodes)
 			self.update_points()
 
@@ -548,32 +557,37 @@ class ChainDisplay(GnomeCanvas):
 		new = load(doc.documentElement)
 		op.link_to(new, exit)
 	
-	def closest_node(self, op, x, y):
-		"Return the closest (dist, node) in this chain to (x, y)"
-		nx, ny = self.op_to_group[op].i2w(0, 0)
-		best = (op, math.hypot(nx - n, ny - y))
-		if op.next:
-			next = closest_node(op.next)
-			if next[0] < best[0]:
-				best = next
-		if op.fail:
-			fail = closest_node(op.fail)
-			if fail[0] < best[0]:
-				best = fail
-		return best
-	
-	def end_link_drag(self, item, event, op, exit):
+	def end_link_drag(self, item, event, src_op, exit):
 		# Scan all the nodes looking for one nearby...
 		x, y = event.x, event.y
-		node = self.closest_node(self.prog.start, x, y)
-		print "Closest was", str(node)
 
-		# Put the line back to the disconnected state...
-		if exit == 'next':
-			x, y = DEFAULT_NEXT
-		else:
-			x, y = DEFAULT_FAIL
-		item.set(points = connect(0, 0, x, y))
+		def closest_node(op):
+			"Return the closest (node, dist) in this chain to (x, y)"
+			nx, ny = self.op_to_group[op].i2w(0, 0)
+			if op is src_op:
+				best = None
+			else:
+				best = (op, math.hypot(nx - x, ny - y))
+			if op.next and op.next.prev[0] == op:
+				next = closest_node(op.next)
+				if next and (best is None or next[1] < best[1]):
+					best = next
+			if op.fail and op.fail.prev[0] == op:
+				fail = closest_node(op.fail)
+				if fail and (best is None or fail[1] < best[1]):
+					best = fail
+			return best
+		
+		node, dist = closest_node(self.prog.start)
+		if dist > 12:
+			# Too far... put the line back to the disconnected state...
+			if exit == 'next':
+				x, y = DEFAULT_NEXT
+			else:
+				x, y = DEFAULT_FAIL
+			item.set(points = connect(0, 0, x, y))
+			return
+		src_op.link_to(node, exit)
 
 	def line_event(self, item, event, op, exit):
 		# Item may be rec_point or exec_point...
@@ -602,8 +616,9 @@ class ChainDisplay(GnomeCanvas):
 						self.clipboard = op.to_doc()
 						print self.clipboard
 						ext.PrettyPrint(self.clipboard)
-					def del_chain(self = self, op = next):
-						self.clipboard = op.del_chain()
+					def del_chain():
+						self.clipboard = next.to_doc()
+						op.unlink(exit)
 				else:
 					del_chain = None
 					yank_chain = None
@@ -611,7 +626,7 @@ class ChainDisplay(GnomeCanvas):
 				items = [
 					('Set/clear breakpoint', toggle_breakpoint),
 					('Yank chain', yank_chain),
-					('Delete chain', del_chain),
+					('Remove link', del_chain),
 					('Paste chain', paste_chain)]
 				Menu(items).popup(event.button, event.time)
 		elif event.type == BUTTON_RELEASE:
