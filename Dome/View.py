@@ -1,6 +1,10 @@
 from __future__ import nested_scopes
 
-from rox import alert
+try:
+	from rox import alert
+except:
+	def alert(message):
+		print "***", message
 
 import support
 from support import *
