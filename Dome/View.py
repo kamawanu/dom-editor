@@ -676,6 +676,8 @@ class View:
 			self.model.set_attrib(self.get_current(),
 					ca.namespaceURI, ca.localName, None)
 			return
+		if self.root in nodes:
+			raise Beep
 		self.move_to([])	# Makes things go *much* faster!
 		new = []
 		for x in nodes:
@@ -946,42 +948,68 @@ class View:
 				print "Not modified => not sucking!\n"
 				return
 
-		command = "w3m -dump_source '%s' | tidy -asxml 2>/dev/null" % uri
+		print "Fetching page contents..."
+		data = stream.read()
+		print "Got data... tidying..."
 
-		def done(root, md5, self = self, uri = uri, last_mod = last_mod):
-			node = self.get_current()
-			if md5 == "Same":
-				self.model.set_attrib(node, None, 'modified', None)
-				print "MD5 sums match => not parsing!\n"
-				self.resume('next')
-				return
-			if not root:
-				print "Load failed"
-				self.resume('fail')
-				return
-			new = node.ownerDocument.importNode(root.documentElement, deep = 1)
-			new.setAttributeNS(None, 'uri', uri)
+		(r, w) = os.pipe()
+		child = os.fork()
+		if child == 0:
+			# We are the child
+			try:
+				os.close(r)
+				os.dup2(w, 1)
+				os.close(w)
+				tin = os.popen('tidy -asxml 2>/dev/null', 'w')
+				tin.write(data)
+				tin.close()
+			finally:
+				os._exit(0)
+		os.close(w)
+		
+		data = os.fdopen(r).read()
+		
+		old_md5 = node.getAttributeNS(None, 'md5_sum')
+		
+		import md5
+		new_md5 = md5.new(data).hexdigest()
+		
+		if old_md5 and new_md5 == old_md5:
+			self.model.set_attrib(node, None, 'modified', None)
+			print "MD5 sums match => not parsing!\n"
+			return
+		
+		reader = PyExpat.Reader()
+		print "Parsing..."
 
-			if last_mod:
-				new.setAttributeNS(None, 'last-modified', last_mod)
-			new.setAttributeNS(None, 'modified', 'yes')
-			new.setAttributeNS(None, 'md5_sum', md5)
+		try:
+			root = reader.fromStream(StringIO(data))
+			ext.StripHtml(root)
+		except:
+			print "parsing failed"
+			support.report_exception()
+			raise Beep
+		
+		new = node.ownerDocument.importNode(root.documentElement, deep = 1)
+		new.setAttributeNS(None, 'uri', uri)
 
-			self.move_to([])
-			if node == self.root:
-				self.model.unlock(self.root)
-				self.model.replace_node(self.root, new)
-				#self.model.strip_space(new)  (not sure we need this)
-				self.model.lock(new)
-				self.root = new
-			else:
-				self.model.replace_node(node, new)
-				#self.model.strip_space(new)
-			self.move_to(new)
-			print "Loaded."
-			self.resume('next')
-		self.dom_from_command(command, done, node.getAttributeNS(None, 'md5_sum'))
-		raise InProgress
+		if last_mod:
+			new.setAttributeNS(None, 'last-modified', last_mod)
+		new.setAttributeNS(None, 'modified', 'yes')
+		new.setAttributeNS(None, 'md5_sum', new_md5)
+
+		self.move_to([])
+		if node == self.root:
+			self.model.unlock(self.root)
+			self.model.replace_node(self.root, new)
+			#self.model.strip_space(new)  (not sure we need this)
+			self.model.lock(new)
+			self.root = new
+		else:
+			self.model.replace_node(node, new)
+			#self.model.strip_space(new)
+		self.move_to(new)
+		print "Loaded."
 	
 	def dom_from_command(self, command, callback = None, old_md5 = None):
 		"""Execute shell command 'command' in the background.

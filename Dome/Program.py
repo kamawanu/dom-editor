@@ -35,12 +35,15 @@ def load(chain):
 
 		op = Op(action)
 
-		dx = int(float(op_node.getAttributeNS(None, 'dx')))
-		if dx:
-			op.dx = dx
-		dy = int(float(op_node.getAttributeNS(None, 'dy')))
-		if dy:
-			op.dy = dy
+		try:
+			dx = int(float(op_node.getAttributeNS(None, 'dx')))
+			if dx:
+				op.dx = dx
+			dy = int(float(op_node.getAttributeNS(None, 'dy')))
+			if dy:
+				op.dy = dy
+		except:
+			pass
 
 		if not start:
 			start = op
