@@ -51,7 +51,7 @@ class Window(rox.Window, saving.Saveable):
 		tools.show()
 
 		tools.insert_stock(g.STOCK_HELP, 'Help', None, self.tool_help, None, 0)
-		tools.insert_stock(g.STOCK_GO_FORWARD, 'Step', None, self.tool_step, None, 0)
+		tools.insert_stock(g.STOCK_JUMP_TO, 'Step', None, self.tool_step, None, 0)
 		tools.insert_stock(g.STOCK_GO_FORWARD, 'Next', None, self.tool_next, None, 0)
 		tools.insert_stock(g.STOCK_GOTO_LAST, 'Play', None, self.tool_play, None, 0)
 		tools.insert_stock(g.STOCK_STOP, 'Stop', None, self.tool_stop, None, 0)
