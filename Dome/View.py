@@ -1158,8 +1158,7 @@ class View:
 
 	def request_from_node(self, node, attrib):
 		"""Return a urllib2.Request object. If attrib is set then the URI is
-		taken from that, otherwise search for a good attribute. Other attributes
-		are used for POST data and extra headers."""
+		taken from that, otherwise search for a good attribute."""
 		uri = None
 		if node.nodeType == Node.TEXT_NODE:
 			uri = node.nodeValue
