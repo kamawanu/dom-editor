@@ -1233,6 +1233,11 @@ class View:
 	def prog_tree_changed(self, prog):
 		print "here"
 		pass
+	
+	def export_all(self):
+		doc = implementation.createDocument(DOME_NS, 'dome', None)
+		data = root_program.to_xml()
+		return doc
 
 class StrGrab:
 	data = ''

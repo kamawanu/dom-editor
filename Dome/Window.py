@@ -8,7 +8,6 @@ import __main__
 
 from xml.dom import Node
 from xml.dom import ext
-from xml.dom import implementation
 from xml.dom.ext.reader import PyExpat
 
 from rox import choices
@@ -166,8 +165,7 @@ class Window(GtkWindow):
 		elif self.savetype == 'html':
 			doc = node_to_html(self.view.root)
 		elif self.savetype == 'dome':
-			from View import DOME_NS
-			doc = implementation.createDocument(DOME_NS, 'dome', None)
+			doc = self.view.export_all()
 		else:
 			raise Exception('Unknown save type', self.savetype)
 		self.output_data = ''
