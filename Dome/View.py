@@ -174,9 +174,13 @@ class View:
 		self.move_to(self.current.nextSibling)
 	
 	def move_left(self):
-		if self.current == self.root:
-			raise Beep
-		self.move_to(self.current.parentNode)
+		new = []
+		for n in self.current_nodes:
+			if n == self.root:
+				raise Beep
+			if n not in new:
+				new.append(n.parentNode)
+		self.move_to(new)
 	
 	def move_right(self):
 		new = []
