@@ -1,3 +1,5 @@
+from __future__ import generators
+
 import rox
 from rox import g, TRUE, FALSE, alert
 from gnome import canvas
@@ -362,18 +364,27 @@ class ChainOp(ChainNode):
 		self.op = op
 		ChainNode.__init__(self, da, x, y)
 
-		text = str(action_to_text(op.action))
-		self.layout = da.create_pango_layout(text)
-
-		self.width = self.height = 12
+		self.build_leaf()
 
 		da.op_to_object[op] = self
 
-		if op.next: self.next = da.create_op(op.next, x, y + 20)
-		else: self.next = None
+		if op.next and op.next.prev[0] == op:
+			self.next = da.create_op(op.next, x, y + self.height + 4)
+		else:
+			self.next = None
 
-		if op.fail: self.fail = da.create_op(op.fail, x + 100, y + 20)
-		else: self.fail = None
+		if op.fail and op.fail.prev[0] == op:
+			self.fail = da.create_op(op.fail, x + 100, y + self.height + 4)
+		else:
+			self.fail = None
+
+	def build_leaf(self):
+		text = str(action_to_text(self.op.action))
+		self.layout = self.da.create_pango_layout(text)
+
+		self.width, self.height = self.layout.get_pixel_size()
+		self.width += 12
+		self.height = max(self.height, 12)
 
 	def expose(self):
 		da = self.da
@@ -395,18 +406,37 @@ class ChainOp(ChainNode):
 				self.da.show_op_menu(event, self.op)
 			return True
 
+	def all_nodes(self):
+		yield self
+		if self.next:
+			for n in self.next.all_nodes(): yield n
+		if self.fail:
+			for n in self.fail.all_nodes(): yield n
+
+
 class ChainBlock(ChainOp):
 	def __init__(self, da, block, x, y):
 		assert isinstance(block, Block)
 		ChainOp.__init__(self, da, block, x, y)
+	
+	def build_leaf(self):
+		x = self.x
+		y = self.y
 
-		self.width = 100
-		self.height = 100
-
-		self.start = da.create_op(block.start,
+		self.start = self.da.create_op(self.op.start,
 						x + 4 + self.op.foreach * 6,
 						y + 4 + (self.op.enter + self.op.restore) * 6)
 
+		self.width = 40
+		self.height = 20
+
+		for node in self.start.all_nodes():
+			self.width = max(self.width, node.x + node.width - self.x)
+			self.height = max(self.height, node.y + node.height - self.y)
+
+		self.width += 4
+		self.height += 4 + (self.op.enter + self.op.restore) * 6
+	
 	def expose(self):
 		da = self.da
 		w = da.window
@@ -435,6 +465,9 @@ class ChainBlock(ChainOp):
 
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 		self.start.expose()
+
+		if self.next: self.next.expose()
+		if self.fail: self.fail.expose()
 	
 	def maybe_clicked(self, event):
 		return False
