@@ -7,7 +7,6 @@ from socket import gethostbyaddr, gethostname
 
 from gtk import *
 
-from rox.MultipleChoice import MultipleChoice
 from rox.support import *
 
 def node_to_xml(node):

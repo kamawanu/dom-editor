@@ -21,16 +21,6 @@ from Model import Model
 from View import View
 from View import InProgress, Done
 
-tools = [
-	('Save', 'Save this document'),
-	('Record', 'Start recording here'),
-	('Stop', 'Stop a running program'),
-	('Play', 'Run this program from here'),
-	('Next', 'Run until the next step in this program'),
-	('Step', 'Run one step, stopping in any program'),
-	]
-toolbar = Toolbar(tools, __main__.app_dir + '/icons')
-
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
@@ -52,8 +42,22 @@ class Window(GtkWindow):
 
 		vbox = GtkVBox(FALSE, 0)
 		self.add(vbox)
-		tb = toolbar.make_widget(self)
-		vbox.pack_start(tb, FALSE, TRUE, 0)
+
+		toolbar = Toolbar()
+		for (name, tip) in [
+			('Save', 'Save this document'),
+			('Record', 'Start recording here'),
+			('Stop', 'Stop a running program'),
+			('Play', 'Run this program from here'),
+			('Next', 'Run until the next step in this program'),
+			('Step', 'Run one step, stopping in any program'),
+			]:
+			icon = __main__.app_dir + '/icons/%s.xpm' % name
+			b = toolbar.add_button(name, icon, tip)
+			cb = getattr(self, 'tool_%s' % name)
+			b.connect('clicked', lambda b, cb = cb: cb())
+
+		vbox.pack_start(toolbar, FALSE, TRUE, 0)
 
 		hbox = GtkHBox(FALSE, 0)
 		vbox.pack_start(hbox)

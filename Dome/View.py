@@ -376,10 +376,10 @@ class View:
 		"  arrange to resume() later."
 		if self.op_in_progress:
 			report_error("Already executing something.")
-			return
+			raise Done()
 		if not self.exec_point:
 			report_error("No current playback point.")
-			return
+			raise Done()
 		(op, exit) = self.exec_point
 
 		if self.single_step == 0 and self.breakpoints.has_key(self.exec_point):
