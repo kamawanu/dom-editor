@@ -17,10 +17,6 @@ class Reparent(Exception):
 	def __str__(self):
 		return "Node already has a parent node"
 
-class Barren(Exception):
-	def __str__(self):
-		return "DataNode node can't have children"
-
 class Loop(Exception):
 	def __str__(self):
 		return "Adding node would create a loop"
@@ -33,31 +29,27 @@ def strip_ns(name):
 	return name
 
 class Node:
-	def __init__(self, type, attribs = None):
-		if attribs == None:
-			self.attribs = {}
-		else:
-			self.attribs = attribs
-		self.type = type
-		self.kids = []
+	def __init__(self):
 		self.undo = []
 		self.redo = []
+		self.kids = []
 		self.undoing = 0
 		self.redoing = 0
 		self.parent = None
-	
-	def copy(self):
-		new = Node(self.type)
-		new.attribs = self.attribs.copy()
-		for k in self.kids:
-			nk = k.copy()
-			new.kids.append(nk)
-			nk.parent = new
-		return new
-	
-	def set_type(self, type):
-		self.add_undo(lambda self, t = self.type: self.set_type(t))
-		self.type = type
+
+	def prev_sibling(self):
+		sibs = self.parent.kids
+		i = sibs.index(self)
+		if i > 0:
+			return sibs[i - 1]
+		return None
+
+	def next_sibling(self):
+		sibs = self.parent.kids
+		i = sibs.index(self)
+		if i + 1 < len(sibs):
+			return sibs[i + 1]
+		return None
 	
 	# Number of lines without children
 	def get_lines(self):
@@ -66,40 +58,8 @@ class Node:
 	# Returns the lines of lines needed to display this node and
 	# all its children.
 	def count_lines(self):
-		n = self.get_lines()
-		for k in self.kids:
-			n = n + k.count_lines()
-		return n
-	
-	# Set at most one of before, after and index.
-	def add(self, subnode, before = None, after = None, index = None,
-			undo = 1):
-		if not isinstance(subnode, Node):
-			raise NotANode, subnode
-		if subnode.parent != None:
-			raise Reparent, subnode
+		return self.get_lines()
 
-		p = self
-		while p:
-			if p == subnode:
-				raise Loop, subnode
-			p = p.parent
-
-		if before:
-			index = self.kids.index(before)
-		elif after:
-			index = self.kids.index(after) + 1
-
-		if index == None:
-			index = len(self.kids)
-
-		self.kids.insert(index, subnode)
-
-		if undo:
-			self.add_undo(lambda self, c = subnode: self.remove(c))
-
-		subnode.parent = self
-	
 	def can_undo(self):
 		return self.latest_undo().undo_time() > 0
 
@@ -176,6 +136,64 @@ class Node:
 			if not self.redoing:
 				self.redo = []
 	
+class TagNode(Node):
+	def __init__(self, type, attribs = None):
+		Node.__init__(self)
+
+		if attribs == None:
+			self.attribs = {}
+		else:
+			self.attribs = attribs
+		self.type = type
+	
+	def copy(self):
+		new = TagNode(self.type)
+		new.attribs = self.attribs.copy()
+		for k in self.kids:
+			nk = k.copy()
+			new.kids.append(nk)
+			nk.parent = new
+		return new
+	
+	def set_type(self, type):
+		self.add_undo(lambda self, t = self.type: self.set_type(t))
+		self.type = type
+	
+	def count_lines(self):
+		n = self.get_lines()
+		for k in self.kids:
+			n = n + k.count_lines()
+		return n
+	
+	# Set at most one of before, after and index.
+	def add(self, subnode, before = None, after = None, index = None,
+			undo = 1):
+		if not isinstance(subnode, Node):
+			raise NotANode, subnode
+		if subnode.parent != None:
+			raise Reparent, subnode
+
+		p = self
+		while p:
+			if p == subnode:
+				raise Loop, subnode
+			p = p.parent
+
+		if before:
+			index = self.kids.index(before)
+		elif after:
+			index = self.kids.index(after) + 1
+
+		if index == None:
+			index = len(self.kids)
+
+		self.kids.insert(index, subnode)
+
+		if undo:
+			self.add_undo(lambda self, c = subnode: self.remove(c))
+
+		subnode.parent = self
+	
 	def __str__(self):
 		retval = strip_ns(self.type)
 		for a in self.attribs.keys():
@@ -189,20 +207,6 @@ class Node:
 		child.parent = None
 		self.add_undo(lambda self, c = child, i = i:
 					self.add(c, index = i))
-	
-	def prev_sibling(self):
-		sibs = self.parent.kids
-		i = sibs.index(self)
-		if i > 0:
-			return sibs[i - 1]
-		return None
-
-	def next_sibling(self):
-		sibs = self.parent.kids
-		i = sibs.index(self)
-		if i + 1 < len(sibs):
-			return sibs[i + 1]
-		return None
 
 # Cannot have children.
 # In:
@@ -214,7 +218,7 @@ class Node:
 #   \--DataNode
 class DataNode(Node):
 	def __init__(self, text):
-		Node.__init__(self, None)
+		Node.__init__(self)
 		self.text = string.split(text, '\n')
 	
 	def copy(self):
@@ -223,9 +227,6 @@ class DataNode(Node):
 	
 	def get_lines(self):
 		return len(self.text)
-	
-	def add(self, subnode, before = None, after = None, index = None):
-		raise Barren, self
 	
 	def __str__(self):
 		return self.text[0] + '...'

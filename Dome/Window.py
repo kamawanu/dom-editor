@@ -19,7 +19,7 @@ class Window(GtkWindow):
 			root = load_xml(path)
 		else:
 			self.uri = "Document"
-			root = Node('Document')
+			root = TagNode('Document')
 
 		self.update_title()
 		

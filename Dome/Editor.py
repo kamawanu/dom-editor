@@ -1,5 +1,6 @@
 from gtk import *
 from GDK import *
+from _gtk import gdk_screen_width
 import string
 
 from Node import *
@@ -7,8 +8,8 @@ from Node import *
 def edit_node(tree, node):
 	if isinstance(node, DataNode):
 		DataEditor(node, tree)
-	else:
-		NodeEditor(node, tree)
+	elif isinstance(node, TagNode):
+		TagEditor(node, tree)
 
 class Editor(GtkWindow):
 	def __init__(self, node, tree):
@@ -22,15 +23,21 @@ class Editor(GtkWindow):
 		actions = GtkHBox(TRUE, 32)
 		self.vbox.pack_end(actions)
 
-		button = GtkButton('OK')
+		label = GtkLabel('OK')
+		label.set_padding(16, 2)
+		button = GtkButton()
+		button.add(label)
 		button.set_flags(CAN_DEFAULT)
-		actions.pack_start(button, TRUE, TRUE, 0)
+		actions.pack_start(button, TRUE, FALSE, 0)
 		button.grab_default(button)
 		button.connect('clicked', self.ok)
 		
-		button = GtkButton('Cancel')
+		label = GtkLabel('Cancel')
+		label.set_padding(16, 2)
+		button = GtkButton()
+		button.add(label)
 		button.set_flags(CAN_DEFAULT)
-		actions.pack_start(button, TRUE, TRUE, 0)
+		actions.pack_start(button, TRUE, FALSE, 0)
 		button.connect_object('clicked', self.destroy, self)
 
 		self.show_all(self.vbox)
@@ -38,6 +45,7 @@ class Editor(GtkWindow):
 class DataEditor(Editor):
 	def __init__(self, node, tree):
 		Editor.__init__(self, node, tree)
+		self.set_default_size(gdk_screen_width() * 2 / 3, -1)
 
 		self.text = GtkText()
 		self.text.insert_defaults(string.join(node.text, '\n'))
@@ -63,7 +71,7 @@ class DataEditor(Editor):
 		elif key == Escape:
 			self.destroy()
 	
-class NodeEditor(Editor):
+class TagEditor(Editor):
 	def __init__(self, node, tree):
 		Editor.__init__(self, node, tree)
 

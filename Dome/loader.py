@@ -25,7 +25,7 @@ class Loader(XMLParser):
 	def unknown_starttag(self, tag, attribs):
 		self.do_buffered()
 
-		n = Node(tag, attribs)
+		n = TagNode(tag, attribs)
 		if self.current:
 			self.current.add(n, undo = 0)
 		self.current = n

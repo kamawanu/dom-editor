@@ -32,9 +32,9 @@ class Tree(GtkDrawingArea):
 
 		if key == I or key == A or key == O:
 			if not isinstance(cur, DataNode):
-				new = Node(cur.type)
+				new = TagNode(cur.type)
 			else:
-				new = Node(cur.parent.type)
+				new = TagNode(cur.parent.type)
 			edit = 1
 		elif key == i or key == a or key == o:
 			new = DataNode('')
@@ -76,21 +76,27 @@ class Tree(GtkDrawingArea):
 		elif key == p:
 			new = self.clipboard.copy()
 			key = a
+		elif key == bracketright:
+			new = self.clipboard.copy()
+			key = o
 		elif key == P:
 			new = self.clipboard.copy()
 			key = i
 		elif key == Return:
 			edit_node(self, cur)
-		elif new and (key == o or key == O):
-			cur.add(new, index = 0)
 		elif key == u and cur.can_undo():
 			cur.do_undo()
 			new = cur
 		elif key == r and cur.can_redo():
 			cur.do_redo()
 			new = cur
+		elif key == J:
+			cur.join()
+			new = cur
 
-		if cur != self.display_root:
+		if new and (key == o or key == O):
+			cur.add(new, index = 0)
+		elif cur != self.display_root:
 			if new and (key == I or key == i):
 				cur.parent.add(new, before = cur)
 			elif new and (key == a or key == A):
@@ -112,7 +118,11 @@ class Tree(GtkDrawingArea):
 				cur.parent.remove(cur)
 		if new and (new.parent or new == self.display_root):
 			self.build_index()
-			self.current_line = self.node_to_line[new]
+			def cb(self = self, new = new):
+				self.move_to_node(new)
+				return 0
+			self.move_to_node(new)
+			idle_add(cb)
 			self.force_redraw()
 			if edit:
 				edit_node(self, new)
@@ -150,11 +160,10 @@ class Tree(GtkDrawingArea):
 		if line < 0 or line >= len(self.line_to_node):
 			return
 		old_cl = self.current_line
-		if line == old_cl:
-			return
-		self.current_line = line
-		self.force_redraw(self.current_line)
-		self.force_redraw(old_cl)
+		if line != old_cl:
+			self.current_line = line
+			self.force_redraw(self.current_line)
+			self.force_redraw(old_cl)
 
 		h = self.row_height
 		y = line * h
