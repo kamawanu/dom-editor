@@ -87,6 +87,9 @@ def load(node, parent, ns):
 			if node_id:
 				id_hash[node_id] = op
 
+			if op_node.getAttributeNS(None, 'propagate_fail') == 'True':
+				op.propagate_fail = True
+
 			prev.link_to(op, exit)
 			exit = 'next'
 			prev = op
@@ -244,6 +247,7 @@ class Op:
 		self.fail = None
 		self.prev = None
 		self.dx, self.dy = (0, 0)
+		self.propagate_fail = False
 	
 	def set_parent(self, parent):
 		if self.parent == parent:
@@ -382,6 +386,8 @@ class Op:
 		node.setAttributeNS(None, 'action', `self.action`)
 		node.setAttributeNS(None, 'dx', str(self.dx))
 		node.setAttributeNS(None, 'dy', str(self.dy))
+		if self.propagate_fail:
+			node.setAttributeNS(None, 'propagate_fail', 'True')
 		return node
 	
 	def to_xml_int(self, parent):
@@ -416,6 +422,13 @@ class Op:
 		while p and not isinstance(p, Program):
 			p = p.parent
 		return p
+
+	def set_propagate_fail(self, propagate_fail):
+		assert propagate_fail in (True, False)
+		if self.propagate_fail != propagate_fail:
+			self.propagate_fail = propagate_fail
+			self.changed()
+	
 
 class Block(Op):
 	"""A Block is an Op which contains a group of Ops."""

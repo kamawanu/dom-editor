@@ -38,12 +38,14 @@ block_menu = Menu('op', [
 	('/Toggle Restore Mark','block_toggle_restore', '', ''),
 	('/Edit comment', 'block_edit_comment', '', ''),
 	('/Swap next\/fail', 'op_swap_nf', '', ''),
+	('/Toggle Propagate Failure', 'op_toggle_propagate', '', ''),
 	('/Remove node', 'op_del_node', '', '')
 ])
 
 op_menu = Menu('op', [
 	('/Edit node', 'op_edit', '', ''),
 	('/Swap next\/fail', 'op_swap_nf', '', ''),
+	('/Toggle Propagate Failure', 'op_toggle_propagate', '', ''),
 	('/Remove node', 'op_del_node', '', '')
 ])
 
@@ -410,7 +412,7 @@ class ChainOp(ChainNode):
 		w.draw_layout(da.style.black_gc, self.x + 12, self.y - 2, self.layout)
 	
 		self.draw_link(self.next, 5, 10, 'black')
-		self.draw_link(self.fail, 5, 12, 'red')
+		self.draw_link(self.fail or self.op.propagate_fail, 5, 12, 'red')
 
 		self.draw_breakpoints()
 	
@@ -433,12 +435,19 @@ class ChainOp(ChainNode):
 	def draw_link(self, dest, dx, dy, colour):
 		if not dest: return
 
-		dest.expose()
+		if dest is not True:
+			dest.expose()
+			dest_x = dest.x
+			dest_y = dest.y
+		else:
+			dest_x = self.x + self.width
+			dest_y = self.y + dy
+
 		da = self.da
 		pen = da.style.white_gc
 		pen.set_rgb_fg_color(g.gdk.color_parse(colour))
-		da.backing.draw_line(pen, self.x + dx, self.y + dy, dest.x + 5, self.y + dy)
-		da.backing.draw_line(pen, dest.x + 5, self.y + dy, dest.x + 5, dest.y)
+		da.backing.draw_line(pen, self.x + dx, self.y + dy, dest_x + 5, self.y + dy)
+		da.backing.draw_line(pen, dest_x + 5, self.y + dy, dest_x + 5, dest_y)
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
 	def where(self, x, y):
@@ -511,8 +520,8 @@ class ChainBlock(ChainOp):
 		self.height = 20
 
 		for node in self.start.all_nodes():
-			self.width = max(self.width, node.x + node.width - self.x)
 			self.height = max(self.height, node.y + node.height - self.y)
+		self.width = max(self.width, self.start.total_width + 8)
 
 		self.width += 4
 		self.height += 4 + (self.op.enter + self.op.restore) * 6
@@ -558,7 +567,7 @@ class ChainBlock(ChainOp):
 		self.start.expose()
 
 		self.draw_link(self.next, 5, self.height, 'black')
-		self.draw_link(self.fail, self.width, self.height, 'red')
+		self.draw_link(self.fail or self.op.propagate_fail, self.width, self.height, 'red')
 
 		self.draw_breakpoints()
 	
@@ -839,7 +848,7 @@ class ChainDisplay(g.EventBox):
 		if op in self.view.exec_stack:
 			return 'cyan'
 		return 'blue'
-	
+
 	def edit_op(self, op):
 		def modify():
 			if op.action[0] == 'do_search' or op.action[0] == 'do_global':
@@ -918,6 +927,10 @@ class ChainDisplay(g.EventBox):
 
 	def op_swap_nf(self):
 		self.op_menu_op.swap_nf()
+
+	def op_toggle_propagate(self):
+		op = self.op_menu_op
+		op.set_propagate_fail(not op.propagate_fail)
 
 	def op_del_node(self):
 		op = self.op_menu_op
