@@ -67,8 +67,8 @@ class Display(GtkDrawingArea):
 		else:
 			gc = self.st.fg_gc[STATE_NORMAL]
 
-		off = line - self.node_to_line[self.view.current]
-		if off >= 0 and off < self.get_lines(self.view.current):
+		node = self.line_to_node[line]
+		if node in self.view.current_nodes:
 			self.alloc = self.get_allocation()
 			gdk_draw_rectangle(self.win,
 					self.st.bg_gc[STATE_SELECTED], TRUE,
@@ -144,6 +144,7 @@ class Display(GtkDrawingArea):
 		return 1
 
 	def redraw_node(self, node):
+		print "Redraw", node
 		(x, y, w, h) = self.get_allocation()
 
 		try:
@@ -171,9 +172,15 @@ class Display(GtkDrawingArea):
 		self.queue_draw()
 
 	def move_from(self, old):
-		self.scroll_to_show(self.view.current)
-		self.redraw_node(old)
-		self.redraw_node(self.view.current)
+		if self.view.current_nodes:
+			self.scroll_to_show(self.view.current_nodes[0])
+		new = self.view.current_nodes
+		for n in old:
+			if n not in new:
+				self.redraw_node(n)
+		for n in new:
+			if n not in old:
+				self.redraw_node(n)
 
 	def scroll_to_show(self, node):
 		# Range of lines to show...

@@ -22,10 +22,18 @@ class View:
 		self.displays = []
 		self.model = model
 		self.chroots = []
-		self.current = self.model.get_root()
-		self.root = self.current
+		self.root = self.model.get_root()
+		self.current_nodes = [self.root]
 		self.clipboard = None
+		self.global_set = []	# List of nodes for next op
 		model.add_view(self)
+	
+	def __getattr__(self, attr):
+		if attr == 'current':
+			if len(self.current_nodes) == 1:
+				return self.current_nodes[0]
+			raise Exception('This operation required exactly one selected node!')
+		raise Exception('Bad View attribute "%s"' % attr)
 	
 	def add_display(self, display):
 		"Calls move_from(old_node) when we move and update_all() on updates."
@@ -39,8 +47,9 @@ class View:
 	def update_replace(self, old, new):
 		if old == self.root:
 			self.root = new
-		if old == self.current:
-			self.current = new
+		if old in self.current_nodes:
+			self.current_nodes.remove(old)
+			self.current_nodes.append(new)
 			self.update_all(new.parentNode)
 		else:
 			self.update_all(new.parentNode)
@@ -61,16 +70,20 @@ class View:
 			self.chroots = []
 		
 		# Is the current node still around?
-		if not self.has_ancestor(self.current, self.root):
-			# No - move to root
-			print "[ lost current - using root ]"
-			self.current = self.root
+		for n in self.current_nodes[:]:
+			if not self.has_ancestor(n, self.root):
+				# No - remove
+				print "[ lost a current node ]"
+				self.current_nodes.remove(n)
+		if not self.current_nodes:
+			self.current_nodes = [self.root]
 
-		if self.has_ancestor(node, self.root) or self.has_ancestor(self.root, node):
-			for display in self.displays:
-				display.update_all()
-		else:
+		if not (self.has_ancestor(node, self.root) or self.has_ancestor(self.root, node)):
 			print "[ change to %s doesn't affect us (root %s) ]" % (node, self.root)
+			return
+
+		for display in self.displays:
+			display.update_all()
 	
 	def delete(self):
 		self.model.remove_view(self)
@@ -81,15 +94,19 @@ class View:
 		"Move current to the display root."
 		self.move_to(self.root_node)
 	
-	def move_to(self, node):
-		if self.current == node:
+	# 'nodes' may be either a node or a list of nodes.
+	def move_to(self, nodes):
+		if self.current_nodes == nodes:
 			return
 
-		old_node = self.current
-		self.current = node
+		if type(nodes) != types.ListType:
+			nodes = [nodes]
+
+		old_nodes = self.current_nodes
+		self.current_nodes = nodes
 
 		for display in self.displays:
-			display.move_from(old_node)
+			display.move_from(old_nodes)
 	
 	def move_prev_sib(self):
 		if self.current == self.root or not self.current.previousSibling:
@@ -159,6 +176,16 @@ class View:
 	
 	# Actions...
 
+	def do_global(self, pattern):
+		p = XPathParser.XPathParser()	
+		path = p.parseExpression(pattern)
+
+		ns = {}
+		ns['ext'] = FT_EXT_NAMESPACE
+		c = Context.Context(self.current, [self.current], processorNss = ns)
+		self.global_set = path.select(c)
+		self.move_to(self.global_set)
+		
 	def do_search(self, pattern, ns = None):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
@@ -166,6 +193,8 @@ class View:
 		if not ns:
 			ns = {}
 		ns['ext'] = FT_EXT_NAMESPACE
+		if len(self.current_nodes) != 1:
+			self.move_to(self.root)
 		c = Context.Context(self.current, [self.current], processorNss = ns)
 		rt = path.select(c)
 		node = None
@@ -225,11 +254,23 @@ class View:
 		print "Clip now", self.clipboard
 	
 	def delete_node(self):
-		node = self.current
-		self.clipboard = node.cloneNode(deep = 1)
-		print "Clip now", self.clipboard
-		self.move_left()	# Exception raised if on the root...
-		self.model.delete_node(node)
+		nodes = self.current_nodes[:]
+		if not nodes:
+			return
+		if len(nodes) == 1:
+			# TODO: Grab fragment for multiple nodes?
+			self.clipboard = nodes[0].cloneNode(deep = 1)
+			print "Clip now", self.clipboard
+		new = []
+		for x in nodes:
+			if x != self.root:
+				new.append(x.parentNode)
+		if len(new) == 0:
+			raise Beep
+		for x in nodes:
+			if self.has_ancestor(x, self.root):
+				self.model.delete_node(x)
+		self.move_to(new)
 	
 	def undo(self):
 		self.model.undo(self.root)
@@ -331,3 +372,4 @@ class View:
 			self.model.insert(node, new, index = 0)
 		except:
 			raise Beep
+	

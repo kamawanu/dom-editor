@@ -42,7 +42,7 @@ class Model:
 		new_doc = reader.fromUri(path)
 		new = new_doc.documentElement.cloneNode(deep = 1)
 		new = self.doc.importNode(new, deep = 1)
-		self.doc.replaceChild(new, self.docdocumentElement)
+		self.doc.replaceChild(new, self.doc.documentElement)
 		self.strip_space()
 		self.update_all(self.doc)
 	

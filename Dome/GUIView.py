@@ -81,7 +81,9 @@ class GUIView(Display):
 			node = self.line_to_node[line]
 		except IndexError:
 			node = None
-		if node and node != self.view.current:
+		if node and node not in self.view.current_nodes:
+			if len(self.view.current_nodes) != 1:
+				self.view.move_to(self.view.root)
 			lit = bev.state & CONTROL_MASK
 			ns = {}
 			path = make_relative_path(self.view.current, node, lit, ns)
@@ -90,8 +92,7 @@ class GUIView(Display):
 		if bev.button == 3:
 			items = [
 				('Search', self.show_search),
-				('Enter', self.view.enter),
-				('Leave', self.view.leave),
+				('Global', self.show_global),
 				(None, None),
 				('Cut', lambda self = self: self.may_record(['delete_node'])),
 				('Paste (replace)', lambda self = self: self.may_record(['put_replace'])),
@@ -106,6 +107,8 @@ class GUIView(Display):
 				(None, None),
 				('Undo', lambda self = self: self.may_record(['undo'])),
 				('Redo', lambda self = self: self.may_record(['redo'])),
+				('Enter', self.view.enter),
+				('Leave', self.view.leave),
 				('Close Window', self.window.destroy),
 				]
 			Menu(items).popup(bev.button, bev.time)
@@ -152,6 +155,12 @@ class GUIView(Display):
 			action = ["python", expr]
 			self.may_record(action)
 		GetArg('Python expression:', do_pipe, ['Eval:'], "'x' is the old text...")
+
+	def show_global(self):
+		def do_global(pattern, self = self):
+			action = ["do_global", pattern]
+			self.may_record(action)
+		GetArg('Global:', do_global, ['Pattern:'], 'Perform next action on all nodes matching')
 
 	def show_search(self):
 		def do_search(pattern, self = self):
@@ -214,6 +223,7 @@ class GUIView(Display):
 		#Next	: ["move_next_sib"],
 
 		slash	: show_search,
+		ord('#'): show_global,
 		#n	: ["search_next"],
 
 		# Interaction
