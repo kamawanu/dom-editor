@@ -88,6 +88,17 @@ class Window(GtkWindow):
 	
 		self.gui_view.grab_focus()
 		self.update_title()
+
+		def delete(window, event):
+			if self.model.root_program.modified:
+				from rox.MultipleChoice import MultipleChoice
+				box = MultipleChoice('Programs modified -- really quit?',
+						     ('Cancel', 'Quit'))
+				if box.wait() == 1:
+					return 0
+				return 1
+			return 0
+		self.connect('delete-event', delete)
 		
 	def set_state(self, state):
 		if state == self.state:
@@ -144,6 +155,7 @@ class Window(GtkWindow):
 	def set_uri(self, uri):
 		if not self.savebox.toggle_export_xml.get_active():
 			self.model.uri = uri
+			self.model.root_program.modified = 0
 			self.update_title()
 
 	# Toolbar bits

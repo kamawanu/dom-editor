@@ -453,11 +453,12 @@ class ChainDisplay(GnomeCanvas):
 			if op.foreach:
 				g.add('rect', x1 = minx, x2 = minx + 8, y1 = ly + 4, y2 = hy + 4,
 					fill_color = 'blue').lower_to_bottom()
-			if op.enter:
+			if op.enter or op.restore:
+				colour = (op.enter and 'yellow') or 'white'
 				g.add('rect', x1 = minx, x2 = hx + 4, y1 = ly + 5, y2 = ly + 13,
-					fill_color = 'yellow').lower_to_bottom()
+					fill_color = colour).lower_to_bottom()
 				g.add('rect', x1 = minx, x2 = hx + 4, y1 = hy - 3, y2 = hy + 3,
-					fill_color = 'yellow').lower_to_bottom()
+					fill_color = colour).lower_to_bottom()
 			next_off_y = 0
 			group.width, group.height = hx, hy
 			if op.is_toplevel():
@@ -692,6 +693,7 @@ class ChainDisplay(GnomeCanvas):
 			op = op.parent
 			items = [('Toggle Enter/Leave', lambda: op.toggle_enter()),
 				 ('Toggle Foreach', lambda: op.toggle_foreach()),
+				 ('Toggle Restore selection', lambda: op.toggle_restore()),
 				 ('Edit comment', lambda: self.edit_comment(op))]
 		else:
 			items = [('Edit node', lambda: self.edit_op(op))]

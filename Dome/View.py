@@ -968,7 +968,7 @@ class View:
 		if continuing:
 			if block.enter:
 				self.leave()
-			if block.foreach:
+			if block.foreach and not block.restore:
 				restore.extend(self.current_nodes)
 			if continuing == 'fail':
 				print "Error in block; exiting early in program", block.get_program()
@@ -982,7 +982,7 @@ class View:
 		if not nodes_list:
 			self.foreach_stack.pop()
 			self.update_stack()
-			if block.foreach:
+			if block.foreach or block.restore:
 				nodes = filter(lambda x: self.has_ancestor(x, self.root), restore)
 				self.move_to(nodes)
 			return 0	# Nothing left to do
@@ -1007,7 +1007,11 @@ class View:
 		else:
 			list = [self.current_nodes[:]]	# List of one item, containing everything
 			
-		self.foreach_stack.append((block, list, []))
+		if block.restore:
+			self.foreach_stack.append((block, list, self.current_nodes[:]))
+		else:
+			self.foreach_stack.append((block, list, []))
+			
 		self.update_stack()
 		if not self.start_block_iteration(block):
 			# No nodes selected...

@@ -20,6 +20,9 @@ def load(node, parent):
 			block.toggle_foreach()
 		if int(node.getAttributeNS(None, 'enter')):
 			block.toggle_enter()
+		if node.hasAttributeNS(None, 'restore'):
+			if int(node.getAttributeNS(None, 'restore')):
+				block.toggle_restore()
 		comment = node.getAttributeNS(None, 'comment')
 		block.set_comment(comment)
 	except:
@@ -122,6 +125,7 @@ def load_dome_program(prog):
 		if node.localName == 'dome-program':
 			new.add_sub(load_dome_program(node))
 		
+	new.modified = 0
 	return new
 
 class Program:
@@ -135,6 +139,7 @@ class Program:
 		self.subprograms = {}
 		self.watchers = []
 		self.parent = None
+		self.modified = 0
 
 	def get_path(self):
 		path = ""
@@ -145,6 +150,7 @@ class Program:
 		return path[:-1]
 	
 	def changed(self, op = None):
+		self.modified = 1
 		if self.parent:
 			self.parent.changed(op)
 		else:
@@ -152,6 +158,7 @@ class Program:
 				w.program_changed(op)
 	
 	def tree_changed(self):
+		self.modified = 1
 		if self.parent:
 			self.parent.tree_changed()
 		else:
@@ -419,6 +426,7 @@ class Block(Op):
 		self.start.parent = self
 		self.foreach = 0
 		self.enter = 0
+		self.restore = 0
 		self.comment = ''
 	
 	def set_start(self, start):
@@ -439,14 +447,23 @@ class Block(Op):
 		node = doc.createElementNS(DOME_NS, 'block')
 		node.setAttributeNS(None, 'foreach', str(self.foreach))
 		node.setAttributeNS(None, 'enter', str(self.enter))
+		node.setAttributeNS(None, 'restore', str(self.restore))
 		node.setAttributeNS(None, 'comment', str(self.comment))
 		assert not self.start.fail
 		if self.start.next:
 			self.start.next.to_xml_int(node)
 		return node
 	
+	def toggle_restore(self):
+		self.restore = not self.restore
+		if self.restore:
+			self.enter = 0
+		self.changed()
+	
 	def toggle_enter(self):
 		self.enter = not self.enter
+		if self.enter:
+			self.restore = 0
 		self.changed()
 	
 	def toggle_foreach(self):
