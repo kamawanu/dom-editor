@@ -120,10 +120,11 @@ class View:
 	def set_exec(self, pos):
 		if self.op_in_progress:
 			raise Exception("Operation in progress...")
-		print "set_exec:", pos
 		if pos and not isinstance(pos[0], Op):
 			raise Exception("Not an (operation, exit) tuple", pos)
 		self.exec_point = pos
+		if pos:
+			print "set_exec: %s:%s" % pos
 		for l in self.lists:
 			l.update_points()
 
@@ -152,6 +153,8 @@ class View:
 		exit = 'next'
 		try:
 			self.do_action(action)
+		except InProgress:
+			pass
 		except Beep:
 			gdk_beep()
 			(type, val, tb) = sys.exc_info()
@@ -317,6 +320,8 @@ class View:
 
 	def do_action(self, action):
 		"'action' is a tuple (function, arg1, arg2, ...)"
+		"Performs the action. Returns if action completes, or raises "
+		"InProgress if not (will call resume() later)."
 		if action[0] in record_again:
 			self.last_action = action
 		elif action[0] == 'again':
@@ -327,7 +332,7 @@ class View:
 		try:
 			new = apply(fn, action[1:])
 		except InProgress:
-			return
+			raise
 		except Beep:
 			if not self.op_in_progress:
 				raise
@@ -340,10 +345,12 @@ class View:
 		if new:
 			self.move_to(new)
 	
-	def do_one_step(self, done = None):
-		"Execute the next op after exec_point, then position the point "
-		"on one of the exits and call done(). May return before the operation"
-		"is complete."
+	def do_one_step(self):
+		"Execute the next op after exec_point, then:"
+		"- position the point on one of the exits return."
+		"- if there is no op to perform, call callback_on_return() or raise Done."
+		"- if the operation is started but not complete, raise InProgress and "
+		"  arrange to resume() later."
 		if self.op_in_progress:
 			report_error("Already executing something.")
 			return
@@ -354,7 +361,7 @@ class View:
 		next = getattr(op, exit)
 		if next:
 			self.set_oip(next)
-			self.do_action(next.action)
+			self.do_action(next.action)	# May raise InProgress
 			return
 
 		if exit == 'fail' and not self.innermost_failure:
@@ -530,30 +537,56 @@ class View:
 
 	def redo(self):
 		self.model.redo(self.root)
+	
+	def default_done(self, exit):
+		"Called when execution of a program returns. op_in_progress has been "
+		"restored - move to the exit."
+		print "default_done(%s)" % exit
+		if self.op_in_progress:
+			op = self.op_in_progress
+			self.set_oip(None)
+			self.set_exec((op, exit))
+		else:
+			print "No operation to return to!"
+			raise Done()
 
-	def play(self, name):
+	def play(self, name, done = None):
+		"Play this macro. When it returns, restore the current op_in_progress (if any)"
+		"and call done(exit). Default for done() moves exec_point."
+		"done() is called from do_one_step() - usual rules apply."
 		prog = self.name_to_prog(name)
 		self.innermost_failure = None
 
-		if self.op_in_progress:
-			def fin(self = self, op = self.op_in_progress, done = self.callback_on_return):
-				(prev, exit) = self.exec_point
-				print "Up to", op, exit
-				self.set_exec((op, exit))
-				self.callback_on_return = done
-			self.set_oip(None)
-			self.callback_on_return = fin
+		if not done:
+			done = self.default_done
+
+		def cbor(self = self, op = self.op_in_progress, done = done,
+				name = name,
+				old_cbor = self.callback_on_return,
+				old_ss = self.single_step):
+			"We're in do_one_step..."
+
+			print "Return from '%s'..." % name
+
+			if old_ss == 2 and self.single_step == 0:
+				self.single_step = old_ss
+			self.callback_on_return = old_cbor
+
+			if op:
+				print "Resume op '%s' (%s)" % (op.program.name, op)
+				o, exit = self.exec_point
+				self.set_oip(op)
+				return done(exit)
+			else:
+				print "No operation to return to."
+				return done(exit)
+
+		self.callback_on_return = cbor
 
 		if self.single_step == 2:
 			self.single_step = 0
-			def fin(self = self, done = self.callback_on_return):
-				if self.single_step == 0:
-					self.single_step = 1
-				self.callback_on_return = done
-				if done:
-					done()
-			self.callback_on_return = fin
 			
+		self.set_oip(None)
 		self.set_exec((prog.start, 'next'))
 		self.sched()
 		raise InProgress
@@ -602,24 +635,25 @@ class View:
 		print "Map", name
 
 		nodes = self.current_nodes[:]
-		inp = [nodes, None, FALSE]	# Nodes, next, check-errors
-		def next(self = self, name = name, inp = inp, old_cb = self.callback_on_return):
-			nodes, next, check = inp
-			if check:
-				(op, exit) = self.exec_point
-				if exit != 'next':
-					self.callback_on_return = old_cb
-					return self.resume(exit)
-			inp[2] = TRUE
+		inp = [nodes, None]	# Nodes, next
+		def next(exit = exit, self = self, name = name, inp = inp):
+			"This is called while in do_one_step() - normal rules apply."
+			nodes, next = inp
+			print "Map: next (%d to go)" % len(nodes)
+			if exit == 'fail':
+				print "Map: nodes remaining, but an error occurred..."
+				return self.default_done(exit)
 			self.move_to(nodes[0])
 			print "Next:", self.current
 			del nodes[0]
 			if not nodes:
-				next = old_cb
-			self.callback_on_return = next
-			self.play(name)
+				next = None
+			print "Map: calling play (%d after this)" % len(nodes)
+			self.play(name, done = next)		# Should raise InProgress
+		if nodes is self.current_nodes:
+			raise Exception("Slice failed!")
 		inp[1] = next
-		next()
+		next('next')
 	
 	def name_to_prog(self, name):
 		comps = string.split(name, '/')
