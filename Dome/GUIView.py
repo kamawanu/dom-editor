@@ -166,6 +166,45 @@ class GUIView(Display):
 		self.show_cursor(None)
 		Display.move_from(self, old)
 	
+	def cursor_xy_to_index(self, x, y):
+		x, y = self.cursor.w2i(x, y)
+		print x, y
+		row = int(y / self.cursor_height)
+		t = self.cursor_text
+		i = 0
+		print i, t, row
+		while row > 0:
+			f = string.find(t, '\n', i)
+			if f == -1:
+				self.move_cursor(-1)
+				return
+			row -= 1
+			i = f + 1
+		line = t[i:]
+		nl = string.find(line, '\n')
+		if nl != -1:
+			line = line[:nl]
+		li = 0
+		font = load_font('fixed')
+		while font.measure(line[:li + 1]) < x and li < len(line):
+			li += 1
+		return i + li
+	
+	def cursor_event(self, group, event):
+		if event.type == BUTTON_PRESS:
+			if event.button == 1:
+				self.move_cursor(self.cursor_xy_to_index(event.x, event.y))
+			elif event.button == 2:
+				t = self.cursor_text
+				i = self.cursor_index
+				clip = '<clipboard>'
+				new = t[:i] + clip + t[i:]
+				self.set_cursor_text(new)
+				self.move_cursor(i + len(clip))
+			else:
+				return 0
+		return 1
+	
 	def set_cursor_text(self, new):
 		new = str(new)
 		self.cursor_text = new
@@ -218,6 +257,7 @@ class GUIView(Display):
 							fill_color = 'black', font = 'fixed')
 			self.set_cursor_text(self.get_text(node))
 			self.move_cursor(index)
+			self.cursor.connect('event', self.cursor_event)
 
 	def toggle_edit(self):
 		if self.cursor_node:
