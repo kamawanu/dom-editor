@@ -346,6 +346,20 @@ class View:
 			assert nodes
 			nodes = [nodes]
 
+		if len(nodes) > 1:
+			# Remove duplicates
+			map = {}
+			last = nodes[-1]
+			for n in nodes:
+				if n is not last:
+					map[n] = None
+			old = nodes
+			nodes = map.keys()
+			nodes.append(last)
+			
+			if len(old) != len(nodes):
+				print "(move_to: attempt to set duplicate nodes)"
+
 		old_nodes = self.current_nodes
 		self.current_nodes = nodes
 
@@ -806,7 +820,7 @@ class View:
 			return
 		if self.root in nodes:
 			raise Beep
-		self.move_to([])	# Makes things go *much* faster!
+		self.move_to([])
 		new = []
 		for x in nodes:
 			p = x.parentNode
@@ -921,8 +935,7 @@ class View:
 			if block.enter:
 				self.leave()
 			if block.foreach:
-				for n in self.current_nodes:
-					restore[n] = None
+				restore.extend(self.current_nodes)
 			if continuing == 'fail':
 				print "Error in block; exiting early in program", block.get_program()
 				self.foreach_stack.pop()
@@ -934,7 +947,7 @@ class View:
 		if not nodes_list:
 			self.foreach_stack.pop()
 			if block.foreach:
-				nodes = filter(lambda x: self.has_ancestor(x, self.root), restore.keys())
+				nodes = filter(lambda x: self.has_ancestor(x, self.root), restore)
 				self.move_to(nodes)
 			return 0	# Nothing left to do
 		nodes = nodes_list[0]
@@ -958,7 +971,7 @@ class View:
 		else:
 			list = [self.current_nodes[:]]	# List of one item, containing everything
 			
-		self.foreach_stack.append((block, list, {}))
+		self.foreach_stack.append((block, list, []))
 		if not self.start_block_iteration(block):
 			# No nodes selected...
 			if not block.is_toplevel():

@@ -52,7 +52,7 @@ def load(node, parent):
 			elif op_node.localName == 'block':
 				op = load(op_node, block)
 			else:
-				if op_node.nodeType == Node.ELEMENT_NODE:
+				if op_node.nodeType == Node.ELEMENT_NODE and op_node.localName != 'fail':
 					print "** WARNING ** Unknown op:", op_node
 				continue
 
