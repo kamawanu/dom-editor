@@ -94,8 +94,9 @@ menu = Menu('main', [
 		('/Program', None, '<Branch>', ''),
 		('/Program/Input', 'menu_show_ask', '', 'question'),
 		('/Program/Compare', 'do_compare', '', 'equal'),
-		('/Program/Fail', 'do_fail', '', ''),
 		('/Program/Pass', 'do_pass', '', ''),
+		('/Program/Fail', 'do_fail', '', ''),
+		('/Program/Fail if', 'menu_fail_if', '', ''),
 		('/Program/Repeat last', 'do_again', '', 'dot'),
 
 		('/View', None, '<Branch>', ''),
@@ -352,6 +353,17 @@ class GUIView(Display, XDSLoader):
 			action = ["xpath", expr]
 			self.view.may_record(action)
 		GetArg('XPath expression:', go, ['Eval:'], "Result goes on the clipboard")
+
+	def menu_fail_if(self):
+		def go(expr):
+			action = ["fail_if", expr]
+			self.view.may_record(action)
+		GetArg('Fail if:', go, ['Test:'], "Take fail arc if true:",
+			hints = (('. > 0', 'greater than zero'),
+				 ('. = "Green"', "value is 'Green'"),
+				 ('@href', "href attribute present"),
+				 ('.//error', 'there are any <error>s in the subtree'),
+				 ))
 
 	def menu_hide_with_expr(self):
 		def go(expr):

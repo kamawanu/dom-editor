@@ -51,8 +51,6 @@ from GetArg import GetArg
 from Program import Program, load, Block
 
 box_size = 9
-next_box = (0, 12)
-fail_box = (12, 8)
 
 def trunc(text):
 	if len(text) < 28:
@@ -366,6 +364,9 @@ class ChainNode:
 		return False
 
 class ChainOp(ChainNode):
+	next_box = (0, 12)
+	fail_box = (12, 8)
+
 	def __init__(self, da, op, x, y):
 		self.op = op
 		ChainNode.__init__(self, da, x, y)
@@ -436,12 +437,12 @@ class ChainOp(ChainNode):
 		y -= self.y
 		if y < 0: return False
 
-		if x >= next_box[0] and y >= next_box[1] and \
-		   x <= next_box[0] + box_size and y <= next_box[1] + box_size:
+		if x >= self.next_box[0] and y >= self.next_box[1] and \
+		   x <= self.next_box[0] + box_size and y <= self.next_box[1] + box_size:
 		   	return 'next'
 
-		if x >= fail_box[0] and y >= fail_box[1] and \
-		   x <= fail_box[0] + box_size and y <= fail_box[1] + box_size:
+		if x >= self.fail_box[0] and y >= self.fail_box[1] and \
+		   x <= self.fail_box[0] + box_size and y <= self.fail_box[1] + box_size:
 		   	return 'fail'
 
 		if x < self.width and y < self.height: return 'op'
@@ -476,6 +477,8 @@ class ChainBlock(ChainOp):
 		while p and not isinstance(p, Program):
 			p = p.parent
 			self.depth += 1
+		self.next_box = (0, self.height)
+		self.fail_box = (self.width, self.height - box_size)
 	
 	def build_leaf(self):
 		x = self.x
@@ -547,11 +550,12 @@ class ChainBlock(ChainOp):
 		self.draw_link(self.next, 5, self.height, 'black')
 		self.draw_link(self.fail, self.width, self.height, 'red')
 	
-	def maybe_clicked(self, event):
-		return False
-	
 	def where(self, x, y):
-		return None
+		if self.depth == 1: return None
+
+		pos = ChainOp.where(self, x, y)
+		if pos == 'op': pos = None
+		return pos
 	
 	def contains(self, x, y):
 		return x >= self.x and y >= self.y and \
@@ -634,11 +638,11 @@ class ChainDisplay(g.EventBox):
 			y += 2
 			colour = 'yellow'
 		if exit == 'fail':
-			x += fail_box[0]
-			y += fail_box[1]
+			x += obj.fail_box[0]
+			y += obj.fail_box[1]
 		else:
-			x += next_box[0]
-			y += next_box[1]
+			x += obj.next_box[0]
+			y += obj.next_box[1]
 		pen = self.style.white_gc
 		pen.set_rgb_fg_color(g.gdk.color_parse(colour))
 		w.draw_rectangle(self.style.black_gc, False, x, y, size, size)
@@ -714,10 +718,10 @@ class ChainDisplay(g.EventBox):
 			pen = self.style.black_gc
 			w = self.window
 			if exit == 'fail':
-				w.draw_rectangle(pen, False, op.x + fail_box[0], op.y + fail_box[1],
+				w.draw_rectangle(pen, False, op.x + op.fail_box[0], op.y + op.fail_box[1],
 								box_size, box_size)
 			else:
-				w.draw_rectangle(pen, False, op.x + next_box[0], op.y + next_box[1],
+				w.draw_rectangle(pen, False, op.x + op.next_box[0], op.y + op.next_box[1],
 								box_size, box_size)
 
 	def motion(self, box, event):

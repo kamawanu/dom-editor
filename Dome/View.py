@@ -82,6 +82,7 @@ record_again = [
 	"paste_attribs",
 	"compare",
 	"fail",
+	"fail_if",
 	"do_pass",
 	"attribute",
 	"set_attrib",
@@ -1527,6 +1528,18 @@ class View:
 		pass
 	
 	def fail_if(self, xpath):
+		"""Evaluate xpath as a boolean, and fail if true."""
+		src = self.get_current()
+		ns = self.model.namespaces.uri
+		c = Context.Context(src, [src], processorNss = ns)
+		
+		rt = XPath.Evaluate(xpath, context = c)
+		#print "Got", rt
+		print rt
+		if rt:
+			raise Beep(may_record = 1)
+	
+	def xslt_fail_if(self, xpath):
 		"""Evaluate xpath as a boolean, and fail if true."""
 		src = self.get_current()
 		ns = self.model.namespaces.uri

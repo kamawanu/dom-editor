@@ -214,8 +214,9 @@ class Model:
 		#print "Removing view", view
 		self.views.remove(view)
 		#print "Now:", self.views
-		if not self.views:
-			self.clear_undo()
+		# XXX: clears undo on enter!
+		#if not self.views:
+		#	self.clear_undo()
 	
 	def update_all(self, node):
 		"Called when 'node' has been updated."

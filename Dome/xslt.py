@@ -113,7 +113,7 @@ def import_sheet(doc):
 				if pattern == '/':
 					pattern = ''
 				pattern = '/xslt/Source' + pattern # XXX: Hack
-			tests = add(tests, 'fail_if', pattern)
+			tests = add(tests, 'xslt_fail_if', pattern)
 			op = Op(action = ['play', temp.get_path()])
 			tests.link_to(op, 'fail')
 			add(op, 'mark_switch')
@@ -122,7 +122,7 @@ def import_sheet(doc):
 
 		#print "Tidy", loose_ends
 
-		tests = add(tests, 'fail_if', 'text()')
+		tests = add(tests, 'xslt_fail_if', 'text()')
 		op = Op(action = ['play', 'XSLT/DefaultText'])
 		tests.link_to(op, 'fail')
 
