@@ -12,6 +12,7 @@ from Editor import edit_node
 from Search import Search
 import Change
 from SaveBox import SaveBox
+from Exec import Exec
 import Macro
 
 class Beep(Exception):
@@ -87,6 +88,8 @@ class Tree(GtkDrawingArea):
 		self.connect('destroy', self.destroyed)
 
 		self.recording_macro = None
+		self.exec_state = Exec(self, window.macro_list)
+		self.idle_tag = 0
 	
 	def destroyed(self, da):
 		self.window.disconnect(self.key_tag)
@@ -132,15 +135,16 @@ class Tree(GtkDrawingArea):
 			action(self)
 			return 1
 
-		need_update = self.may_record(action)
+		self.may_record(action)
 			
-		if need_update:
-			def cb(self = self, line = self.current_line):
-				self.move_to(line)
-				return 0
-			idle_add(cb)
+	def sched_redraw(self):
+		def cb(self = self):
 			self.force_redraw()
-		return 1
+			self.move_to(self.current_line)
+			self.idle_tag = 0
+			return 0
+		if not self.idle_tag:
+			self.idle_tag = idle_add(cb)
 	
 	def do_action(self, action):
 		"'action' is a tuple (function, arg1, arg2, ...)"
@@ -152,15 +156,14 @@ class Tree(GtkDrawingArea):
 			if not self.node_to_line.has_key(new):
 				new = self.display_root
 			self.move_to_node(new)
-			return 1
-		return 0
+			self.sched_redraw()
 	
 	def may_record(self, action):
 		"Perform, and possibly record, this action"
 		rec = self.recording_macro
 
 		try:
-			need_update = self.do_action(action)
+			self.do_action(action)
 		except Beep:
 			gdk_beep()
 			return 0
@@ -169,7 +172,6 @@ class Tree(GtkDrawingArea):
 		if rec:
 			self.recording_macro.record(action, self.last_op_failed)
 			self.last_op_failed = 0
-		return need_update
 	
 	def tree_changed(self):
 		cn = self.line_to_node[self.current_line]
@@ -510,7 +512,7 @@ class Tree(GtkDrawingArea):
 		Search(self)
 	
 	def search_next(self, node):
-		return self.do_action(self.last_search)
+		self.do_action(self.last_search)
 
 	# Changes
 	def new_element(self):
@@ -614,62 +616,12 @@ class Tree(GtkDrawingArea):
 		Change.delete(cur)
 		return new
 	
-	def playstep(self, node):
-		up = self.step()
-		if up:
-			def cb(self = self, line = self.current_line):
-				self.move_to(line)
-				return 0
-			idle_add(cb)
-			self.force_redraw()
-	
-	def step(self, m):
-		if not m.more_moves:
-			if self.recording_macro:
-				raise Beep
-			c = get_choice("No more steps... create a new operation?",
-					"Playback",
-					("Yes", "No"))
-			if c == 0:
-				self.recording_macro = m
-				self.window.update_title()
-				m.show_all()
-			raise Beep
-
-		action = m.get_next_action()
-
-		up = 0
-		try:
-			up = self.do_action(action)
-		except Beep:
-			m.move_fail()
-			self.last_op_failed = 1
-		else:
-			m.move_next()
-			self.last_op_failed = 0
-		return up
+	def Start(self, node):
+		pass
 
 	def playback(self, node, macro_name):
 		"Playback"
-		m = self.window.macro_list.macro_named(macro_name)
-		if not m:
-			raise Exception('No macro named `' + macro_name + "'!")
-		m.rewind()
-		up = 0
-		while m.more_moves:
-			up = up | self.step(m)
-			if self.last_op_failed and not m.more_moves:
-				self.step(m)
-				break
-		if up:
-			def cb(self = self, line = self.current_line):
-				self.move_to(line)
-				return 0
-			idle_add(cb)
-			self.force_redraw()
-	
-	def Start(self, node):
-		pass
+		self.exec_state.play(macro_name)
 
 	def change_node(self, node, new_data):
 		if node.nodeType == Node.TEXT_NODE:

@@ -14,6 +14,7 @@ from support import *
 from Tree import Tree
 from SaveBox import SaveBox
 from List import List
+from Toolbar import Toolbar
 
 def strip_space(doc):
 	def cb(node, cb):
@@ -41,8 +42,13 @@ class Window(GtkWindow):
 		self.set_position(WIN_POS_CENTER)
 		self.savebox = None
 
+		vbox = GtkVBox(FALSE, 0)
+		self.add(vbox)
+		tb = Toolbar(self)
+		vbox.pack_start(tb, FALSE, TRUE, 0)
+
 		hbox = GtkHBox(FALSE, 0)
-		self.add(hbox)
+		vbox.pack_start(hbox)
 
 		self.macro_list = List(self)
 		self.macro_list.load_all()
@@ -63,7 +69,7 @@ class Window(GtkWindow):
 			root = implementation.createDocument('', 'root', None)
 
 		self.set_root(root)
-		hbox.show_all()
+		vbox.show_all()
 		self.connect('key-press-event', self.key)
 		make_xds_loader(self, self)
 	
@@ -145,3 +151,34 @@ class Window(GtkWindow):
 	def set_uri(self, uri):
 		self.uri = uri
 		self.update_title()
+
+	# Toolbar bits
+
+	tools = [
+		('Save', 'Save this macro'),
+		('Record', 'Record a new macro'),
+		('Play', 'Run this macro from the start'),
+		('Next', 'Run until the next step in this macro'),
+		('Step', 'Run one step, stopping in any macro'),
+		]
+	
+	def tool_Save(self):
+		self.save()
+	
+	def tool_Play(self):
+		self.tree.exec_state.set_step_mode(-1)
+		self.tree.exec_state.sched()
+		pass
+	
+	def tool_Next(self):
+		self.tree.exec_state.set_step_mode(1)
+		self.tree.exec_state.do_one_step()
+		pass
+	
+	def tool_Step(self):
+		self.tree.exec_state.set_step_mode(0)
+		self.tree.exec_state.do_one_step()
+		pass
+	
+	def tool_Record(self):
+		pass
