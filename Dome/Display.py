@@ -43,8 +43,17 @@ class Display(GnomeCanvas):
 		self.update_all()
 	
 	def set_bounds(self):
-		min_x, min_y, max_x, max_y = self.root().get_bounds()
 		m = 8
+
+		(x, y, w, h) = self.get_allocation()
+		w -= m * 2 + 1
+		h -= m * 2 + 1
+
+		min_x, min_y, max_x, max_y = self.root().get_bounds()
+		if max_x - min_x < w:
+			max_x = min_x + w
+		if max_y - min_y < h:
+			max_y = min_y + h
 		self.set_scroll_region(min_x - m, min_y - m, max_x + m, max_y + m)
 		self.root().move(0, 0) # Magic!
 
