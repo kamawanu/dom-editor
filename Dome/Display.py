@@ -1,4 +1,4 @@
-from rox import g
+from rox import g, TRUE, FALSE
 from gnome2 import canvas
 from xml.dom import Node
 from constants import *
@@ -202,7 +202,7 @@ class Display(canvas.Canvas):
 	
 	def create_attribs(self, attrib, group, cramped, parent):
 		group.text = group.add(canvas.CanvasText, x = 0, y = -6, anchor = g.ANCHOR_NW,
-					font = 'fixed', fill_color = 'grey40',
+					fill_color = 'grey40',
 					text = "%s=%s" % (str(attrib.name), str(attrib.value)))
 		group.connect('event', self.attrib_event, parent, attrib)
 
@@ -210,7 +210,7 @@ class Display(canvas.Canvas):
 		(lx, ly, hx, hy) = group.text.get_bounds()
 		group.rect = group.add(canvas.CanvasRect,
 					x1 = lx - 1, y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
-					fill_color = '')
+					fill_color = None)
 		group.rect.lower_to_bottom()
 	
 	def create_tree(self, node, group, cramped = 0):
@@ -241,8 +241,7 @@ class Display(canvas.Canvas):
 		else:
 			text = wrap(text, 1000)
 		group.text = group.add(canvas.CanvasText, x = 10 , y = -6, anchor = g.ANCHOR_NW,
-					font = 'fixed', fill_color = 'black',
-					text = text)
+					fill_color = 'black', text = text)
 		self.node_to_group[node] = group
 
 		self.update_now()	# GnomeCanvas bug?
@@ -434,7 +433,7 @@ class Display(canvas.Canvas):
 	def set_current_attrib(self, attrib):
 		"Select 'attrib' attribute node of the current node. None to unselect."
 		if self.current_attrib:
-			self.current_attrib.rect.set(fill_color = '')
+			self.current_attrib.rect.set(fill_color = None)
 			self.current_attrib.text.set(fill_color = 'grey40')
 			self.current_attrib = None
 		if attrib:
@@ -462,7 +461,7 @@ class Display(canvas.Canvas):
 			group.rect.set(fill_color = 'blue')
 			group.text.set(fill_color = 'white')
 		else:
-			group.rect.set(fill_color = '')
+			group.rect.set(fill_color = None)
 			if node.nodeType == Node.ELEMENT_NODE:
 				group.text.set(fill_color = 'black')
 			elif node.nodeType == Node.TEXT_NODE:

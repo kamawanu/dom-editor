@@ -1,7 +1,7 @@
 from xml.dom import Node
 #from loader import make_xds_loader
 
-from rox import report_exception, g
+from rox import report_exception, g, TRUE, FALSE
 keysyms = g.keysyms
 
 from View import View
@@ -11,6 +11,7 @@ from GetArg import GetArg
 from Path import make_relative_path
 
 from rox.Menu import Menu
+from gnome2 import canvas
 
 menu = Menu('main', [
 		('/File', None, '<Branch>', ''),
@@ -143,8 +144,13 @@ class GUIView(Display):
 		rox.alert("Can only load files for now - sorry")
 	
 	def key_press(self, widget, kev):
+		focus = widget.focus_widget
+		if focus and focus is not widget and focus.get_toplevel() is widget:
+			if focus.event(kev):
+				return TRUE	# Handled
+
 		if self.cursor_node:
-			return 1
+			return 0
 		if kev.keyval == keysyms.Up:
 			self.view.may_record(['move_prev_sib'])
 		elif kev.keyval == keysyms.Down:
@@ -159,7 +165,6 @@ class GUIView(Display):
 			self.toggle_edit()
 		else:
 			return 0
-		widget.emit_stop_by_name('key-press-event')
 		return 1
 
 	def node_clicked(self, node, bev):
@@ -269,28 +274,38 @@ class GUIView(Display):
 		lx, ly, hx, hy = group.text.get_bounds()
 		x, y = group.i2w(lx, ly)
 
-		eb = GtkText()
+		text = g.TextView()
+		text.show()
+		
+		eb = g.Frame()
+		eb.add(text)
 		self.edit_box = eb
+		self.edit_box_text = text
 		m = 3
-		s = eb.get_style().copy()
-		s.font = load_font('fixed')
-		if self.cursor_attrib:
-			name_width = s.font.measure(self.cursor_attrib.name + '=') + 1
-		else:
-			name_width = 0
-		self.edit_box_item = self.root().add('widget', widget = eb,
-						x = x - m + name_width, y = y - m,
-						anchor = ANCHOR_NW)
-		eb.set_style(s)
 
-		eb.set_editable(TRUE)
-		eb.insert_defaults(self.get_edit_text())
-		eb.connect('changed', self.eb_changed)
-		eb.connect('key_press_event', self.eb_key)
-		eb.set_line_wrap(FALSE)
+		#s = eb.get_style().copy()
+		#s.font = load_font('fixed')
+		#eb.set_style(s)
+		#if self.cursor_attrib:
+		#	name_width = s.font.measure(self.cursor_attrib.name + '=') + 1
+		#else:
+		#	name_width = 0
+		name_width = 0
+
+		self.edit_box_item = self.root().add(canvas.CanvasWidget, widget = eb,
+						x = x - m + name_width, y = y - m,
+						anchor = g.ANCHOR_NW)
+
+		#text.set_editable(TRUE)
+		text.get_buffer().insert_at_cursor(self.get_edit_text(), -1)
+		text.set_wrap_mode(g.WRAP_WORD)
+		text.get_buffer().connect('changed', self.eb_changed)
+		text.connect('key-press-event', self.eb_key)
+		eb.show()
+		text.realize()
 		self.size_eb()
-		eb.grab_focus()
-		eb.select_region(0, -1)
+		text.grab_focus()
+		#eb.select_region(0, -1)
 		eb.show()
 	
 	def get_edit_text(self):
@@ -304,21 +319,24 @@ class GUIView(Display):
 	
 	def eb_key(self, eb, kev):
 		key = kev.keyval
-		if key == KP_Enter:
-			key = Return
-		if key == Escape:
+		if key == g.keysyms.KP_Enter:
+			key = g.keysyms.Return
+		if key == g.keysyms.Escape:
 			self.hide_editbox()
-		elif key == Return and kev.state & CONTROL_MASK:
+		elif key == g.keysyms.Return and kev.state & g.gdk.CONTROL_MASK:
 			eb.insert_defaults('\n')
 			self.size_eb()
-		elif key == Tab or key == Return:
-			text = eb.get_chars(0, -1)
+		elif key == g.keysyms.Tab or key == g.keysyms.Return:
+			buffer = eb.get_buffer()
+			s = buffer.get_start_iter()
+			e = buffer.get_end_iter()
+			text = buffer.get_text(s, e, TRUE)
 			try:
 				if text != self.get_edit_text():
 					self.commit_edit(text)
 			finally:
 				self.hide_editbox()
-		return 1
+		return 0
 
 	def commit_edit(self, new):
 		if self.cursor_attrib:
@@ -330,20 +348,11 @@ class GUIView(Display):
 		self.size_eb()
 	
 	def size_eb(self):
-		text = self.edit_box.get_chars(0, -1)
-		lines = text.split('\n')
-		w = 0
-		font = self.edit_box.get_style().font
-		rh = font.ascent + font.descent
-		for l in lines:
-			if l[-1:] == ' ':
-				l += ' '
-			lw = font.measure(l)
-			if lw > w:
-				w = lw
-		width = w + 18
-		height = len(lines) * rh + 8
-		self.edit_box_item.set(width = width, height = height)
+		req = self.edit_box_text.size_request()
+		print "Wants", req
+		width = max(req[0], 10)
+		height = max(req[1], 10)
+		self.edit_box_item.set(width = width + 12, height = height + 4)
 
 	def toggle_edit(self):
 		if self.cursor_node:
