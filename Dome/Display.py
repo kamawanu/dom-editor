@@ -285,17 +285,20 @@ class Display(GnomeCanvas):
 					width_pixels = 1))
 			group.lines[-1].lower_to_bottom()
 		else:
-			y = hy + 8
-			top = y - 4
+			y = hy + 4
+			top = None
 			for g in kids:
 				g.set(x = 0, y = 0)
 				(lx, ly, hx, hy) = g.get_bounds()
 				y -= ly
 				lowest_child = y
 				g.set(x = indent, y = y)
+				if not top:
+					top = y
 				y = y + hy + 4
+			diag = min(top, indent)
 			group.lines.append(group.add('line',
-					points = (0, 4, 0, top, indent, top, indent, lowest_child),
+					points = (4, 4, diag, diag, indent, top, indent, lowest_child),
 					fill_color = 'black', width_pixels = 1))
 			group.lines[-1].lower_to_bottom()
 

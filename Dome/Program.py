@@ -22,14 +22,12 @@ def load_xml(op_xml):
 def load(program, chain):
 	start = None
 	prev = None
-	print "Load chain", chain
 	for op_node in chain.childNodes:
 		if str(op_node.localName) != 'node':
 			continue
 		
 		attr = op_node.getAttributeNS('', 'action')
 		action = eval(str(attr))
-		print "action=", action
 		if action[0] == 'chroot':
 			action[0] = 'enter'
 		elif action[0] == 'unchroot':
@@ -42,14 +40,12 @@ def load(program, chain):
 		if not start:
 			start = op
 		if prev:
-			print "Giving", prev, " a next link"
 			prev.link_to(op, 'next')
 		prev = op
 		
 		fail = load(program, op_node)
 		if fail:
 			op.link_to(fail, 'fail')
-		print "Start, prev", start, prev
 	return start
 
 def load_dome_program(prog):
@@ -60,7 +56,6 @@ def load_dome_program(prog):
 	new = Program(str(prog.getAttributeNS('', 'name')))
 
 	start = load(new, prog)
-	print "Start = ", start.next
 	if start:
 		new.set_start(start)
 
