@@ -145,7 +145,10 @@ class List(GtkVBox):
 		self.build_tree(self.tree, self.view.model.root_program)
 		# Redraw goes wrong if we don't use a callback...
 		def cb():
-			self.prog_to_tree[self.view.model.root_program].expand()
+			root = self.view.model.root_program
+			self.prog_to_tree[root].expand()
+			for p in root.subprograms.values():
+				self.prog_to_tree[p].expand()
 			return 0
 		idle_add(cb)
 
