@@ -292,22 +292,25 @@ class Tree(GtkDrawingArea):
 		self.recording = None
 		self.window.update_title()
 	
-	def user_do_search(self, pattern, next = 0):
+	def user_do_search(self, pattern):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 	
-		def action(self, cur, path = path, next = next):
+		def action(self, cur, path = path):
 			"Search"
 			c = Context.Context(cur, [cur])
 			rt = path.select(c)
 			if len(rt) == 0:
 				raise Beep
+			node = rt[0]
 			for x in rt:
 				if self.node_to_line[x] > self.current_line:
-					return x
-			return rt[0]
+					node = x
+					break
+			self.move_to_node(node)
 		
 		self.may_record(action)
+		self.last_search = action
 
 	# Motions
 	def move_up(self, node):
@@ -386,7 +389,11 @@ class Tree(GtkDrawingArea):
 		self.move_to_node(cur.nextSibling)
 
 	def search(self, node):
+		# No comment => don't record
 		Search(self)
+	
+	def search_next(self, node):
+		return self.last_search(self, node)
 
 	# Changes
 	def new_element(self, cur):
@@ -535,6 +542,7 @@ class Tree(GtkDrawingArea):
 		Next	: move_next_sib,
 
 		slash	: search,
+		n	: search_next,
 
 		# Changes
 		I	: insert_element,
