@@ -300,7 +300,7 @@ class GUIView(Display, XDSLoader):
 						anchor = g.ANCHOR_NW)
 
 		#text.set_editable(TRUE)
-		text.get_buffer().insert_at_cursor(self.get_edit_text(), -1)
+		text.get_buffer().insert_at_cursor(self.get_edit_text())
 		text.set_wrap_mode(g.WRAP_NONE)
 		text.get_buffer().connect('changed', self.eb_changed)
 		text.connect('key-press-event', self.eb_key)
@@ -380,7 +380,7 @@ class GUIView(Display, XDSLoader):
 			text = node.nodeValue
 			entry = g.TextView()
 			buffer = entry.get_buffer()
-			buffer.insert_at_cursor(text, -1)
+			buffer.insert_at_cursor(text)
 			entry.set_size_request(400, 200)
 
 			def get_text():

@@ -188,15 +188,17 @@ class Model:
 	def strip_space(self, node = None):
 		if not node:
 			node = self.doc.documentElement
-		if node.nodeType == Node.TEXT_NODE:
-			#node.data = node.data.strip()
-			#if node.data == '':
-			#	node.parentNode.removeChild(node)
-			if not node.data.strip():
-				node.parentNode.removeChild(node)
-		else:
-			for k in node.childNodes[:]:
-				self.strip_space(k)
+		def ss(node):
+			if node.nodeType == Node.TEXT_NODE:
+				#node.data = node.data.strip()
+				#if node.data == '':
+				#	node.parentNode.removeChild(node)
+				if not node.data.strip():
+					node.parentNode.removeChild(node)
+			else:
+				for k in node.childNodes[:]:
+					ss(k)
+		ss(node)
 
 	# Changes
 
