@@ -1,3 +1,4 @@
+from __future__ import nested_scopes
 import string
 from constants import DOME_NS
 
@@ -10,51 +11,70 @@ def el_named(node, name):
 # Node is a DOM <dome-program> or <node> node.
 # Returns the start Op.
 def load(chain):
-	start = None
-	prev = None
-	for op_node in chain.childNodes:
-		if str(op_node.localName) != 'node':
-			continue
-		
-		attr = op_node.getAttributeNS(None, 'action')
-		action = eval(str(attr))
-		if action[0] == 'chroot':
-			action[0] = 'enter'
-		elif action[0] == 'unchroot':
-			action[0] = 'leave'
-		#elif action[0] == 'set_attrib':
-		#	if action[3] == '':
-		#		action = ('add_attrib', action[1], action[2])
-		#	else:
-		#		action = ('set_attrib', action[3])
-		elif action[0] == 'playback':
-			action[0] = 'map'
-		elif action[0] == 'add_attrib' or action[0] == 'attribute':
-			if action[1] == '':
-				action[1] = None
+	id_hash = {}		# id from file -> Op
+	to_link = []
+	def _load(chain):
+		start = None
+		prev = None
+		for op_node in chain.childNodes:
+			if str(op_node.localName) != 'node':
+				continue
+			
+			attr = op_node.getAttributeNS(None, 'action')
+			action = eval(str(attr))
+			if action[0] == 'chroot':
+				action[0] = 'enter'
+			elif action[0] == 'unchroot':
+				action[0] = 'leave'
+			#elif action[0] == 'set_attrib':
+			#	if action[3] == '':
+			#		action = ('add_attrib', action[1], action[2])
+			#	else:
+			#		action = ('set_attrib', action[3])
+			elif action[0] == 'playback':
+				action[0] = 'map'
+			elif action[0] == 'add_attrib' or action[0] == 'attribute':
+				if action[1] == '':
+					action[1] = None
 
-		op = Op(action)
+			op = Op(action)
 
-		try:
-			dx = int(float(op_node.getAttributeNS(None, 'dx')))
-			if dx:
-				op.dx = dx
-			dy = int(float(op_node.getAttributeNS(None, 'dy')))
-			if dy:
-				op.dy = dy
-		except:
-			pass
+			try:
+				dx = int(float(op_node.getAttributeNS(None, 'dx')))
+				if dx:
+					op.dx = dx
+				dy = int(float(op_node.getAttributeNS(None, 'dy')))
+				if dy:
+					op.dy = dy
+			except:
+				pass
 
-		if not start:
-			start = op
-		if prev:
-			prev.link_to(op, 'next')
-		prev = op
-		
-		fail = load(op_node)
-		if fail:
-			op.link_to(fail, 'fail')
-	return start
+			node_id = op_node.getAttributeNS(None, 'id')
+			if node_id:
+				id_hash[node_id] = op
+
+			if not start:
+				start = op
+			if prev:
+				prev.link_to(op, 'next')
+			prev = op
+			
+			fail = _load(op_node)
+			if fail:
+				op.link_to(fail, 'fail')
+
+			link = op_node.getAttributeNS(None, 'target_fail')
+			if link:
+				to_link.append((op, 'fail', link))
+			link = op_node.getAttributeNS(None, 'target_next')
+			if link:
+				to_link.append((op, 'next', link))
+		return start
+	tree = _load(chain)
+	print "IDs:", id_hash
+	for (op, exit, child) in to_link:
+		op.link_to(id_hash[child], exit)
+	return tree
 
 def load_dome_program(prog):
 	"prog should be a DOM 'dome-program' node."
@@ -201,7 +221,6 @@ class Op:
 			child.link_to(current, 'next')
 			self.unlink(exit)
 		child.prev.append(self)
-		print "%s.prev = %s" % (child, map(str, child.prev))
 		setattr(self, exit, child)
 		self.changed()
 	
@@ -296,11 +315,25 @@ class Op:
 		node.setAttributeNS(None, 'action', `self.action`)
 		node.setAttributeNS(None, 'dx', str(self.dx))
 		node.setAttributeNS(None, 'dy', str(self.dy))
-		
-		if self.fail and self.fail.prev[0] == self:
-			self.fail.to_xml_int(node)
-		if self.next and self.next.prev[0] == self:
-			self.next.to_xml_int(parent)
+
+		if len(self.prev) > 1:
+			node.setAttributeNS(None, 'id', str(id(self)))
+
+		def add_link(op, parent):
+			node = parent.ownerDocument.createElementNS(DOME_NS, 'link')
+			parent.appendChild(node)
+			node.setAttributeNS(None, 'target', str(id(op)))
+
+		if self.fail:
+			if self.fail.prev[0] == self:
+				self.fail.to_xml_int(node)
+			else:
+				node.setAttributeNS(None, 'target_fail', str(id(self.fail)))
+		if self.next:
+			if self.next.prev[0] == self:
+				self.next.to_xml_int(parent)
+			else:
+				node.setAttributeNS(None, 'target_next', str(id(self.next)))
 	
 	def __str__(self):
 		return "{" + `self.action` + "}"
