@@ -126,7 +126,6 @@ class Display(GnomeCanvas):
 		#print "Update...", self.update_nodes
 		set_busy(self)
 		try:
-			#XXX: self.node_to_group = {}
 			for node in self.update_nodes.keys():
 				root = self.view.root
 				if node is not root and self.view.has_ancestor(node, root):
@@ -151,6 +150,7 @@ class Display(GnomeCanvas):
 					print "Rebuilding..."
 					if self.root_group:
 						self.root_group.destroy()
+					self.node_to_group = {}
 					print "new group..."
 					self.root_group = self.root().add('group', x = 0, y = 0)
 					group = self.root_group
