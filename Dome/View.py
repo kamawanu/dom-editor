@@ -1370,10 +1370,6 @@ class View:
 		
 		print "parsing...",
 
-		from Ft.Xml.InputSource import InputSourceFactory
-		from Ft.Xml.FtMiniDom import nonvalParse
-		isrc = InputSourceFactory()
-
 		root = self.parse_data(data, uri)
 		
 		new = node.ownerDocument.importNode(root.documentElement, 1)
@@ -1610,6 +1606,7 @@ class View:
 
 		try:
 			try:
+				print "Parsing (with entities)..."
 				doc = nonvalParse(isrc.fromString(data, path))
 			except:
 				print "Parse failed.. retry without entities..."
