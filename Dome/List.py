@@ -737,21 +737,11 @@ class ChainDisplay(g.EventBox):
 			self.hover = hover
 		self.queue_draw()
 	
-	def box(self, block, x1, y1, x2, y2):
+	def box(self, top, ops):
+		block = top.parent
 		print "Boxed in", block
 
-		ops = {}
-		top = None
-
-		for op in self.op_to_object.itervalues():
-			if op.op.parent != block: continue
-			if op.x + 8 < x1 or op.x > x2: continue
-			if op.y + 8 < y1 or op.y > y2: continue
-			ops[op] = True
-			if top is None or op.y < top.y:
-				top = op
-
-		if not ops: return
+		assert ops
 
 		next = fail = None
 		
@@ -763,16 +753,17 @@ class ChainDisplay(g.EventBox):
 				if fail: rox.alert("New block can't have two fail exits!")
 				fail = op
 
-		if not rox.confirm('Put these %d nodes in a new block?' % len(ops),
-					'Create block'):
-			return
+		if len(ops) == 1:
+			if not rox.confirm('Put this node in a new block?', 'Create block'):
+				return
+		elif not rox.confirm('Put these %d nodes in a new block?' % len(ops),
+						'Create block'):
+				return
 
 		new_exits = (next and next.op.next, fail and fail.op.fail)
 
 		if next: next.op.unlink('next', may_delete = False)
 		if fail: fail.op.unlink('fail', may_delete = False)
-
-		top = top.op
 
 		new = Block(block)
 		prev = top.prev[0]
@@ -795,21 +786,29 @@ class ChainDisplay(g.EventBox):
 		if x1 > x2: x1,x2 = x2,x1
 		if y1 > y2: y1,y2 = y2,y1
 
-		best = None
+		ops = {}
+		top = None
 		for op in self.op_to_object.itervalues():
-			if isinstance(op, ChainBlock):
-				if best is None or best.width > op.width:
-					if op.contains(x1, y1):
-						best = op
+			if isinstance(op, ChainBlock): continue
+			if not op.op.prev: continue
+			if op.x + 8 < x1 or op.x > x2: continue
+			if op.y + 8 < y1 or op.y > y2: continue
+			ops[op] = True
+			if top is None or op.y < top.y:
+				top = op
 
 		self.drag_box = None
 		self.queue_draw()
 
-		if best:
-			try:
-				self.box(best.op, x1, y1, x2, y2)
-			except:
-				rox.report_exception()
+		if ops:
+			block = top.op.parent
+			old = ops.copy()
+			for op in old:
+				if op.op.parent != block:
+					del ops[op]
+					print "Nested", op
+			if ops:
+				self.box(top.op, ops)
 
 	def button_press(self, da, event):
 		for op in self.op_to_object.itervalues():
