@@ -168,6 +168,7 @@ class GUIView(Display):
 		return 1
 
 	def node_clicked(self, node, bev):
+		print "Clicked", node.namespaceURI, node.localName
 		if node:
 			if bev.type == BUTTON_PRESS:
 				if len(self.view.current_nodes) == 0:
@@ -249,6 +250,9 @@ class GUIView(Display):
 
 		if self.cursor_node:
 			self.hide_editbox()
+
+		if not self.visible:
+			raise Exception("Can't edit while display is hidden!")
 
 		self.cursor_node = self.view.current_nodes[0]
 		group = self.node_to_group[self.cursor_node]

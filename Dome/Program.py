@@ -249,6 +249,7 @@ class Op:
 		# Can't link both exits to the same node (bad for tree-walking code in List)
 		assert self.action[0] != 'Start' or exit == 'next'
 		assert child.action[0] != 'Start'
+		assert child is not self
 
 		if (exit == 'next' and self.fail == child) or \
 		   (exit == 'fail' and self.next == child):
