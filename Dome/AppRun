@@ -26,8 +26,6 @@ def tl_unref(w = None):
 
 docs = []
 
-Macro.current_macro = Macro.Macro()
-
 if len(sys.argv) > 1:
 	for file in sys.argv[1:]:
 		win = Window(file)

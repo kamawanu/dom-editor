@@ -3,8 +3,7 @@ from GDK import *
 from _gtk import *
 import string
 from xml.dom import Node
-from xml.xpath import XPathParser
-from xml.xpath import Context
+from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
 import types
 
 from support import *
@@ -17,6 +16,9 @@ import Macro
 
 class Beep(Exception):
 	pass
+
+def literal_match(node):
+	return "[ext:match('%s')]" % node.nodeValue
 
 def get_text(node):
 	if node.nodeType == Node.TEXT_NODE:
@@ -75,16 +77,20 @@ class Tree(GtkDrawingArea):
 		self.set_flags(CAN_FOCUS)
 		self.connect('expose-event', self.expose)
 		self.connect('button-press-event', self.button_press)
-		self.connect('key-press-event', self.key_press)
+		self.key_tag = window.connect('key-press-event', self.key_press)
 		self.root = root
 		self.display_root = root.documentElement
 		self.current_line = 0
 		self.clipboard = None
 		self.left_hist = []
 		self.connect('realize', self.realize)
+		self.connect('destroy', self.destroyed)
 
 		self.recording_macro = None
-
+	
+	def destroyed(self, da):
+		self.window.disconnect(self.key_tag)
+	
 	def key_press(self, widget, kev):
 		try:
 			stop = self.handle_key(kev)
@@ -106,13 +112,12 @@ class Tree(GtkDrawingArea):
 			if self.recording_macro:
 				self.recording_macro = None
 			else:
-				self.recording_macro = Macro.current_macro
+				node = self.line_to_node[self.current_line]
+				self.recording_macro = \
+					self.window.macro_list.record_new(node.nodeName)
 				self.last_op_failed = 0
 			
 			self.window.update_title()
-			return 1
-		elif key == Q:
-			Macro.current_macro.show_all()
 			return 1
 
 		if key == F3 or key == Return:
@@ -180,8 +185,9 @@ class Tree(GtkDrawingArea):
 			self.current_line = 0
 		self.force_redraw()
 	
-	def line_to_relative_path(self, line):
+	def line_to_relative_path(self, line, lit):
 		"Return an XPath string which will move us from current_line to line."
+		"If 'lit' then the text of the (data) node must match too."
 		src_node = self.line_to_node[self.current_line]
 		dst_node = self.line_to_node[line]
 
@@ -238,6 +244,8 @@ class Tree(GtkDrawingArea):
 			path += 'child::%s[%d]/' % (match_name(node), prev)
 
 		path = path[:-1]
+		if lit:
+			path += literal_match(dst_node)
 		print path
 		return path
 	
@@ -248,7 +256,8 @@ class Tree(GtkDrawingArea):
 			height = self.row_height
 			line = int((bev.y - self.vmargin) / height)
 			node = self.line_to_node[line]
-			path = self.line_to_relative_path(line)
+			lit = bev.state & CONTROL_MASK
+			path = self.line_to_relative_path(line, lit)
 			off = line - self.node_to_line[node]
 			self.may_record(["do_search", path, off])
 	
@@ -404,7 +413,8 @@ class Tree(GtkDrawingArea):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 
-		c = Context.Context(cur, [cur])
+		ns = {'ext': FT_EXT_NAMESPACE}
+		c = Context.Context(cur, [cur], processorNss = ns)
 		rt = path.select(c)
 		if len(rt) == 0:
 			raise Beep
@@ -613,17 +623,17 @@ class Tree(GtkDrawingArea):
 			idle_add(cb)
 			self.force_redraw()
 	
-	def step(self):
-		if self.recording_macro:
-			raise Beep
-		m = Macro.current_macro
+	def step(self, m):
 		if not m.more_moves:
+			if self.recording_macro:
+				raise Beep
 			c = get_choice("No more steps... create a new operation?",
 					"Playback",
 					("Yes", "No"))
 			if c == 0:
 				self.recording_macro = m
 				self.window.update_title()
+				m.show_all()
 			return 0
 
 		action = m.get_next_action()
@@ -639,15 +649,17 @@ class Tree(GtkDrawingArea):
 			self.last_op_failed = 0
 		return up
 
-	def playback(self, node):
+	def playback(self, node, macro_name):
 		"Playback"
-		m = Macro.current_macro
+		m = self.window.macro_list.macro_named(macro_name)
+		if not m:
+			raise Exception('No macro named `' + macro_name + "'!")
 		m.rewind()
 		up = 0
 		while m.more_moves:
-			up = up | self.step()
+			up = up | self.step(m)
 			if self.last_op_failed and not m.more_moves:
-				self.step()
+				self.step(m)
 				break
 		if up:
 			def cb(self = self, line = self.current_line):
@@ -737,9 +749,6 @@ class Tree(GtkDrawingArea):
 
 		x	: ["delete_node"],
 		X	: ["delete_prev_sib"],
-
-		at	: ["playback"],
-		semicolon : ["playstep"],
 
 		# Undo/redo
 		u	: ["undo"],

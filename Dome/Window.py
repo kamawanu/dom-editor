@@ -13,6 +13,7 @@ from loader import make_xds_loader
 from support import *
 from Tree import Tree
 from SaveBox import SaveBox
+from List import List
 
 def strip_space(doc):
 	def cb(node, cb):
@@ -40,8 +41,15 @@ class Window(GtkWindow):
 		self.set_position(WIN_POS_CENTER)
 		self.savebox = None
 
+		hbox = GtkHBox(FALSE, 0)
+		self.add(hbox)
+
+		self.macro_list = List(self)
+		self.macro_list.load_all()
+		hbox.pack_start(self.macro_list, FALSE, TRUE, 0)
+		
 		swin = GtkScrolledWindow()
-		self.add(swin)
+		hbox.pack_start(swin, TRUE, TRUE, 0)
 		swin.set_policy(POLICY_NEVER, POLICY_ALWAYS)
 		self.swin = swin
 
@@ -55,7 +63,7 @@ class Window(GtkWindow):
 			root = implementation.createDocument('', 'root', None)
 
 		self.set_root(root)
-		swin.show()
+		hbox.show_all()
 		self.connect('key-press-event', self.key)
 		make_xds_loader(self, self)
 	
@@ -100,7 +108,10 @@ class Window(GtkWindow):
 	
 	def key(self, widget, kev):
 		if kev.keyval == F3:
-			self.save()
+			if kev.state & SHIFT_MASK:
+				self.macro_list.save_all()
+			else:
+				self.save()
 		return 1
 	
 	def save(self):
