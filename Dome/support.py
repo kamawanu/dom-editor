@@ -78,8 +78,11 @@ def get_local_path(uri):
 #
 # If a dialog is already open, returns -1 without waiting AND
 # brings the current dialog to the front.
+#
+# If callback is supplied then the function returns immediately and
+# returns the result by called the callback function.
 current_dialog = None
-def get_choice(message, title, buttons):
+def get_choice(message, title, buttons, callback = None):
 	global current_dialog, choice_return
 
 	if current_dialog:
@@ -118,9 +121,16 @@ def get_choice(message, title, buttons):
 		button.add(label)
 		button.set_flags(CAN_DEFAULT)
 		action_area.pack_start(button, TRUE, TRUE, 0)
-		def cb(widget, n = n):
-			global choice_return
-			choice_return = n
+		def cb(widget, n = n, callback = callback):
+			if callback:
+				global current_dialog
+				a = current_dialog
+				current_dialog = None
+				a.destroy()
+				callback(n)
+			else:
+				global choice_return
+				choice_return = n
 		button.connect('clicked', cb)
 		if not default_button:
 			default_button = button
@@ -130,10 +140,20 @@ def get_choice(message, title, buttons):
 	default_button.grab_default()
 	action_area.set_focus_child(default_button)
 
-	def cb(widget):
-		global choice_return
-		choice_return = -1
+	def cb(widget, callback = callback):
+		if callback:
+			global current_dialog
+			if current_dialog:
+				current_dialog = None
+				callback(-1)
+		else:
+			global choice_return
+			choice_return = -1
 	current_dialog.connect('destroy', cb)
+
+	if callback:
+		current_dialog.show_all()
+		return
 
 	choice_return = -2
 

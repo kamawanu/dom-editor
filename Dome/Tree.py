@@ -713,5 +713,5 @@ class Tree(GtkDrawingArea):
 
 		# Undo/redo
 		u	: ["undo"],
-		r	: ["redo"]
+		r	: ["redo"],
 	}
