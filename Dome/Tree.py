@@ -15,6 +15,11 @@ from Search import Search
 import Change
 from SaveBox import SaveBox
 
+# Macros:
+
+# A macro is a tree: (ACTION, MACRO-IF-OK, MACRO-IF-FAIL)
+# None means that recording should start here...
+
 # Graphical tree widget
 
 class Beep(Exception):
@@ -84,7 +89,11 @@ class Tree(GtkDrawingArea):
 		self.clipboard = None
 		self.left_hist = []
 		self.connect('realize', self.realize)
-		self.recording = None
+
+		self.macro = None
+		self.macro_point = None		# Current execution/recording point in macro
+		self.recording = FALSE
+
 		make_xds_loader(self, self)
 
 	def key_press(self, widget, kev):
@@ -96,6 +105,7 @@ class Tree(GtkDrawingArea):
 			self.current_line = 0
 			self.force_redraw()
 			stop = 1
+			raise
 		if stop:
 			widget.emit_stop_by_name('key-press-event')
 		return stop
@@ -104,14 +114,18 @@ class Tree(GtkDrawingArea):
 		key = kev.keyval
 
 		if key == q:
-			if self.recording != None:
-				self.create_macro()
+			self.create_failure_case = 0
+			if self.recording:
+				self.recording = FALSE
+				self.window.update_title()
 			else:
-				self.recording = []
+				self.recording = TRUE
+				self.macro = None
+				self.macro_point = None
 				self.window.update_title()
 			return 1
 		elif key == Q:
-			if self.recording != None:
+			if self.recording:
 				report_error("Can't save while recording!")
 			elif hasattr(self, 'macro'):
 				MacroSaver(self.macro)
@@ -128,7 +142,8 @@ class Tree(GtkDrawingArea):
 			return 0
 
 		if callable(action):
-			return action(self)
+			action(self)
+			return 1
 
 		need_update = self.may_record(action)
 			
@@ -155,15 +170,25 @@ class Tree(GtkDrawingArea):
 	
 	def may_record(self, action):
 		"Perform, and possibly record, this action"
+		rec = self.recording
+
 		try:
 			need_update = self.do_action(action)
 		except Beep:
 			gdk_beep()
 			return 0
 		
-		if self.recording != None:
-			self.recording.append(action)
-			print "Recorded:", action
+		# Only record if we were recording when this action started
+		if rec:
+			if not self.macro_point:
+				self.macro = [action, None, None]
+				self.macro_point = self.macro
+			else:
+				op = self.macro_point
+				self.macro_point = [action, None, None]
+				op[1 + self.create_failure_case] = self.macro_point
+				self.create_failure_case = 0
+			print "Recorded:", self.macro_point
 		return need_update
 	
 	def tree_changed(self):
@@ -400,11 +425,6 @@ class Tree(GtkDrawingArea):
 			return len(get_text(node))
 		return 1
 	
-	def create_macro(self):
-		self.macro = self.recording
-		self.recording = None
-		self.window.update_title()
-	
 	def do_search(self, cur, pattern, off = 0):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
@@ -508,52 +528,43 @@ class Tree(GtkDrawingArea):
 		return self.do_action(self.last_search)
 
 	# Changes
-	def new_element(self, cur):
+	def new_element(self):
+		cur = self.line_to_node[self.current_line]
 		if cur.nodeType == Node.TEXT_NODE:
 			return self.doc.createElement( cur.parentNode.nodeName)
 		return self.doc.createElement(cur.nodeName)
 	
-	def insert_element(self, node):
+	def insert_element(self):
 		"Insert element"
-		new = self.new_element(node)
-		Change.insert_before(node, new)
-		edit_node(self, new)
+		new = self.new_element()
+		edit_node(self, new, "ie")
 		return new
 
-	def append_element(self, node):
+	def append_element(self):
 		"Append element"
-		new = self.new_element(node)
-		Change.insert_after(node, new)
-		edit_node(self, new)
+		new = self.new_element()
+		edit_node(self, new, "ae")
 		return new
 
-	def open_element(self, node):
+	def open_element(self):
 		"Open element"
-		new = self.new_element(node)
-		Change.insert(node, new, index = 0)
-		edit_node(self, new)
-		return new
+		new = self.new_element()
+		edit_node(self, new, "oe")
 		
-	def insert_text(self, node):
+	def insert_text(self):
 		"Insert text"
 		new = self.doc.createTextNode('')
-		Change.insert_before(node, new)
-		edit_node(self, new)
-		return new
+		edit_node(self, new, "it")
 
-	def append_text(self, node):
+	def append_text(self):
 		"Append text"
 		new = self.doc.createTextNode('')
-		Change.insert_after(node, new)
-		edit_node(self, new)
-		return new
+		edit_node(self, new, "at")
 
-	def open_text(self, node):
+	def open_text(self):
 		"Open text"
 		new = self.doc.createTextNode('')
-		Change.insert(node, new, index = 0)
-		edit_node(self, new)
-		return new
+		edit_node(self, new, "ot")
 
 	def yank(self, node):
 		"Yank"
@@ -612,8 +623,27 @@ class Tree(GtkDrawingArea):
 	def playback(self, node):
 		"Playback"
 		up = 0
-		for action in self.macro:
-			up = up | self.do_action(action)
+		point = self.macro
+		while point:
+			try:
+				up = up | self.do_action(point[0])
+			except Beep:
+				if point[2]:
+					point = point[2]
+				else:
+					print "Failed op:", point[0]
+					c = get_choice("Macro execution failed - record an alternative?",
+							"Playback",
+							("Yes", "No"))
+					if c == 0:
+						self.recording = TRUE
+						self.macro_point = point
+						self.create_failure_case = 1
+						self.window.update_title()
+					point = None
+					break
+			else:
+				point = point[1]
 		if up:
 			def cb(self = self, line = self.current_line):
 				self.move_to(line)
@@ -628,6 +658,22 @@ class Tree(GtkDrawingArea):
 	def set_element_name(self, node, new_name):
 		Change.set_name(node, new_name)
 		return node
+	
+	def add_node(self, node, where):
+		cur = self.line_to_node[self.current_line]
+		if where[1] == 'e':
+			new = self.new_element()
+		else:
+			new = self.doc.createTextNode('')
+		
+		if where[0] == 'i':
+			Change.insert_before(cur, new)
+		elif where[0] == 'a':
+			Change.insert_after(cur, new)
+		else:
+			Change.insert(cur, new)
+			
+		return new
 
 	# Undo/redo
 	def undo(self, cur):
@@ -664,13 +710,13 @@ class Tree(GtkDrawingArea):
 		n	: ["search_next"],
 
 		# Changes
-		I	: ["insert_element"],
-		A	: ["append_element"],
-		O	: ["open_element"],
+		I	: insert_element,
+		A	: append_element,
+		O	: open_element,
 		
-		i	: ["insert_text"],
-		a	: ["append_text"],
-		o	: ["open_text"],
+		i	: insert_text,
+		a	: append_text,
+		o	: open_text,
 
 		y	: ["yank"],
 		P	: ["put_before"],
@@ -697,11 +743,7 @@ class Tree(GtkDrawingArea):
 
 	def load_data(self, data):
 		# The data is actually a macro file...
-		self.macro = []
-		for line in string.split(data, '\n'):
-			line = string.strip(line)
-			if len(line) > 0 and line[0] != '#':
-				self.macro.append(eval(line))
+		self.macro = eval(data)
 		self.do_action(["playback"])
 
 class MacroSaver(SaveBox):
@@ -712,10 +754,7 @@ class MacroSaver(SaveBox):
 		self.show_all()
 	
 	def get_data(self):
-		data = "# Macro recorded by Dome\n"
-		for m in self.macro:
-			data += `m` + '\n'
-		return data
+		return `self.macro`
 	
 	def save_as(self, path):
 		return send_to_file(self.get_data(), path)

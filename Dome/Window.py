@@ -24,6 +24,13 @@ def strip_space(doc):
 				cb(k, cb)
 	cb(doc.documentElement, cb)
 
+def html_to_xml(html):
+	"Takes an HTML DOM and creates a corresponding XML DOM."
+	root = implementation.createDocument('', 'root', None)
+	node = root.importNode(html.documentElement, deep = 1)
+	root.replaceChild(node, root.documentElement)
+	return root
+
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
@@ -46,6 +53,8 @@ class Window(GtkWindow):
 				reader = Html.Reader()
 				root = reader.fromUri(path)
 				ext.StripHtml(root)
+				root = html_to_xml(root)
+				self.uri = self.uri[:-5] + '.xml'
 			else:
 				print "Reading XML..."
 				reader = PyExpat.Reader()
@@ -66,7 +75,7 @@ class Window(GtkWindow):
 	
 	def update_title(self):
 		title = self.uri
-		if self.tree.recording != None:
+		if self.tree.recording:
 			title += ' (recording)'
 		self.set_title(title)
 	

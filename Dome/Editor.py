@@ -6,19 +6,21 @@ import string
 
 import Change
 
-def edit_node(tree, node):
+def edit_node(tree, node, where = None):
 	if node.nodeType == Node.TEXT_NODE:
-		DataEditor(node, tree)
+		DataEditor(node, tree, where)
 	elif node.nodeType == Node.ELEMENT_NODE:
-		TagEditor(node, tree)
+		TagEditor(node, tree, where)
 
 class Editor(GtkWindow):
-	def __init__(self, node, tree):
+	# If where is given then the action add_node(where) is recorded.
+	def __init__(self, node, tree, where):
 		GtkWindow.__init__(self, WINDOW_DIALOG)
 		self.vbox = GtkVBox(FALSE, 8)
 		self.add(self.vbox)
 		self.tree = tree
 		self.node = node
+		self.where = where
 		self.set_border_width(8)
 
 		actions = GtkHBox(TRUE, 32)
@@ -42,10 +44,16 @@ class Editor(GtkWindow):
 		button.connect_object('clicked', self.destroy, self)
 
 		self.show_all(self.vbox)
+	
+	def do_it(self, action):
+		if self.where:
+			self.tree.may_record(["add_node", self.where])
+		self.tree.may_record(action)
+		self.destroy()
 
 class DataEditor(Editor):
-	def __init__(self, node, tree):
-		Editor.__init__(self, node, tree)
+	def __init__(self, node, tree, where):
+		Editor.__init__(self, node, tree, where)
 		self.set_default_size(gdk_screen_width() * 2 / 3, -1)
 
 		self.text = GtkText()
@@ -59,8 +67,7 @@ class DataEditor(Editor):
 		self.text.connect('key-press-event', self.key)
 	
 	def ok(self, b = None):
-		self.tree.may_record(["change_data", self.text.get_chars(0, -1)])
-		self.destroy()
+		self.do_it(["change_data", self.text.get_chars(0, -1)])
 	
 	def key(self, text, kev):
 		key = kev.keyval
@@ -72,8 +79,8 @@ class DataEditor(Editor):
 			self.destroy()
 	
 class TagEditor(Editor):
-	def __init__(self, node, tree):
-		Editor.__init__(self, node, tree)
+	def __init__(self, node, tree, where):
+		Editor.__init__(self, node, tree, where)
 
 		self.entry = GtkEntry()
 		self.entry.set_text(node.nodeName)
@@ -87,8 +94,7 @@ class TagEditor(Editor):
 		self.show_all(self.vbox)
 	
 	def ok(self, widget):
-		self.tree.may_record(["set_element_name", self.entry.get_text()])
-		self.destroy()
+		self.do_it(["set_element_name", self.entry.get_text()])
 
 	def key(self, text, kev):
 		key = kev.keyval
