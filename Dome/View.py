@@ -172,7 +172,7 @@ class View:
 		if self.op_in_progress:
 			raise Exception("Operation in progress...")
 		if pos and not isinstance(pos[0], Op):
-			raise Exception("Not an (operation, exit) tuple", pos)
+			raise Exception("Not an (operation, exit) tuple: " + `pos`)
 		self.exec_point = pos
 		#if pos:
 		#print "set_exec: %s:%s" % pos
@@ -370,6 +370,9 @@ class View:
 		node = self.get_current()
 		if node is self.root:
 			raise Beep		# Locking problems if this happens...
+		if self.model.doc is not node.ownerDocument:
+			raise Exception('Current node not in view!')
+		print "Enter", self.model.doc, node.ownerDocument
 		self.chroots.append((self.model, node))
 		self.set_model(self.model.lock_and_copy(node))
 	
@@ -379,6 +382,10 @@ class View:
 			raise Beep
 
 		(old_model, old_node) = self.chroots.pop()
+
+		print "Return to", old_model
+		print "Replacing node", old_node
+		print "(doc = %s or %s)" % (old_model.doc, old_node.ownerDocument)
 		
 		copy = old_model.doc.importNode(self.model.get_root(), deep = 1)
 		self.set_model(old_model)
@@ -420,6 +427,14 @@ class View:
 		if new:
 			self.move_to(new)
 	
+	def breakpoint(self):
+		if self.breakpoints.has_key(self.exec_point):
+			return 1
+		op = self.exec_point[0]
+		if op.program.start == op and op.next == None:
+			return 1		# Empty program
+		return 0
+	
 	def do_one_step(self):
 		"Execute the next op after exec_point, then:"
 		"- position the point on one of the exits return."
@@ -434,7 +449,7 @@ class View:
 			raise Done()
 		(op, exit) = self.exec_point
 
-		if self.single_step == 0 and self.breakpoints.has_key(self.exec_point):
+		if self.single_step == 0 and self.breakpoint():
 			print "Hit a breakpoint! At " + time.ctime(time.time())
 			if self.rec_point:
 				self.set_rec(None)
@@ -1002,6 +1017,8 @@ class View:
 			new = self.clipboard.childNodes[0].cloneNode(deep = 1)
 		else:
 			new = self.clipboard.cloneNode(deep = 1)
+		if new.nodeType != Node.ELEMENT_NODE:
+			raise Beep
 		self.move_to([])
 		try:
 			if node == self.root:

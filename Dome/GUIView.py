@@ -1,3 +1,5 @@
+from __future__ import nested_scopes
+
 from gtk import *
 from GDK import *
 from xml.dom import Node
@@ -9,9 +11,84 @@ from rox.support import report_exception
 from View import View
 from Display import Display
 from Beep import Beep
-from Menu import Menu
 from GetArg import GetArg
 from Path import make_relative_path
+
+from rox.Menu import Menu
+
+menu = Menu('Dome', 'main', [
+		('/File', None, '<Branch>', ''),
+		('/File/Save', 'menu_save', '', 'F3'),
+		('/File/Blank document', 'do_blank_all', '', '<Ctrl>N'),
+
+		('/Edit', None, '<Branch>', ''),
+		('/Edit/Yank attributes', 'menu_show_yank_attribs', '', ''),
+		('/Edit/Paste attributes', 'do_paste_attribs', '', ''),
+		('/Edit/Yank attrib value', 'do_yank_value', '', ''),
+		('/Edit/Cut', 'do_delete_node', '', 'x'),
+		('/Edit/Shallow cut', 'do_delete_shallow', '', '<Shift>X'),
+		('/Edit/Yank', 'do_yank', '', 'y'),
+		('/Edit/Shallow yank', 'do_shallow_yank', '', '<Shift>Y'),
+		('/Edit/Paste (replace)','do_put_replace', '', '<Shift>R'),
+		('/Edit/Paste (inside)', 'do_put_as_child', '', 'bracketright'),
+		('/Edit/Paste (before)', 'do_put_before', '', '<Shift>P'),
+		('/Edit/Paste (after)', 'do_put_after', '', 'p'),
+		('/Edit/Undo', 'do_undo', '', 'u'),
+		('/Edit/Redo', 'do_redo', '', '<Ctrl>R'),
+		('/Edit/Edit value', 'toggle_edit', '', 'Return'),
+
+		('/Move', None, '<Branch>', ''),
+		('/Move/XPath search', 'menu_show_search', '', 'slash'),
+		('/Move/Text search', 'menu_show_text_search', '', 'T'),
+		('/Move/Enter', 'do_enter', '', 'greater'),
+		('/Move/Leave', 'do_leave', '', 'less'),
+		
+		('/Move/Root node', 'move_home', '', 'Home'),
+		('/Move/Previous sibling', 'move_prev_sib', '', 'Up'),
+		('/Move/Next sibling', 'move_next_sib', '', 'Down'),
+		('/Move/Parent', 'move_left', '', 'Left'),
+		('/Move/First child', 'move_right', '', 'Right'),
+		('/Move/Last child', 'move_end', '', 'End'),
+
+		('/Move/To attribute', 'menu_select_attrib', '', 'At'),
+
+		('/Select', None, '<Branch>', ''),
+		('/Select/By XPath', 'menu_show_global', '', 'numbersign'),
+
+		('/Network', None, '<Branch>', ''),
+		('/Network/HTTP suck', 'do_suck', '', 'asciicircum'),
+		('/Network/Send SOAP message', 'do_soap_send', '', ''),
+
+		('/Create', None, '<Branch>', ''),
+		('/Create/Insert element', 'menu_insert_element', '', '<Shift>I'),
+		('/Create/Append element', 'menu_append_element', '', '<Shift>A'),
+		('/Create/Open element', 'menu_open_element', '', '<Shift>O'),
+
+		('/Create/Insert text node', 'menu_insert_text', '', 'I'),
+		('/Create/Append text node', 'menu_append_text', '', 'A'),
+		('/Create/Open text node', 'menu_open_text', '', 'O'),
+
+		('/Create/Attribute', 'menu_show_add_attrib', '', 'plus'),
+
+		('/Process', None, '<Branch>', ''),
+		('/Process/Substitute', 'menu_show_subst', '', 's'),
+		('/Process/Python expression', 'menu_show_pipe', '', 'exclam'),
+
+		('/Program', None, '<Branch>', ''),
+		('/Program/Input', 'menu_show_ask', '', 'question'),
+		('/Program/Compare', 'do_compare', '', 'equal'),
+		('/Program/Fail', 'do_fail', '', ''),
+		('/Program/Repeat last', 'do_again', '', 'dot'),
+
+		('/View', None, '<Branch>', ''),
+		('/View/Toggle hidden', 'do_toggle_hidden', '', '<Ctrl>H'),
+		('/View/Show as HTML', 'do_show_html', '', ''),
+		('/View/Show as canvas', 'do_show_canvas', '', ''),
+		('/View/Close Window', 'menu_close_window', '', '<Ctrl>Q'),
+		])
+
+def make_do(action):
+	return lambda(self): self.view.may_record([action])
 
 class GUIView(Display):
 	def __init__(self, window, view):
@@ -21,6 +98,8 @@ class GUIView(Display):
 		self.cursor_node = None
 		make_xds_loader(self, self)
 		self.update_state()
+
+		menu.attach(window, self)
 	
 	def update_state(self):
 		if self.view.rec_point:
@@ -46,32 +125,21 @@ class GUIView(Display):
 	def key_press(self, widget, kev):
 		if self.cursor_node:
 			return 1
-		try:
-			stop = self.handle_key(kev)
-		except:
-			report_exception()
-			stop = 1
-		if stop:
-			widget.emit_stop_by_name('key-press-event')
-		return stop
-
-	def handle_key(self, kev):
-		key = kev.keyval
-
-		if key == F3:
+		if kev.keyval == Up:
+			self.view.may_record(['move_prev_sib'])
+		elif kev.keyval == Down:
+			self.view.may_record(['move_next_sib'])
+		elif kev.keyval == Left:
+			self.view.may_record(['move_left'])
+		elif kev.keyval == Right:
+			self.view.may_record(['move_right'])
+		elif kev.keyval == plus or kev.keyval == KP_Add:
+			self.menu_show_add_attrib()
+		elif kev.keyval == Tab:
+			self.toggle_edit()
+		else:
 			return 0
-
-		try:
-			action = self.key_to_action[key]
-		except KeyError:
-			return 0
-
-		if callable(action):
-			# Need to popup a dialog box, etc rather then perform an action
-			action(self)
-			return 1
-
-		self.view.may_record(action)
+		widget.emit_stop_by_name('key-press-event')
 		return 1
 
 	def node_clicked(self, node, bev):
@@ -108,48 +176,11 @@ class GUIView(Display):
 		self.view.may_record(["do_search", path, ns, FALSE])
 		self.view.may_record(["attribute", attrib.namespaceURI, attrib.localName])
 	
+	def menu_save(self):
+		self.window.save()
+	
 	def show_menu(self, bev):
-		def do(action, self = self):
-			return lambda self = self, action = action: self.view.may_record([action])
-
-		items = [
-			('Search', self.show_search),
-			('Text search', self.show_text_search),
-			('Global', self.show_global),
-			('HTTP suck', do('suck')),
-			(None, None),
-			('Add attribute', self.show_add_attrib),
-			('Yank attributes', self.show_yank_attribs),
-			('Paste attributes', do('paste_attribs')),
-			('Yank attrib value', do('yank_value')),
-			(None, None),
-			('Cut', do('delete_node')),
-			('Shallow cut', do('delete_shallow')),
-			('Yank', do('yank')),
-			('Shallow yank', do('shallow_yank')),
-			('Paste (replace)', do('put_replace')),
-			('Paste (inside)', do('put_as_child')),
-			('Paste (before)', do('put_before')),
-			('Paste (after)', do('put_after')),
-			(None, None),
-			('Substitute', self.show_subst),
-			('Process', self.show_pipe),
-			(None, None),
-			('Input', self.show_ask),
-			('Fail', do('fail')),
-			(None, None),
-			('Undo', do('undo')),
-			('Redo', do('redo')),
-			('Enter', do('enter')),
-			('Leave', do('leave')),
-			('Toggle hidden', do('toggle_hidden')),
-			('Show as HTML', do('show_html')),
-			('Show as canvas', do('show_canvas')),
-			('Send SOAP message', do('soap_send')),
-			('Blank document', do('blank_all')),
-			('Close Window', self.window.destroy),
-			]
-		Menu(items).popup(bev.button, bev.time)
+		menu.popup(self, bev)
 	
 	def playback(self, macro, map):
 		"Called when the user clicks on a macro button."
@@ -159,13 +190,13 @@ class GUIView(Display):
 		else:
 			self.view.may_record(['play', macro.uri])
 
-	def show_ask(self):
+	def menu_show_ask(self):
 		def do_ask(q, self = self):
 			action = ["ask", q]
 			self.view.may_record(action)
 		GetArg('Input:', do_ask, ('Prompt:',))
 
-	def show_subst(self):
+	def menu_show_subst(self):
 		def do_subst(args, self = self):
 			action = ["subst", args[0], args[1]]
 			self.view.may_record(action)
@@ -285,19 +316,13 @@ class GUIView(Display):
 		else:
 			self.show_editbox()
 
-	def show_yank_attribs(self):
+	def menu_show_yank_attribs(self):
 		def do_attrib(attrib, self = self):
 			action = ["yank_attribs", attrib]
 			self.view.may_record(action)
 		GetArg('Yank attribute:', do_attrib, ['Name:'], message = 'Blank for all...')
 
-	def show_yank_attrib(self):
-		def do_attrib(attrib, self = self):
-			action = ["yank_value", attrib]
-			self.view.may_record(action)
-		GetArg('Yank value of attribute:', do_attrib, ['Name:'])
-
-	def show_attrib(self):
+	def menu_select_attrib(self):
 		def do_attrib(name, self = self):
 			if ':' in name:
 				(prefix, localName) = string.split(name, ':', 1)
@@ -308,7 +333,7 @@ class GUIView(Display):
 			self.view.may_record(action)
 		GetArg('Select attribute:', do_attrib, ['Name:'])
 
-	def show_add_attrib(self):
+	def menu_show_add_attrib(self):
 		def do_it(name, self = self):
 			if ':' in name:
 				(prefix, localName) = string.split(name, ':', 1)
@@ -327,25 +352,25 @@ class GUIView(Display):
 			self.view.may_record(action)
 		GetArg('Create attribute:', do_it, ['Name:'])
 
-	def show_pipe(self):
+	def menu_show_pipe(self):
 		def do_pipe(expr, self = self):
 			action = ["python", expr]
 			self.view.may_record(action)
 		GetArg('Python expression:', do_pipe, ['Eval:'], "'x' is the old text...")
 
-	def show_global(self):
+	def menu_show_global(self):
 		def do_global(pattern, self = self):
 			action = ["do_global", pattern]
 			self.view.may_record(action)
 		GetArg('Global:', do_global, ['Pattern:'], 'Perform next action on all nodes matching')
 
-	def show_text_search(self):
+	def menu_show_text_search(self):
 		def do_text_search(pattern, self = self):
 			action = ["do_text_search", pattern]
 			self.view.may_record(action)
 		GetArg('Search for:', do_text_search, ['Text pattern:'])
 
-	def show_search(self):
+	def menu_show_search(self):
 		def do_search(pattern, self = self):
 			action = ["do_search", pattern]
 			self.view.may_record(action)
@@ -357,94 +382,66 @@ class GUIView(Display):
 			return cur.nodeName
 		return cur.parentNode.nodeName
 	
-	def insert_element(self):
+	def menu_insert_element(self):
 		"Insert element"
 		self.view.may_record(['add_node', 'ie', self.new_name()])
 		self.show_editbox()
 
-	def append_element(self):
+	def menu_append_element(self):
 		"Append element"
 		self.view.may_record(['add_node', 'ae', self.new_name()])
 		self.show_editbox()
 
-	def open_element(self):
+	def menu_open_element(self):
 		"Open element"
 		self.view.may_record(['add_node', 'oe', self.new_name()])
 		self.show_editbox()
 		
-	def insert_text(self):
+	def menu_insert_text(self):
 		"Insert text"
 		self.view.may_record(['add_node', 'it', ''])
 		self.show_editbox()
 
-	def append_text(self):
+	def menu_append_text(self):
 		"Append text"
 		self.view.may_record(['add_node', 'at', ''])
 		self.show_editbox()
 
-	def open_text(self):
+	def menu_open_text(self):
 		"Open text"
 		self.view.may_record(['add_node', 'ot', ''])
 		self.show_editbox()
 
-	key_to_action = {
-		# Motions
-		Up	: ["move_prev_sib"],
-		Down	: ["move_next_sib"],
-		Left	: ["move_left"],
-		Right	: ["move_right"],
-		
-		Home	: ["move_home"],
-		End	: ["move_end"],
-		
-		greater	: ["enter"],
-		less	: ["leave"],
-		
-		#Prior	: ["move_prev_sib"],
-		#Next	: ["move_next_sib"],
+	def menu_close_window(self):
+		self.window.destroy()
 
-		t	: show_text_search,
-		slash	: show_search,
-		ord('#'): show_global,
-		#n	: ["search_next"],
+	do_blank_all = make_do('blank_all')
+	do_enter = make_do('enter')
+	do_leave = make_do('leave')
+	do_suck = make_do('suck')
+	do_soap_send = make_do('soap_send')
+	do_paste_attribs = make_do('paste_attribs')
+	do_yank_value = make_do('yank_value')
+	do_delete_node = make_do('delete_node')
+	do_delete_shallow = make_do('delete_shallow')
+	do_yank = make_do('yank')
+	do_shallow_yank = make_do('shallow_yank')
+	do_put_replace = make_do('put_replace')
+	do_put_as_child = make_do('put_as_child')
+	do_put_before = make_do('put_before')
+	do_put_after = make_do('put_after')
+	do_undo = make_do('undo')
+	do_redo = make_do('redo')
+	do_fail = make_do('fail')
+	do_toggle_hidden = make_do('toggle_hidden')
+	do_show_html = make_do('show_html')
+	do_show_canvas = make_do('show_canvas')
+	do_compare = make_do('compare')
+	do_again = make_do('again')
 
-		# Tests
-
-		question: show_ask,
-		ord('='): ["compare"],
-
-		# Changes
-		I	: insert_element,
-		A	: append_element,
-		O	: open_element,
-		
-		i	: insert_text,
-		a	: append_text,
-		o	: open_text,
-
-		y	: ["yank"],
-		Y	: show_yank_attribs,
-		P	: ["put_before"],
-		p	: ["put_after"],
-		bracketright : ["put_as_child"],
-		R	: ["put_replace"],
-
-		ord('^'): ["suck"],
-
-		Tab	: toggle_edit,
-		Return	: toggle_edit,
-		at	: show_attrib,
-		plus	: show_add_attrib,
-		KP_Add	: show_add_attrib,
-		exclam	: show_pipe,
-		s	: show_subst,
-
-		x	: ["delete_node"],
-		X	: ["delete_shallow"],
-
-		ord('.'): ["again"],
-
-		# Undo/redo
-		u	: ["undo"],
-		r	: ["redo"],
-	}
+	move_home = make_do('move_home')
+	move_end = make_do('move_end')
+	move_left = make_do('move_left')
+	move_right = make_do('move_right')
+	move_next_sib = make_do('move_next_sib')
+	move_prev_sib = make_do('move_prev_sib')

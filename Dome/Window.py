@@ -75,7 +75,6 @@ class Window(GtkWindow):
 		swin.set_vadjustment(self.gui_view.get_vadjustment())
 
 		vbox.show_all()
-		self.connect('key-press-event', self.key)
 	
 		self.gui_view.grab_focus()
 		self.update_title()
@@ -93,11 +92,6 @@ class Window(GtkWindow):
 	def update_title(self):
 		title = self.model.uri
 		self.set_title(title + self.state)
-	
-	def key(self, widget, kev):
-		if kev.keyval == F3:
-			self.save()
-		return 1
 	
 	def save(self):
 		if self.savebox:
