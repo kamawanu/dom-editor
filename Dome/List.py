@@ -431,7 +431,7 @@ class ChainDisplay(GnomeCanvas):
 						del bp[(op, exit)]
 					else:
 						bp[(op, exit)] = 1
-					self.update_all()
+					self.prog.changed()
 
 				next = getattr(op, exit)
 				if next:

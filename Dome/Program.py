@@ -82,7 +82,7 @@ class Program:
 		self.start = start
 		self.changed(None)
 
-	def changed(self, op):
+	def changed(self, op = None):
 		for w in self.watchers:
 			w.program_changed(self)
 	
