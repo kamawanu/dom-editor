@@ -385,7 +385,7 @@ class Model:
 		"Insert 'new' before 'node'. If 'node' is None then insert at the end"
 		"of parent's children."
 		assert new.nodeType != Node.DOCUMENT_FRAGMENT_NODE
-		assert parent.nodeType == Node.ELEMENT_NODE
+		#assert parent.nodeType == Node.ELEMENT_NODE
 		parent.insertBefore(new, node)
 		self.add_undo(lambda: self.delete_nodes([new]))
 

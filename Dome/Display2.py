@@ -105,9 +105,9 @@ class Display(g.HBox):
 
 		self.scroll_adj = g.Adjustment(lower = 0, upper = 100, step_incr = 1)
 		self.scroll_adj.connect('value-changed', self.scroll_to)
-		scale = g.VScale(self.scroll_adj)
+		scale = g.VScrollbar(self.scroll_adj)
 		scale.unset_flags(g.CAN_FOCUS)
-		scale.set_draw_value(False)
+		#scale.set_draw_value(False)
 		self.pack_start(scale, False, True, 0)
 		
 		self.view = None
@@ -210,10 +210,12 @@ class Display(g.HBox):
 		self.h_limits = (self.ref_pos[0], self.ref_pos[0])	# Left, Right
 		node = self.ref_node
 		attr_parent = None
+		drawn = 0
 		for node, bbox, draw_fn in self.walk_tree(self.ref_node, self.ref_pos):
 			if bbox[1] > self.last_alloc[1]: break	# Off-screen
 			if bbox[1] > -self.last_alloc[1]:
 				draw_fn()
+				drawn += 1
 			else:
 				pass#print 'Warning: Ref node way off:', bbox[1]
 			if node.nodeType == Node.ATTRIBUTE_NODE:
@@ -227,6 +229,11 @@ class Display(g.HBox):
 				self.ref_pos = bbox[:2]
 			self.h_limits = (min(self.h_limits[0], bbox[0]),
 					 max(self.h_limits[1], bbox[2]))
+		else:
+			# Didn't have enough nodes to fill the screen
+			frac_filled = float(bbox[3]) / self.last_alloc[1]
+			if frac_filled:
+				drawn /= frac_filled
 
 		self.surface.window.clear()
 
@@ -238,7 +245,10 @@ class Display(g.HBox):
 			pos = 0
 			print "Missing ref node!!"
 		self.scroll_adj.value = float(pos)
-		self.scroll_adj.upper = float(len(self.cached_nodes))
+		self.scroll_adj.upper = float(len(self.cached_nodes) + drawn)
+
+		self.scroll_adj.page_size = float(drawn)
+		self.scroll_adj.page_increment = float(drawn)
 
 		return 0
 	
