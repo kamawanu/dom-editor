@@ -1,3 +1,5 @@
+from __future__ import nested_scopes
+
 from gtk import *
 from GDK import *
 from gnome.ui import *
@@ -5,6 +7,7 @@ from support import *
 import string
 from xml.dom.ext.reader import PyExpat
 from StringIO import StringIO
+import math
 
 import rox.choices
 from rox.MultipleChoice import MultipleChoice
@@ -16,6 +19,16 @@ def trunc(text):
 	if len(text) < 18:
 		return text
 	return text[:16] + '...'
+
+def connect(x1, y1, x2, y2):
+	"""Chop 5 pixels off both ends of this line"""
+	gap = 5.0
+	dx = x2 - x1
+	dy = y2 - y1
+	l = math.hypot(dx, dy)
+	dx *= gap / l
+	dy *= gap / l
+	return (x1 + dx, y1 + dy, x2 - dx, y2 - dy)
 
 def action_to_text(action):
 	text = action[0]
@@ -85,7 +98,6 @@ class List(GtkVBox):
 		swin.set_policy(POLICY_AUTOMATIC, POLICY_AUTOMATIC)
 		self.pack_start(swin, expand = 1, fill = 1)
 		swin.add(self.chains)
-		print self.chains.size_request()
 		swin.show_all()
 
 		self.tree.show()
@@ -239,6 +251,8 @@ class ChainDisplay(GnomeCanvas):
 		self.view = view
 		self.unset_flags(CAN_FOCUS)
 
+		self.drag_last_pos = None
+
 		self.exec_point = None		# CanvasItem, or None
 		self.rec_point = None
 
@@ -385,7 +399,7 @@ class ChainDisplay(GnomeCanvas):
 					fill_color = 'black',
 					text = text)
 
-		y = 20
+		(x, y) = (0, 25)
 		if op.next:
 			(lx, ly, hx, label_bottom) = label.get_bounds()
 			g = group.add('group', x = 0, y = 0)
@@ -393,25 +407,29 @@ class ChainDisplay(GnomeCanvas):
 			(lx, ly, hx, hy) = g.get_bounds()
 			drop = max(20, label_bottom + 10)
 			y = drop - ly
-			g.move(0, y)
-			y -= 5
+			x += op.next.dx
+			y += op.next.dy
+			g.move(x, y)
+		
 		group.next_line = group.add('line',
 					fill_color = 'black',
-					points = (0, 6, 0, y),
+					points = connect(0, 0, x, y),
 					width_pixels = 4)
 		group.next_line.connect('event', self.line_event, op, 'next')
 
-		(x, y) = (16, 16)
+		(x, y) = (20, 20)
 		if op.fail:
 			y = 46
-			g = group.add('group', x = 4, y = 4)
+			g = group.add('group', x = 0, y = 0)
 			self.create_node(op.fail, g)
 			(lx, ly, hx, hy) = g.get_bounds()
 			x = 20 - lx
+			x += op.next.dx
+			y += op.next.dy
 			g.move(x, y)
 		group.fail_line = group.add('line',
 					fill_color = '#ff6666',
-					points = (6, 6, x, y),
+					points = connect(0, 0, x, y),
 					width_pixels = 4)
 		group.fail_line.lower_to_bottom()
 		group.fail_line.connect('event', self.line_event, op, 'fail')
@@ -445,17 +463,52 @@ class ChainDisplay(GnomeCanvas):
 
 		win.show_all()
 	
+	def join_nodes(self, op, exit):
+		op2 = getattr(op, exit)
+
+		prev_group = self.op_to_group[op]
+		line = getattr(prev_group, exit + '_line')
+
+		group = self.op_to_group[op2]
+
+		x, y = group.i2w(0, 0)
+		x, y = prev_group.w2i(x, y)
+		line.set(points = connect(0, 0, x, y))
+	
 	def op_event(self, item, event, op):
 		if event.type == BUTTON_PRESS:
 			if event.button == 1:
-				print "Clicked", op, "(in", op.program.name + ")"
-				self.edit_op(op)
+				if op != op.program.start:
+					self.drag_last_pos = (event.x, event.y)
 			else:
 				self.show_op_menu(event, op)
+		elif event.type == BUTTON_RELEASE:
+			if event.button == 1:
+				self.drag_last_pos = None
 		elif event.type == ENTER_NOTIFY:
 			item.set(fill_color = 'white')
 		elif event.type == LEAVE_NOTIFY:
 			item.set(fill_color = self.op_colour(op))
+		elif event.type == MOTION_NOTIFY and self.drag_last_pos:
+			x, y = (event.x, event.y)
+			dx, dy = x - self.drag_last_pos[0], y - self.drag_last_pos[1]
+			if abs(op.dx + dx) < 4:
+				dx = -op.dx
+				x = dx + self.drag_last_pos[0]
+			if abs(op.dy + dy) < 4:
+				dy = -op.dy
+				y = dy + self.drag_last_pos[1]
+			op.dx += dx
+			op.dy += dy
+			self.drag_last_pos = (x, y)
+
+			self.op_to_group[op].move(dx, dy)
+			if op.prev.next == op:
+				self.join_nodes(op.prev, 'next')
+			else:
+				self.join_nodes(op.prev, 'fail')
+			#self.create_node(self.prog.start, self.nodes)
+			#self.update_points()
 
 	def show_op_menu(self, event, op):
 		del_node = None
@@ -466,7 +519,8 @@ class ChainDisplay(GnomeCanvas):
 		if not (op.next and op.fail):
 			def del_node(self = self, op = op):
 				self.clipboard = op.del_node()
-		items = [('Swap next/fail', swap_nf),
+		items = [('Edit node', lambda: self.edit_op(op)),
+			 ('Swap next/fail', swap_nf),
 			 ('Remove node', del_node)]
 		Menu(items).popup(event.button, event.time)
 

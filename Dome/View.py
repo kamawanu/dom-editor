@@ -655,6 +655,7 @@ class View:
 			return
 		if self.root in nodes:
 			raise Beep
+		self.shallow_yank()
 		self.move_to([])
 		for n in nodes:
 			self.model.delete_shallow(n)

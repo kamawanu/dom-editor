@@ -146,6 +146,7 @@ class Op:
 		self.next = None
 		self.fail = None
 		self.prev = None
+		self.dx, self.dy = (0, 0)
 	
 	def set_program(self, program):
 		if self.program:
