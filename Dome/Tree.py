@@ -20,9 +20,15 @@ class Beep(Exception):
 def get_text(node, line):
 	return string.split(node.nodeValue, '\n')[line]
 
+# Return a string that will match this node in an XPath.
+def match_name(node):
+	if node.nodeType == Node.TEXT_NODE:
+		return 'text()'
+	else:
+		return node.nodeName
+
 def jump_to_sibling(src, dst):
 	"Return an XPath which, given a context 'src' will move to sibling 'dst'."
-	name = dst.nodeName
 
 	# Search forwards for 'dst', counting how many matching nodes we pass.
 	count = 0
@@ -34,7 +40,7 @@ def jump_to_sibling(src, dst):
 		if check.nodeName == dst.nodeName:
 			count += 1
 	if check:
-		return 'following-sibling::%s[%d]/' % (name, count)
+		return 'following-sibling::%s[%d]/' % (match_name(dst), count)
 
 	# Not found - search backwards for 'dst', counting how many matching nodes we pass.
 	count = 0
@@ -45,7 +51,7 @@ def jump_to_sibling(src, dst):
 			return			# Error!
 		if check.nodeName == dst.nodeName:
 			count += 1
-	return 'preceding-sibling::%s[%d]/' % (name, count)
+	return 'preceding-sibling::%s[%d]/' % (match_name(dst), count)
 
 class Tree(GtkDrawingArea):
 	vmargin = 4
@@ -156,6 +162,10 @@ class Tree(GtkDrawingArea):
 		src_node = self.line_to_node[self.current_line]
 		dst_node = self.line_to_node[line]
 
+		if src_node == dst_node:
+			parser = XPathParser.XPathParser()
+			return parser.parseExpression('.')
+
 		def path_to(self, node):
 			"Returns a path to the node in the form [display_root, ... , node]"
 			ps = [node]
@@ -203,8 +213,7 @@ class Tree(GtkDrawingArea):
 				if p.nodeName == node.nodeName:
 					prev += 1
 			
-			print "Move to", node, "pos", prev
-			path += 'child::' + node.nodeName + '[' + `prev` + ']/'
+			path += 'child::%s[%d]/' % (match_name(node), prev)
 
 		path = path[:-1]
 		print path
@@ -217,10 +226,12 @@ class Tree(GtkDrawingArea):
 		if bev.button == 1:
 			height = self.row_height
 			line = int((bev.y - self.vmargin) / height)
+			node = self.line_to_node[line]
 			path = self.line_to_relative_path(line)
-			def action(self, cur, path = path):
+			off = line - self.node_to_line[node]
+			def action(self, cur, path = path, off = off):
 				"Relative move"
-				self.do_search(self.line_to_node[self.current_line], path)
+				self.do_search(self.line_to_node[self.current_line], path, off)
 			self.may_record(action)
 	
 	def move_to_node(self, node):
@@ -380,7 +391,7 @@ class Tree(GtkDrawingArea):
 		self.recording = None
 		self.window.update_title()
 	
-	def do_search(self, cur, path):
+	def do_search(self, cur, path, off = 0):
 		c = Context.Context(cur, [cur])
 		rt = path.select(c)
 		if len(rt) == 0:
@@ -390,7 +401,7 @@ class Tree(GtkDrawingArea):
 			if self.node_to_line[x] > self.current_line:
 				node = x
 				break
-		self.move_to_node(node)
+		self.move_to(self.node_to_line[node] + off)
 
 	def user_do_search(self, pattern):
 		p = XPathParser.XPathParser()	
