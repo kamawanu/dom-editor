@@ -368,8 +368,8 @@ class View:
 		"""Change the display root to a COPY of the selected node.
 		Call Leave to check changes back in."""
 		node = self.get_current()
-		if node == self.root:
-			raise Beep()
+		if node is self.root:
+			raise Beep		# Locking problems if this happens...
 		self.chroots.append((self.model, node))
 		self.set_model(self.model.lock_and_copy(node))
 	
@@ -384,6 +384,7 @@ class View:
 		self.set_model(old_model)
 		old_model.unlock(old_node)
 		old_model.replace_node(old_node, copy)
+		self.move_to([copy])
 
 	def do_action(self, action):
 		"'action' is a tuple (function, arg1, arg2, ...)"

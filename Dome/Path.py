@@ -52,7 +52,7 @@ def jump_to_sibling(src, dst, ns):
 	while check != dst:
 		check = check.previousSibling
 		if not check:
-			return			# Error!
+			raise Exception("Can't get from %s to %s!" % (src, dst))
 		if check.nodeName == dst.nodeName:
 			count += 1
 	return 'preceding-sibling::%s[%d]/' % (match_name(dst, ns), count)
