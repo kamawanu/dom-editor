@@ -1573,6 +1573,7 @@ class View:
 			self.move_to(node, a)
 		else:
 			print "No such attribute"
+			print "Looking for %s in %s" % ((namespace, attrib), node.attributes)
 			raise Beep()
 	
 	def set_attrib(self, value):

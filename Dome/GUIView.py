@@ -414,9 +414,10 @@ class GUIView(Display, XDSLoader):
 		def do_attrib(name):
 			if ':' in name:
 				(prefix, localName) = name.split(':', 1)
+				namespaceURI = self.view.model.prefix_to_namespace(self.view.get_current(), prefix)
 			else:
 				(prefix, localName) = (None, name)
-			namespaceURI = self.view.model.prefix_to_namespace(self.view.get_current(), prefix)
+				namespaceURI = None
 			action = ["attribute", namespaceURI, localName]
 			self.view.may_record(action)
 		GetArg('Select attribute:', do_attrib, ['Name:'])

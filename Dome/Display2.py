@@ -5,13 +5,15 @@ from rox import g
 from xml.dom import Node
 
 def calc_node(display, node, pos):
+	attribs = []
 	if node.nodeType == Node.TEXT_NODE:
 		text = node.nodeValue.strip()
 	elif node.nodeType == Node.ELEMENT_NODE:
 		text = node.nodeName
 		for key in node.attributes:
 			a = node.attributes[key]
-			text += ' %s=%s' % (unicode(a.name), unicode(a.value))
+			attribs.append((a, display.create_pango_layout(' %s=%s'
+					% (unicode(a.name), unicode(a.value)))))
 	elif node.nodeType == Node.COMMENT_NODE:
 		text = node.nodeValue.strip()
 	elif node.nodeName:
@@ -46,6 +48,19 @@ def calc_node(display, node, pos):
 			else:
 				gc = style.fg_gc[g.STATE_NORMAL]
 			surface.draw_layout(gc, x + 12, y, layout)
+
+		gc = style.fg_gc[g.STATE_INSENSITIVE]
+		ax = x + 12 + width + 4
+		ay = y
+		for attr, alayout in attribs:
+			awidth, aheight = alayout.get_pixel_size()
+			if attr in display.selection:
+				surface.draw_rectangle(bg[g.STATE_SELECTED], True,
+						ax, ay, awidth, aheight)
+				surface.draw_layout(fg[g.STATE_SELECTED], ax, ay, alayout)
+			else:
+				surface.draw_layout(gc, ax, ay, alayout)
+			ax += awidth + 2
 
 		if node in display.view.marked:
 			surface.draw_rectangle(style.text_gc[g.STATE_PRELIGHT], False,
@@ -128,9 +143,12 @@ class Display(g.EventBox):
 				self.ref_pos = (0, 0)
 				break
 
-		self.selection = {}
-		for n in self.view.current_nodes:
-			self.selection[n] = None
+		if self.view.current_attrib:
+			self.selection = {self.view.current_attrib: None}
+		else:
+			self.selection = {}
+			for n in self.view.current_nodes:
+				self.selection[n] = None
 
 		pos = list(self.ref_pos)
 		self.h_limits = (self.ref_pos[0], self.ref_pos[0])	# Left, Right
