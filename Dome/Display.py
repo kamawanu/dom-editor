@@ -66,7 +66,7 @@ class Display(GnomeCanvas):
 		if Exec.exec_state.running():
 			self.update_timeout = timeout_add(200, self.update_callback)
 		else:
-			self.update_callback()
+			self.update_timeout = timeout_add(10, self.update_callback)
 	
 	def do_update_now(self):
 		# Update now, if we need to
@@ -172,6 +172,8 @@ class Display(GnomeCanvas):
 					val = '...' + val[-18:]
 				ret += ' ' + a.name + '=' + val
 			return ret
+		elif node.nodeType == Node.COMMENT_NODE:
+			return node.nodeValue
 		elif node.nodeName:
 			return node.nodeName
 		elif node.nodeValue:
@@ -229,6 +231,8 @@ class Display(GnomeCanvas):
 				group.text.set(fill_color = 'black')
 			elif node.nodeType == Node.TEXT_NODE:
 				group.text.set(fill_color = 'blue')
+			elif node.nodeType == Node.COMMENT_NODE:
+				group.text.set(fill_color = 'darkgreen')
 			else:
 				group.text.set(fill_color = 'red')
 

@@ -494,12 +494,46 @@ class View:
 		for n in self.current_nodes:
 			self.model.set_attrib(n, name, value)
 	
-	def yank_attrib(self, name):
-		try:
-			value = self.current.getAttribute(name)
-		except:
+	def yank_value(self, name):
+		if not self.current.hasAttribute(name):
 			raise Beep
+		value = self.current.getAttribute(name)
 		self.clipboard = self.model.doc.createTextNode(value)
+		print "Clip now", self.clipboard
+	
+	def yank_attribs(self, name):
+		self.clipboard = self.model.doc.createDocumentFragment()
+		if name:
+			if not self.current.hasAttribute(name):
+				raise Beep
+			attribs = [self.current.getAttributeNode(name)]
+		else:
+			attribs = self.current.attributes
+			
+		print attribs
+		for a in attribs:
+			n = self.model.doc.createElement('attribute')
+			n.setAttribute('name', a.name)
+			n.setAttribute('value', a.value)
+			self.clipboard.appendChild(n)
+		print "Clip now", self.clipboard
+	
+	def paste_attribs(self):
+		if self.clipboard.nodeType == Node.DOCUMENT_FRAGMENT_NODE:
+			attribs = self.clipboard.childNodes
+		else:
+			attribs = [self.clipboard]
+		new = []
+		for a in attribs:
+			if a.hasAttribute('name') and a.hasAttribute('value'):
+				name = a.getAttribute('name')
+				value = a.getAttribute('value')
+				new.append((name, value))
+			else:
+				raise Beep
+		for node in self.current_nodes:
+			for (name, value) in new:
+				self.model.set_attrib(node, name, value)
 	
 	def del_attrib(self, name):
 		if len(self.current_nodes) == 1:

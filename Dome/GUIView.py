@@ -64,6 +64,10 @@ class GUIView(Display):
 			('Text search', self.show_text_search),
 			('Global', self.show_global),
 			(None, None),
+			('Yank attributes', self.show_yank_attribs),
+			('Paste attributes', lambda self = self: self.view.may_record(['paste_attribs'])),
+			('Yank attrib value', self.show_yank_attrib),
+			(None, None),
 			('Cut', lambda self = self: self.view.may_record(['delete_node'])),
 			('Paste (replace)', lambda self = self: self.view.may_record(['put_replace'])),
 			('Paste (inside)', lambda self = self: self.view.may_record(['put_as_child'])),
@@ -113,11 +117,17 @@ class GUIView(Display):
 			self.view.may_record(action)
 		GetArg('Delete attribute:', do_attrib, ['Name:'])
 
+	def show_yank_attribs(self):
+		def do_attrib(attrib, self = self):
+			action = ["yank_attribs", attrib]
+			self.view.may_record(action)
+		GetArg('Yank attribute:', do_attrib, ['Name:'], message = 'Blank for all...')
+
 	def show_yank_attrib(self):
 		def do_attrib(attrib, self = self):
-			action = ["yank_attrib", attrib]
+			action = ["yank_value", attrib]
 			self.view.may_record(action)
-		GetArg('Yank attribute:', do_attrib, ['Name:'])
+		GetArg('Yank value of attribute:', do_attrib, ['Name:'])
 
 	def show_attrib(self):
 		def do_attrib(args, self = self):
@@ -223,7 +233,7 @@ class GUIView(Display):
 		o	: open_text,
 
 		y	: ["yank"],
-		Y	: show_yank_attrib,
+		Y	: show_yank_attribs,
 		P	: ["put_before"],
 		p	: ["put_after"],
 		bracketright : ["put_as_child"],
