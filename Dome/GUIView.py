@@ -98,6 +98,7 @@ menu = Menu('main', [
 
 		('/View', None, '<Branch>', ''),
 		('/View/Toggle hidden', 'do_toggle_hidden', '', '<Ctrl>H'),
+		('/View/Hide with expr', 'menu_hide_with_expr', '', ''),
 		('/View/Show as HTML', 'do_show_html', '', ''),
 		('/View/Show as canvas', 'do_show_canvas', '', ''),
 		('/View/Show namespaces', 'show_namespaces', '', '<Ctrl>;'),
@@ -332,6 +333,12 @@ class GUIView(Display, XDSLoader):
 			action = ["xpath", expr]
 			self.view.may_record(action)
 		GetArg('XPath expression:', go, ['Eval:'], "Result goes on the clipboard")
+
+	def menu_hide_with_expr(self):
+		def go(expr):
+			action = ["toggle_hidden", expr]
+			self.view.may_record(action)
+		GetArg('XPath expression:', go, ['Eval:'], "Expr is used for the 'hidden' message.\nEg: @title")
 
 	def menu_show_global(self):
 		def do_global(pattern):

@@ -56,8 +56,9 @@ def calc_node(display, node, pos):
 			surface.draw_rectangle(fg[g.STATE_NORMAL], True,
 						x, y, 8, height - 1)
 			if node.nodeType == Node.ELEMENT_NODE and node.hasAttributeNS(None, 'hidden'):
+				message = node.attributes[(None, 'hidden')].value or 'hidden'
 				surface.draw_layout(fg[g.STATE_PRELIGHT], text_x + width + 2, y,
-					display.create_pango_layout('(hidden)'))
+					display.create_pango_layout('(%s)' % message))
 		else:
 			marker = False
 		

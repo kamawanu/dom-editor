@@ -1620,16 +1620,26 @@ class View:
 		from Canvas import Canvas
 		Canvas(self, self.get_current()).show()
 	
-	def toggle_hidden(self):
+	def toggle_hidden(self, message = None):
+		"""'message' is a XPath to calculate the message to display.
+		If None, nodes are toggled between '(hidden)' and not hidden."""
+		if message:
+			from Ft.Xml.XPath import XPathParser
+			code = XPathParser.new().parse('string(%s)' % message)
+
 		nodes = self.current_nodes[:]
 		self.move_to([])
 		for node in nodes:
 			if node.nodeType != Node.ELEMENT_NODE:
 				raise Beep
-			if node.hasAttributeNS(None, 'hidden'):
+			if message is None and node.hasAttributeNS(None, 'hidden'):
 				new = None
+			elif message:
+				ns = self.model.namespaces.uri
+				c = Context.Context(node, [node], processorNss = ns)
+				new = code.evaluate(c).strip()
 			else:
-				new = 'yes'
+				new = ''
 			self.model.set_attrib(node, 'hidden', new, with_update = 0)
 		self.model.update_all(self.root)
 		self.move_to(nodes)

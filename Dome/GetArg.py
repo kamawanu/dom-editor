@@ -9,10 +9,10 @@ history = {}
 # args is a list like ('Replace:', 'With:')
 # If 'destroy_return' is true then closing the window does callback(None).
 
-class GetArg(g.Dialog):
+class GetArg(rox.Dialog):
 	def __init__(self, text, callback, args, message = None,
 		     destroy_return = 0, init = None):
-		g.Dialog.__init__(self)
+		rox.Dialog.__init__(self)
 
 		if init:
 			init = init[:]
