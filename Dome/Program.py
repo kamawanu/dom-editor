@@ -1,8 +1,4 @@
-from xml.parsers.xmlproc.utils import escape_attval
-from xml.dom.ext.reader import PyExpat
 import string
-
-from support import *
 
 def el_named(node, name):
 	for n in node.childNodes:
@@ -126,6 +122,7 @@ class Program:
 			self.tree_changed()
 	
 	def to_xml(self):
+		from xml.parsers.xmlproc.utils import escape_attval
 		data = "<dome-program name='%s'>\n" % escape_attval(self.name)
 	
 		data += self.start.to_xml_int()
@@ -258,6 +255,7 @@ class Op:
 	def to_xml_int(self):
 		"Returns a chain of <Node> elements. So, if you want XML, enclose it "
 		"in something."
+		from xml.parsers.xmlproc.utils import escape_attval
 		next = self.next
 		fail = self.fail
 		act = escape_attval(`self.action`)

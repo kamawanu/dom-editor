@@ -17,10 +17,11 @@ from support import *
 from rox.SaveBox import SaveBox
 from rox.Toolbar import Toolbar
 
+print "a"
 from Model import Model
-from View import View
-from View import InProgress, Done
+print "b"
 from Program import Program, load_dome_program
+print "c"
 
 code = None
 
@@ -76,7 +77,8 @@ class Window(GtkWindow):
 		else:
 			root_program = Program('Root')
 
-		view = View(self.model, root_program)
+		import View
+		view = View.View(self.model, root_program)
 		self.list = List(view)
 		paned.add1(self.list)
 		self.list.show()
@@ -169,8 +171,8 @@ class Window(GtkWindow):
 		elif self.savetype == 'html':
 			doc = node_to_html(self.view.root)
 		elif self.savetype == 'dome':
-			doc = implementation.createDocument(None, 'dome', None)
-			doc = node_to_html(self.view.root)
+			from View import DOME_NS
+			doc = implementation.createDocument(DOME_NS, 'dome', None)
 		else:
 			raise Exception('Unknown save type', self.savetype)
 		self.output_data = ''
@@ -203,6 +205,7 @@ class Window(GtkWindow):
 		self.view.run_new()
 
 	def tool_Play(self):
+		from View import InProgress, Done
 		if not self.view.callback_on_return:
 			self.view.run_new(self.list.run_return)
 		else:
@@ -217,6 +220,7 @@ class Window(GtkWindow):
 		self.view.sched()
 	
 	def tool_Next(self):
+		from View import InProgress, Done
 		if not self.view.callback_on_return:
 			self.view.run_new(self.list.run_return)
 		self.view.single_step = 2
@@ -226,6 +230,7 @@ class Window(GtkWindow):
 			pass
 	
 	def tool_Step(self):
+		from View import InProgress, Done
 		if not self.view.callback_on_return:
 			self.view.run_new(self.list.run_return)
 		self.view.single_step = 1

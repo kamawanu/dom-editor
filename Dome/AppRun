@@ -12,7 +12,7 @@ from os.path import dirname
 
 app_dir = dirname(sys.argv[0])
 
-from gtk import *
+import gtk
 from Window import Window
 
 tl_windows = 0
@@ -25,7 +25,7 @@ def tl_unref(w = None):
 	global tl_windows
 	tl_windows = tl_windows - 1
 	if tl_windows < 1:
-		mainquit()
+		gtk.mainquit()
 
 docs = []
 
@@ -47,4 +47,4 @@ if tl_windows > 0:
 	#import profile
 	#profile.run('mainloop()')
 
-	mainloop()
+	gtk.mainloop()

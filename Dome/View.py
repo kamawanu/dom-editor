@@ -5,6 +5,7 @@ from xml.dom import Node, ext, XMLNS_NAMESPACE
 from xml import xpath
 from xml.xpath import FT_EXT_NAMESPACE, Context
 from xml.dom.ext.reader import PyExpat
+
 import os, re, string, types
 import urlparse
 import Html
