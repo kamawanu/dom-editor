@@ -9,6 +9,7 @@ from xml.dom import Node
 
 from Ft.Xml.Xslt.StylesheetReader import StylesheetReader
 from Ft.Xml.Xslt.StylesheetTree import XsltElement, XsltText
+from Ft.Xml.Xslt.LiteralElement import LiteralElement
 from Program import Program, Op
 
 def import_sheet(doc):
@@ -16,13 +17,13 @@ def import_sheet(doc):
 
 	root = Program('XSLT')
 
-	# To start with, the cursor is on the source document node and
-	# the mark is on the result document node.
-	op = Op(['do_search', '/xslt/Result'])
+	# To start with, the mark is on the source document node and
+	# the cursor is on the result document node.
+	op = Op(['do_search', '/xslt/Source'])
 	root.start.link_to(op, 'next')
 	op2 = Op(['mark_selection'])
 	op.link_to(op2, 'next')
-	op3 = Op(['do_search', '/xslt/Source'])
+	op3 = Op(['do_search', '/xslt/Result'])
 	op2.link_to(op3, 'next')
 
 	reader = StylesheetReader()
@@ -60,11 +61,11 @@ def import_sheet(doc):
 				templates = [types[type]]
 			for tl in templates:
 				for t in tl:
-					temp = Program(`i` + '-' + `t[0]`)
-					make_template(temp, t[2])
+					name = `t[0]`.replace('/', '%')
+					temp = Program(`i` + '-' + name)
+					make_template(temp.start, t[2])
 					i += 1
 					prog.add_sub(temp)
-					print "Template", type, t
 	
 
 	return root
@@ -76,21 +77,26 @@ def add(op, *action):
 
 # A template is instantiated by running its program.
 #
-# => Cursor = context node
-#    Mark   = result parent (append children here)
+# => Mark   = context node
+#    Cursor = result parent (append children here)
 #
-# <= Cursor is undefined
-#    Mark is unchanged
-def make_template(prog, temp):
-	op = prog.start
-	in_source = 1	# Where the cursor is
+# <= Cursor is unchanged
+#    Mark is undefined
+#
+# Add the instructions to instantiate this template to 'op'.
+def make_template(op, temp):
 	for child in temp.children:
 		if isinstance(child, XsltText):
 			print "Text node", child.data
-			op = add(op, 'mark_switch')
 			op = add(op, 'add_node', 'et', child.data)
 			op = add(op, 'move_left')
-			op = add(op, 'mark_switch')
 
+		elif isinstance(child, LiteralElement):
+			print "Element", child._output_qname
+			op = add(op, 'add_node', 'ee', child._output_qname)
+			op = make_template(op, child)
+			op = add(op, 'move_left')
 		else:
-			print "Unknown template type", child, "(%s)" % child.__class__
+			pass
+			#print "Unknown template type", child, "(%s)" % child.__class__
+	return op

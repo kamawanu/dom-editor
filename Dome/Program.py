@@ -102,6 +102,8 @@ def load_dome_program(prog):
 class Program:
 	"A program contains a Start Op and any number of sub-programs."
 	def __init__(self, name, start = None):
+		assert '/' not in name
+
 		if not start:
 			start = Op()
 			start.program = self
