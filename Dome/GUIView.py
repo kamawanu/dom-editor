@@ -311,9 +311,15 @@ class GUIView(Display):
 				(prefix, localName) = string.split(name, ':', 1)
 			else:
 				(prefix, localName) = (None, name)
-			if prefix == '':
+
+			if prefix:
+				node = self.view.get_current()
+				namespaceURI = self.view.model.prefix_to_namespace(node, prefix)
+			else:
+				# Attributes don't use the default namespace
 				prefix = None
-			namespaceURI = self.view.model.prefix_to_namespace(self.view.get_current(), prefix)
+				namespaceURI = None
+
 			action = ["add_attrib", namespaceURI, name]
 			self.view.may_record(action)
 		GetArg('Create attribute:', do_it, ['Name:'])

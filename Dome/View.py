@@ -16,6 +16,7 @@ from Beep import Beep
 from GetArg import GetArg
 
 import time
+import urllib
 
 DOME_NS = 'http://www.ecs.soton.ac.uk/~tal00r/Dome'
 
@@ -205,6 +206,9 @@ class View:
 			if not val.may_record:
 				return 0
 			exit = 'fail'
+		except:
+			report_exception()
+			raise
 
 		# Only record if we were recording when this action started
 		if rec:
@@ -808,9 +812,24 @@ class View:
 			else:
 				print "Warning: Can't find 'uri' attribute!"
 
+		stream = urllib.urlopen(uri)
+		headers = stream.info().headers
+		last_mod = None
+		for x in headers:
+			if x.lower().startswith('last-modified:'):
+				last_mod = x[14:].strip()
+				break
+		
+		current_last_mod = node.getAttributeNS(None, 'last-modified')
+		if current_last_mod and last_mod:
+			if current_last_mod == last_mod:
+				self.model.set_attrib(node, None, 'modified', None)
+				print "Not modified => not sucking!\n"
+				return
+
 		command = "w3m -dump_source '%s' | tidy -asxml 2>/dev/null" % uri
 
-		def done(root, self = self, uri = uri):
+		def done(root, self = self, uri = uri, last_mod = last_mod):
 			if not root:
 				print "Load failed"
 				self.resume('fail')
@@ -818,6 +837,10 @@ class View:
 			node = self.get_current()
 			new = node.ownerDocument.importNode(root.documentElement, deep = 1)
 			new.setAttributeNS(None, 'uri', uri)
+
+			if last_mod:
+				new.setAttributeNS(None, 'last-modified', last_mod)
+			new.setAttributeNS(None, 'modified', 'yes')
 
 			self.move_to([])
 			if node == self.root:

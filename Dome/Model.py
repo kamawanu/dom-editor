@@ -195,6 +195,7 @@ class Model:
 		"Use the xmlns attributes to workout the namespace."
 		nss = ext.GetAllNs(node)
 		if nss.has_key(prefix):
+			print "Has key; ns =", nss[prefix]
 			return nss[prefix] or None
 		if prefix:
 			if prefix == 'xmlns':
