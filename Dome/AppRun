@@ -17,23 +17,7 @@ from Window import Window
 
 tl_windows = 0
 
-import signal
-
-def int_handler(signum, frame):
-	import readline, traceback
-	while 1:
-		line = raw_input("(debug) ")
-		try:
-			try:
-				a = eval(line)
-				if a is not None:
-					print a
-			except:
-				exec line
-		except:
-			traceback.print_exc()
-	
-signal.signal(signal.SIGINT, int_handler)
+import debug
 
 def tl_ref(w = None):
 	global tl_windows

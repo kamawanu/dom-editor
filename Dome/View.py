@@ -122,6 +122,9 @@ class View:
 		self.breakpoints = {}		# (op, exit) keys, values don't matter
 		self.current_nodes = []
 		self.set_model(model)
+
+		import debug
+		debug.view = self
 	
 	def get_current(self):
 		if len(self.current_nodes) == 1:

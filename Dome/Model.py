@@ -75,6 +75,9 @@ class Model:
 		
 		self.views = []		# Notified when something changes
 		self.locks = {}		# Node -> number of locks
+
+		import debug
+		debug.model = self
 	
 	def lock(self, node):
 		"""Prevent removal of this node (or any ancestor)."""
