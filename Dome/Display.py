@@ -90,6 +90,14 @@ class Display(GnomeCanvas):
 	def destroyed(self, widget):
 		self.view.remove_display(self)
 	
+	def create_attribs(self, node, group, cramped, parent):
+		group.node = node
+		group.text = group.add('text', x = 0, y = -6, anchor = ANCHOR_NW,
+					font = 'fixed', fill_color = 'blue',
+					text = "%s=%s" % (node.name, node.value))
+		group.connect('event', self.node_event, node, parent)
+		self.node_to_group[node] = group	# XXX
+	
 	def create_tree(self, node, group, cramped = 0):
 		group.node = node
 		group.add('ellipse', x1 = -4, y1 = -4, x2 = 4, y2 = 4,
@@ -117,6 +125,14 @@ class Display(GnomeCanvas):
 		hbox = node.nodeName == 'TR'
 		if hbox:
 			cramped = 1
+
+		if node.nodeType == Node.ELEMENT_NODE:
+			ax = hx + 8
+			for a in node.attributes:
+				g = group.add('group', x = ax, y = 0)
+				self.create_attribs(a, g, cramped, node)
+				(alx, xly, ahx, ahy) = g.get_bounds()
+				ax = ahx + 8
 		
 		kids = []
 		for n in node.childNodes:
@@ -165,13 +181,7 @@ class Display(GnomeCanvas):
 		if node.nodeType == Node.TEXT_NODE:
 			return string.strip(node.nodeValue)
 		elif node.nodeType == Node.ELEMENT_NODE:
-			ret = node.nodeName
-			for a in node.attributes:
-				val = a.value
-				if len(val) > 21:
-					val = '...' + val[-18:]
-				ret += ' ' + a.name + '=' + val
-			return ret
+			return node.nodeName
 		elif node.nodeType == Node.COMMENT_NODE:
 			return node.nodeValue
 		elif node.nodeName:
@@ -190,14 +200,14 @@ class Display(GnomeCanvas):
 			return 1
 
 	# 'group' and 'node' may be None (for the background)
-	def node_event(self, group, event, node):
+	def node_event(self, group, event, node, parent = None):
 		if event.type != BUTTON_PRESS or event.button == 3:
 			return 0
 		self.do_update_now()
-		self.node_clicked(node, event)
+		self.node_clicked(node, event, parent)
 		return 1
 	
-	def node_clicked(self, node):
+	def node_clicked(self, node, parent = None):
 		return
 	
 	def move_from(self, old):

@@ -46,7 +46,7 @@ class GUIView(Display):
 		self.view.may_record(action)
 		return 1
 	
-	def node_clicked(self, node, bev):
+	def node_clicked(self, node, bev, attribute_parent = None):
 		if node:
 			if len(self.view.current_nodes) == 0:
 				src = self.view.root
@@ -55,8 +55,13 @@ class GUIView(Display):
 			lit = bev.state & SHIFT_MASK
 			add = bev.state & CONTROL_MASK
 			ns = {}
-			path = make_relative_path(src, node, lit, ns)
-			self.view.may_record(["do_search", path, ns, add])
+			if attribute_parent:
+				path = make_relative_path(src, attribute_parent, lit, ns)
+				attrib_name = node.nodeName
+			else:
+				path = make_relative_path(src, node, lit, ns)
+				attrib_name = None
+			self.view.may_record(["do_search", path, ns, add, attrib_name])
 
 	def show_menu(self, bev):
 		items = [

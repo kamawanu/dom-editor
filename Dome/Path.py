@@ -31,6 +31,9 @@ def jump_to_sibling(src, dst, ns):
 	"Return an XPath which, given a context 'src' will move to sibling 'dst'."
 	"Namespace 'ns' may be updated if new names are required"
 
+	if dst.nodeType == Node.ATTRIBUTE_NODE:
+		return 'attribute::%s/' % dst.nodeName
+
 	# Search forwards for 'dst', counting how many matching nodes we pass.
 	count = 0
 	check = src

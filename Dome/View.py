@@ -250,7 +250,7 @@ class View:
 		self.global_set = path.select(c)
 		self.move_to(self.global_set)
 		
-	def do_search(self, pattern, ns = None, toggle = FALSE):
+	def do_search(self, pattern, ns = None, toggle = FALSE, attrib_name = None):
 		p = XPathParser.XPathParser()	
 		path = p.parseExpression(pattern)
 
@@ -276,6 +276,12 @@ class View:
 		if not node:
 			print "*** Search for '%s' failed" % pattern
 			raise Beep
+		if attrib_name:
+			if node.hasAttribute(attrib_name):
+				node = node.getAttribute(attrib_name)
+			else:
+				print "*** Node %s has no %s attribute" % (node, attrib_name)
+				raise Beep
 		if toggle:
 			new = self.current_nodes[:]
 			if node in new:
