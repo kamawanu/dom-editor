@@ -939,6 +939,10 @@ class View:
 		del nodes_list[0]
 		self.move_to(nodes)
 
+		if nodes_list:
+			print "[ %d after this ]" % len(nodes_list),
+			sys.stdout.flush()
+
 		if block.enter:
 			self.enter()
 		self.set_exec((block.start, 'next'))
