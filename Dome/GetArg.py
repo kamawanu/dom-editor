@@ -1,5 +1,5 @@
 from gtk import *
-from GDK import *
+import GDK
 import string
 
 # text -> last value
@@ -73,7 +73,7 @@ class GetArg(GtkWindow):
 		self.show_all(self.vbox)
 	
 	def key(self, widget, kev):
-		if kev.keyval == Escape:
+		if kev.keyval == GDK.Escape:
 			self.destroy()
 
 	def to_next(self, widget):
