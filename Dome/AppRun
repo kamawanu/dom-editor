@@ -4,6 +4,10 @@
 import findrox
 import rox
 
+from rox.Menu import Menu, set_save_name
+ 
+set_save_name('Dome')
+
 no_gui_mode = 0
 
 # Ugly hack to stop wierd chars appearing...

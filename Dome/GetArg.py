@@ -1,5 +1,5 @@
-#from gtk import *
-import string
+import rox
+from rox import g, TRUE, FALSE
 
 # text -> last value
 history = {}
@@ -9,10 +9,10 @@ history = {}
 # args is a list like ('Replace:', 'With:')
 # If 'destroy_return' is true then closing the window does callback(None).
 
-class GetArg(GtkWindow):
+class GetArg(g.Dialog):
 	def __init__(self, text, callback, args, message = None,
 		     destroy_return = 0, init = None):
-		GtkWindow.__init__(self, WINDOW_DIALOG)
+		g.Dialog.__init__(self)
 
 		if init:
 			init = init[:]
@@ -20,20 +20,17 @@ class GetArg(GtkWindow):
 		self.callback = callback
 		self.text = text
 
-		self.vbox = GtkVBox(FALSE, 8)
-		self.add(self.vbox)
-		self.set_border_width(8)
 		self.set_title(text)
 
 		if message:
-			self.vbox.pack_start(GtkLabel(message), TRUE, TRUE, 0)
+			self.vbox.pack_start(g.Label(message), TRUE, TRUE, 0)
 
 		self.args = []
 
 		for a in args:
-			hbox = GtkHBox(FALSE, 4)
-			hbox.pack_start(GtkLabel(a), FALSE, TRUE, 0)
-			arg = GtkEntry()
+			hbox = g.HBox(FALSE, 4)
+			hbox.pack_start(g.Label(a), FALSE, TRUE, 0)
+			arg = g.Entry()
 			hbox.pack_start(arg, TRUE, TRUE, 0)
 			self.vbox.pack_start(hbox, FALSE, TRUE, 0)
 			if init and init[0]:
@@ -48,37 +45,28 @@ class GetArg(GtkWindow):
 			if len(self.args) < len(args):
 				arg.connect('activate', self.to_next)
 			else:
-				arg.connect('activate', self.do_it)
+				arg.connect('activate', lambda w: self.do_it())
 
-		actions = GtkHBox(TRUE, 32)
+		actions = g.HBox(TRUE, 32)
 		self.vbox.pack_end(actions, FALSE, TRUE, 0)
 
-		label = GtkLabel('Cancel')
-		label.set_padding(16, 2)
-		button = GtkButton()
-		button.add(label)
-		button.set_flags(CAN_DEFAULT)
-		actions.pack_start(button, TRUE, FALSE, 0)
-		button.connect('clicked', self.destroy)
+		self.add_button(g.STOCK_CANCEL, g.RESPONSE_CANCEL)
+		self.add_button(g.STOCK_OK, g.RESPONSE_OK)
 
-		label = GtkLabel('OK')
-		label.set_padding(16, 2)
-		button = GtkButton()
-		button.add(label)
-		button.set_flags(CAN_DEFAULT)
-		actions.pack_start(button, TRUE, FALSE, 0)
-		button.grab_default(button)
-		button.connect('clicked', self.do_it)
+		def resp(widget, resp):
+			if resp == g.RESPONSE_OK:
+				self.do_it()
+			widget.destroy()
 
 		if destroy_return:
 			self.connect('destroy', lambda widget, cb = callback: cb(None))
 
 		self.connect('key-press-event', self.key)
 
-		self.show_all(self.vbox)
+		self.show_all()
 	
 	def key(self, widget, kev):
-		if kev.keyval == GDK.Escape:
+		if kev.keyval == g.keysyms.Escape:
 			self.destroy()
 
 	def to_next(self, widget):
@@ -91,7 +79,7 @@ class GetArg(GtkWindow):
 			if entry == widget:
 				next = 1
 		
-	def do_it(self, widget):
+	def do_it(self):
 		values = []
 		for (a, entry) in self.args:
 			val = entry.get_text()

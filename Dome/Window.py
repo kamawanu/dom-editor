@@ -39,7 +39,7 @@ class Window(rox.Window):
 		self.gui_view = None
 		self.dome_state = ""
 		
-		#from GUIView import GUIView
+		from GUIView import GUIView
 		from List import List
 
 		vbox = g.VBox(FALSE, 0)
@@ -73,14 +73,14 @@ class Window(rox.Window):
 		paned.add2(swin)
 		paned.set_position(200)
 
-		#self.gui_view = GUIView(self, view)
-		#swin.add(self.gui_view)
+		self.gui_view = GUIView(self, view)
+		swin.add(self.gui_view)
 		#swin.set_hadjustment(self.gui_view.get_hadjustment())
 		#swin.set_vadjustment(self.gui_view.get_vadjustment())
 
 		vbox.show_all()
 	
-		#self.gui_view.grab_focus()
+		self.gui_view.grab_focus()
 		self.update_title()
 
 		def delete(window, event):
@@ -153,10 +153,10 @@ class Window(rox.Window):
 
 	# Toolbar bits
 
-	def tool_save(self):
+	def tool_save(self, button = None):
 		self.save()
 	
-	def tool_stop(self):
+	def tool_stop(self, button = None):
 		if self.view.rec_point:
 			self.view.stop_recording()
 		if self.view.running():
@@ -164,7 +164,7 @@ class Window(rox.Window):
 		else:
 			self.view.run_new()
 
-	def tool_play(self):
+	def tool_play(self, button = None):
 		from View import InProgress, Done
 		# Step first, in case we're on a breakpoint
 		self.view.single_step = 1
@@ -175,7 +175,7 @@ class Window(rox.Window):
 		self.view.single_step = 0
 		self.view.sched()
 	
-	def tool_next(self):
+	def tool_next(self, button = None):
 		from View import InProgress, Done
 		self.view.single_step = 2
 		try:
@@ -183,7 +183,7 @@ class Window(rox.Window):
 		except InProgress, Done:
 			pass
 	
-	def tool_step(self):
+	def tool_step(self, button = None):
 		from View import InProgress, Done
 		self.view.single_step = 1
 		try:
@@ -191,12 +191,11 @@ class Window(rox.Window):
 		except InProgress, Done:
 			pass
 	
-	def tool_record(self):
+	def tool_record(self, button = None):
 		if self.view.rec_point:
 			self.view.stop_recording()
 		else:
 			self.view.record_at_point()
 	
-	def tool_help(self):
-		os.spawnlp(os.P_NOWAIT, "gvim", "gvim",
-			os.path.join(__main__.app_dir, "Help", "README"))
+	def tool_help(self, button = None):
+		rox.filer.show_file(os.path.join(rox.app_dir, 'Help', 'README'))

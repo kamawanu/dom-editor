@@ -1,12 +1,8 @@
-from __future__ import nested_scopes
-
-#from gtk import *
-#from GDK import *
 from xml.dom import Node
-import string
-from loader import make_xds_loader
+#from loader import make_xds_loader
 
-from rox.support import report_exception
+from rox import report_exception, g
+keysyms = g.keysyms
 
 from View import View
 from Display import Display
@@ -16,7 +12,7 @@ from Path import make_relative_path
 
 from rox.Menu import Menu
 
-menu = Menu('Dome', 'main', [
+menu = Menu('main', [
 		('/File', None, '<Branch>', ''),
 		('/File/Save', 'menu_save', '', 'F3'),
 		('/File/Blank document', 'do_blank_all', '', '<Ctrl>N'),
@@ -118,9 +114,8 @@ class GUIView(Display):
 	def __init__(self, window, view):
 		Display.__init__(self, window, view)
 		window.connect('key-press-event', self.key_press)
-		self.window = window
 		self.cursor_node = None
-		make_xds_loader(self, self)
+		#make_xds_loader(self, self)
 		self.update_state()
 
 		menu.attach(window, self)
@@ -132,7 +127,7 @@ class GUIView(Display):
 			state = "(playing)"
 		else:
 			state = ""
-		self.window.set_state(state)
+		self.parent_window.set_state(state)
 		self.do_update_now()
 
 	def load_file(self, path):
@@ -141,26 +136,26 @@ class GUIView(Display):
 		else:
 			self.view.load_xml(path)
 		if self.view.root == self.view.model.get_root():
-			self.window.uri = path
-			self.window.update_title()
+			self.parent_window.uri = path
+			self.parent_window.update_title()
 
 	def load_data(self, data):
-		report_error("Can only load files for now - sorry")
+		rox.alert("Can only load files for now - sorry")
 	
 	def key_press(self, widget, kev):
 		if self.cursor_node:
 			return 1
-		if kev.keyval == Up:
+		if kev.keyval == keysyms.Up:
 			self.view.may_record(['move_prev_sib'])
-		elif kev.keyval == Down:
+		elif kev.keyval == keysyms.Down:
 			self.view.may_record(['move_next_sib'])
-		elif kev.keyval == Left:
+		elif kev.keyval == keysyms.Left:
 			self.view.may_record(['move_left'])
-		elif kev.keyval == Right:
+		elif kev.keyval == keysyms.Right:
 			self.view.may_record(['move_right'])
-		elif kev.keyval == KP_Add:
+		elif kev.keyval == keysyms.KP_Add:
 			self.menu_show_add_attrib()
-		elif kev.keyval == Tab:
+		elif kev.keyval == keysyms.Tab:
 			self.toggle_edit()
 		else:
 			return 0
@@ -170,13 +165,13 @@ class GUIView(Display):
 	def node_clicked(self, node, bev):
 		print "Clicked", node.namespaceURI, node.localName
 		if node:
-			if bev.type == BUTTON_PRESS:
+			if bev.type == g.gdk.BUTTON_PRESS:
 				if len(self.view.current_nodes) == 0:
 					src = self.view.root
 				else:
 					src = self.view.current_nodes[-1]
-				shift = bev.state & SHIFT_MASK
-				add = bev.state & CONTROL_MASK
+				shift = bev.state & g.gdk.SHIFT_MASK
+				add = bev.state & g.gdk.CONTROL_MASK
 				select_region = shift and node.nodeType == Node.ELEMENT_NODE
 				lit = shift and not select_region
 					
@@ -205,7 +200,7 @@ class GUIView(Display):
 		self.view.may_record(["attribute", attrib.namespaceURI, attrib.localName])
 	
 	def menu_save(self):
-		self.window.save()
+		self.parent_window.save()
 	
 	def show_menu(self, bev):
 		menu.popup(self, bev)
@@ -270,6 +265,7 @@ class GUIView(Display):
 		else:
 			group.text.set(text = str(self.cursor_attrib.name) + '=')
 			
+		self.update_now()	# GnomeCanvas bug?
 		lx, ly, hx, hy = group.text.get_bounds()
 		x, y = group.i2w(lx, ly)
 
@@ -335,7 +331,7 @@ class GUIView(Display):
 	
 	def size_eb(self):
 		text = self.edit_box.get_chars(0, -1)
-		lines = string.split(text, '\n')
+		lines = text.split('\n')
 		w = 0
 		font = self.edit_box.get_style().font
 		rh = font.ascent + font.descent
@@ -358,7 +354,7 @@ class GUIView(Display):
 	def menu_select_attrib(self):
 		def do_attrib(name, self = self):
 			if ':' in name:
-				(prefix, localName) = string.split(name, ':', 1)
+				(prefix, localName) = name.split(':', 1)
 			else:
 				(prefix, localName) = (None, name)
 			namespaceURI = self.view.model.prefix_to_namespace(self.view.get_current(), prefix)
@@ -464,7 +460,7 @@ class GUIView(Display):
 		self.show_add_box('et')
 
 	def menu_close_window(self):
-		self.window.destroy()
+		self.parent_window.destroy()
 
 	do_blank_all = make_do('blank_all')
 	do_enter = make_do('enter')

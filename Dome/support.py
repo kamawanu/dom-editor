@@ -1,3 +1,5 @@
+import rox
+
 import sys
 import traceback
 from Ft.Xml.Domlette import Node, implementation
@@ -38,9 +40,7 @@ def send_to_file(data, path):
 		finally:
 			file.close()
 	except:
-		from rox import support
-
-		support.report_exception()
+		rox.report_exception()
 		return 0
 
 	return 1

@@ -1,7 +1,7 @@
 #from __future__ import nested_scopes
 
 import rox
-from rox import g, TRUE, FALSE
+from rox import g, TRUE, FALSE, alert
 from gnome2 import canvas
 
 from support import *
@@ -450,6 +450,7 @@ class ChainDisplay(canvas.Canvas):
 		if isinstance(op, Block):
 			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
 			self.create_node(op.start, gr)
+			self.update_now()	# GnomeCanvas bug?
 			(lx, ly, hx, hy) = gr.get_bounds()
 			minx = lx - 4
 			if op.foreach:
@@ -506,6 +507,7 @@ class ChainDisplay(canvas.Canvas):
 							fill_color = text_col,
 							text = text)
 
+				self.update_now()	# GnomeCanvas bug?
 				(lx, ly, hx, hy) = label.get_bounds()
 				next_off_y = hy
 			else:
@@ -516,6 +518,7 @@ class ChainDisplay(canvas.Canvas):
 			sx, sy = self.get_arrow_start(op, 'next')
 			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
 			self.create_node(op.next, gr)
+			self.update_now()	# GnomeCanvas bug?
 			(lx, ly, hx, hy) = gr.get_bounds()
 			drop = max(20, next_off_y + 10)
 			y = drop - ly
@@ -542,6 +545,7 @@ class ChainDisplay(canvas.Canvas):
 			y = 46
 			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
 			self.create_node(op.fail, gr)
+			self.update_now()	# GnomeCanvas bug?
 			(lx, ly, hx, hy) = gr.get_bounds()
 			x = 20 - lx
 			fail = op.fail
@@ -581,7 +585,7 @@ class ChainDisplay(canvas.Canvas):
 					try:
 						XPathParser.new().parse(t)
 					except:
-						support.report_error('Invalid search pattern!')
+						alert('Invalid search pattern!')
 						return
 			i = 0
 			for e in editables:
@@ -640,7 +644,7 @@ class ChainDisplay(canvas.Canvas):
 			print "*** ERROR setting arc from %s:%s" % (op, exit)
 	
 	def op_event(self, item, event, op):
-		if event.type == BUTTON_PRESS:
+		if event.type == g.gdk.BUTTON_PRESS:
 			print "Prev %s = %s" % (op, map(str, op.prev))
 			if event.button == 1:
 				if op.parent.start != op or not op.parent.is_toplevel():
@@ -649,16 +653,16 @@ class ChainDisplay(canvas.Canvas):
 					self.drag_last_pos = None
 			else:
 				self.show_op_menu(event, op)
-		elif event.type == BUTTON_RELEASE:
+		elif event.type == g.gdk.BUTTON_RELEASE:
 			if event.button == 1:
 				self.drag_last_pos = None
 				self.program_changed(None)
-		elif event.type == ENTER_NOTIFY:
+		elif event.type == g.gdk.ENTER_NOTIFY:
 			item.set(fill_color = 'white')
-		elif event.type == LEAVE_NOTIFY:
+		elif event.type == g.gdk.LEAVE_NOTIFY:
 			item.set(fill_color = self.op_colour(op))
-		elif event.type == MOTION_NOTIFY and self.drag_last_pos:
-			if not event.state & BUTTON1_MASK:
+		elif event.type == g.gdk.MOTION_NOTIFY and self.drag_last_pos:
+			if not event.state & g.gdk.BUTTON1_MASK:
 				print "(stop drag!)"
 				self.drag_last_pos = None
 				self.program_changed(None)
@@ -684,7 +688,7 @@ class ChainDisplay(canvas.Canvas):
 			self.update_links()
 			#self.create_node(self.prog.start, self.nodes)
 			self.update_points()
-		elif event.type == GDK._2BUTTON_PRESS:
+		elif event.type == g.gdk._2BUTTON_PRESS:
 			if op.action[0] == 'Start':
 				self.edit_comment(op.parent)
 			else:
@@ -776,7 +780,7 @@ class ChainDisplay(canvas.Canvas):
 		# Item may be rec_point or exec_point...
 		item = getattr(self.op_to_group[op], exit + '_line')
 
-		if event.type == BUTTON_PRESS:
+		if event.type == g.gdk.BUTTON_PRESS:
 			if event.button == 1:
 				if not getattr(op, exit):
 					self.drag_last_pos = (event.x, event.y)
@@ -815,7 +819,7 @@ class ChainDisplay(canvas.Canvas):
 					('Paste chain', paste_chain),
 					('Add block', add_block)]
 				Menu(items).popup(event.button, event.time)
-		elif event.type == BUTTON_RELEASE:
+		elif event.type == g.gdk.BUTTON_RELEASE:
 			if event.button == 1:
 				print "Clicked exit %s of %s" % (exit, op)
 				#item.ungrab(event.time)
@@ -823,8 +827,8 @@ class ChainDisplay(canvas.Canvas):
 				self.drag_last_pos = None
 				if not getattr(op, exit):
 					self.end_link_drag(item, event, op, exit)
-		elif event.type == MOTION_NOTIFY and self.drag_last_pos:
-			if not event.state & BUTTON1_MASK:
+		elif event.type == g.gdk.MOTION_NOTIFY and self.drag_last_pos:
+			if not event.state & g.gdk.BUTTON1_MASK:
 				print "(stop drag!)"
 				self.drag_last_pos = None
 				if not getattr(op, exit):
@@ -836,15 +840,15 @@ class ChainDisplay(canvas.Canvas):
 			if abs(dx) > 4 or abs(dy) > 4:
 				sx, sy = self.get_arrow_start(op, exit)
 				x, y = item.w2i(event.x, event.y)
-				g = self.op_to_group[op]
+				gr = self.op_to_group[op]
 				if exit == 'fail':
-					width = g.width
+					width = gr.width
 				else:
 					width = 0
 				item.set(points = connect(sx, sy, x, y))
-		elif event.type == ENTER_NOTIFY:
+		elif event.type == g.gdk.ENTER_NOTIFY:
 			item.set(fill_color = 'white')
-		elif event.type == LEAVE_NOTIFY:
+		elif event.type == g.gdk.LEAVE_NOTIFY:
 			if exit == 'next':
 				item.set(fill_color = 'black')
 			else:
@@ -852,8 +856,8 @@ class ChainDisplay(canvas.Canvas):
 		return 1
 	
 	def get_arrow_start(self, op, exit):
-		g = self.op_to_group[op]
-		return ((exit == 'fail' and g.width) or 0, g.height)
+		gr = self.op_to_group[op]
+		return ((exit == 'fail' and gr.width) or 0, gr.height)
 	
 	def get_arrow_ends(self, op, exit):
 		"""Return coords of arrow, relative to op's group."""
@@ -883,6 +887,7 @@ class ChainDisplay(canvas.Canvas):
 		return (x1, y1, x2, y2)
 	
 	def set_bounds(self):
+		self.update_now()	# GnomeCanvas bug?
 		min_x, min_y, max_x, max_y = self.root().get_bounds()
 		min_x -= 8
 		max_x += 8

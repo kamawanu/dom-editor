@@ -1,20 +1,15 @@
-from __future__ import nested_scopes
-
 from rox import g
-from gnome2.canvas import *
-from GDK import *
-from GDK import _2BUTTON_PRESS
-from GTK import DESTROYED
+from gnome2 import canvas
 from xml.dom import Node
 from constants import *
 
 import string
 
-watch_cursor = cursor_new(WATCH)
-no_cursor = cursor_new(TCROSS)
+watch_cursor = g.gdk.Cursor(g.gdk.WATCH)
+no_cursor = g.gdk.Cursor(g.gdk.TCROSS)
 
 def set_busy(widget, busy = TRUE):
-	w = widget.get_window()
+	w = widget.window
 	if not w:
 		return
 	if busy:
@@ -32,39 +27,14 @@ def wrap(str, width):
 		str = str[i + 1:]
 	return ret + str
 
-#import _gnomeui, gtk
-fast_set = _gnomeui.gnome_canvas_item_set
-rect_type = _gnomeui.gnome_canvas_rect_get_type()
-group_type = _gnomeui.gnome_canvas_group_get_type()
-text_type = _gnomeui.gnome_canvas_text_get_type()
-ellipse_type = _gnomeui.gnome_canvas_ellipse_get_type()
-line_type = _gnomeui.gnome_canvas_line_get_type()
-_obj2inst = gtk._obj2inst
-gci_new = _gnomeui.gnome_canvas_item_new
-
-def add_rect(item, **args):
-	return _obj2inst(gci_new(item._o, rect_type, args))
-
-def add_group(item, **args):
-	return _obj2inst(gci_new(item._o, group_type, args))
-
-def add_text(item, **args):
-	return _obj2inst(gci_new(item._o, text_type, args))
-
-def add_ellipse(item, **args):
-	return _obj2inst(gci_new(item._o, ellipse_type, args))
-
-def add_line(item, **args):
-	return _obj2inst(gci_new(item._o, line_type, args))
-
 cramped_indent = 16
 normal_indent = 24
 
-class Display(GnomeCanvas):
+class Display(canvas.Canvas):
 	def __init__(self, window, view):
-		GnomeCanvas.__init__(self)
+		canvas.Canvas.__init__(self)
 		self.view = None
-		self.window = window
+		self.parent_window = window
 		self.root_group = None
 		self.update_timeout = 0
 		self.update_nodes = {}			# Set of nodes to update on update_timeout
@@ -74,7 +44,7 @@ class Display(GnomeCanvas):
 		self.visible = 1
 
 		s = self.get_style().copy()
-		s.bg[STATE_NORMAL] = self.get_color('old lace')
+		s.bg[g.STATE_NORMAL] = g.gdk.color_parse('old lace')
 		self.set_style(s)
 
 		self.connect('size-allocate', self.size_allocate)
@@ -109,6 +79,7 @@ class Display(GnomeCanvas):
 		w -= m * 2 + 1
 		h -= m * 2 + 1
 
+		self.update_now()	# GnomeCanvas bug?
 		min_x, min_y, max_x, max_y = self.root().get_bounds()
 		if max_x - min_x < w:
 			max_x = min_x + w
@@ -118,7 +89,7 @@ class Display(GnomeCanvas):
 		self.root().move(0, 0) # Magic!
 
 	def update_record_state(self):
-		self.window.update_title()
+		self.parent_window.update_title()
 
 	def update_all(self, node = None):
 		if not node:
@@ -135,16 +106,16 @@ class Display(GnomeCanvas):
 			return		# Going to update anyway...
 
 		if self.view.running():
-			self.update_timeout = timeout_add(2000, self.update_callback)
+			self.update_timeout = g.timeout_add(2000, self.update_callback)
 		else:
-			self.update_timeout = timeout_add(10, self.update_callback)
+			self.update_timeout = g.timeout_add(10, self.update_callback)
 	
 	def do_update_now(self):
 		# Update now, if we need to
 		if self.update_timeout:
-			timeout_remove(self.update_timeout)
+			g.timeout_remove(self.update_timeout)
 			self.update_callback()
-			#self.update_timeout = timeout_add(10, self.update_callback)
+			#self.update_timeout = g.timeout_add(10, self.update_callback)
 	
 	def update_callback(self):
 		self.update_timeout = 0
@@ -157,9 +128,9 @@ class Display(GnomeCanvas):
 					# The root is OK - the change is inside...
 					try:
 						group = self.node_to_group[node]
-						if group.flags() & DESTROYED:
-							print "(group destroyed)"
-							raise Exception('Group destroyed')
+						#if group.flags() & DESTROYED:
+						#	print "(group destroyed)"
+						#	raise Exception('Group destroyed')
 					except:
 						# Modified node not created yet.
 						# Don't worry, updating the parent later
@@ -177,7 +148,7 @@ class Display(GnomeCanvas):
 					if self.root_group:
 						self.root_group.destroy()
 					self.node_to_group = {}
-					self.root_group = add_group(self.root(), x = 0, y = 0)
+					self.root_group = self.root().add(canvas.CanvasGroup, x = 0, y = 0)
 					group = self.root_group
 					node = self.view.root
 					group.connect('event', self.node_event, node)
@@ -230,13 +201,14 @@ class Display(GnomeCanvas):
 		self.view.remove_display(self)
 	
 	def create_attribs(self, attrib, group, cramped, parent):
-		group.text = add_text(group, x = 0, y = -6, anchor = ANCHOR_NW,
+		group.text = group.add(canvas.CanvasText, x = 0, y = -6, anchor = g.ANCHOR_NW,
 					font = 'fixed', fill_color = 'grey40',
 					text = "%s=%s" % (str(attrib.name), str(attrib.value)))
 		group.connect('event', self.attrib_event, parent, attrib)
 
+		self.update_now()	# GnomeCanvas bug?
 		(lx, ly, hx, hy) = group.text.get_bounds()
-		group.rect = add_rect(group,
+		group.rect = group.add(canvas.CanvasRect,
 					x1 = lx - 1, y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
 					fill_color = '')
 		group.rect.lower_to_bottom()
@@ -255,7 +227,7 @@ class Display(GnomeCanvas):
 			c = 'lightblue'
 		else:
 			c = 'yellow'
-		add_ellipse(group, x1 = -4, y1 = -4, x2 = 4, y2 = 4,
+		group.add(canvas.CanvasEllipse, x1 = -4, y1 = -4, x2 = 4, y2 = 4,
 					fill_color = c, outline_color = 'black')
 		text = self.get_text(node)
 		try:
@@ -268,13 +240,14 @@ class Display(GnomeCanvas):
 			text = wrap(text, 32)
 		else:
 			text = wrap(text, 1000)
-		group.text = add_text(group, x = 10 , y = -6, anchor = ANCHOR_NW,
+		group.text = group.add(canvas.CanvasText, x = 10 , y = -6, anchor = g.ANCHOR_NW,
 					font = 'fixed', fill_color = 'black',
 					text = text)
 		self.node_to_group[node] = group
 
+		self.update_now()	# GnomeCanvas bug?
 		(lx, ly, hx, hy) = group.text.get_bounds()
-		group.rect = add_rect(group,
+		group.rect = group.add(canvas.CanvasRect,
 					x1 = -8 , y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
 					fill_color = 'blue')
 		#group.rect.hide()
@@ -298,24 +271,25 @@ class Display(GnomeCanvas):
 					acramped = cramped
 				for key in node.attributes:
 					a = node.attributes[key]
-					g = add_group(group, x = ax, y = ay)
-					self.create_attribs(a, g, cramped, node)
-					(alx, aly, ahx, ahy) = g.get_bounds()
+					gr = group.add(canvas.CanvasGroup, x = ax, y = ay)
+					self.create_attribs(a, gr, cramped, node)
+					self.update_now()	# GnomeCanvas bug?
+					(alx, aly, ahx, ahy) = gr.get_bounds()
 					if acramped:
 						ay = ahy + 8
 						hy = ahy
 					else:
 						ax = ahx + 8
-					group.attrib_to_group[a] = g
+					group.attrib_to_group[a] = gr
 		
 		group.hy = hy
 		kids = []
 		if not hidden:
 			for n in node.childNodes:
-				g = add_group(group, x = 0, y = 0)
-				g.connect('event', self.node_event, n)
-				self.create_tree(n, g, cramped)
-				kids.append(g)
+				gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
+				gr.connect('event', self.node_event, n)
+				self.create_tree(n, gr, cramped)
+				kids.append(gr)
 		
 		self.position_kids(group, kids)
 		group.rect.lower_to_bottom()
@@ -324,9 +298,9 @@ class Display(GnomeCanvas):
 		if not kids:
 			return
 
-		assert not group.flags() & DESTROYED
-		for k in kids:
-			assert not k.flags() & DESTROYED
+		#assert not group.flags() & DESTROYED
+		#for k in kids:
+		#	assert not k.flags() & DESTROYED
 
 		if group.cramped:
 			indent = cramped_indent
@@ -344,12 +318,13 @@ class Display(GnomeCanvas):
 		if node.nodeName != 'tr':
 			y = hy + 4
 			top = None
-			for g in kids:
-				fast_set(g._o, {'x': 0, 'y': 0})
-				(lx, ly, hx, hy) = g.get_bounds()
+			for gr in kids:
+				gr.set(x = 0, y = 0)
+				self.update_now()	# GnomeCanvas bug?
+				(lx, ly, hx, hy) = gr.get_bounds()
 				y -= ly
 				lowest_child = y
-				fast_set(g._o, {'x': indent, 'y': y})
+				gr.set(x = indent, y = y)
 				if not top:
 					top = y
 				y = y + hy + 4
@@ -358,31 +333,32 @@ class Display(GnomeCanvas):
 			max_segment = 16000
 			points = (4, 4, diag, diag, indent, top, indent,
 					min(lowest_child, top + max_segment))
-			group.lines.append(add_line(group,
+			group.lines.append(group.add(canvas.CanvasLine,
 					points = points, fill_color = 'black', width_pixels = 1))
 			group.lines[-1].lower_to_bottom()
 			while points[-1] < lowest_child:
 				old_y = points[-1]
 				points = (indent, old_y, indent,
 					  min(old_y + max_segment, lowest_child))
-				group.lines.append(add_line(group,
+				group.lines.append(group.add(canvas.CanvasLine,
 					points = points, fill_color = 'black', width_pixels = 1))
 				group.lines[-1].lower_to_bottom()
 		else:
 			y = hy + 8
 			x = indent
-			for g in kids:
-				fast_set(g._o, {'x': 0, 'y': 0})
-				(lx, ly, hx, hy) = g.get_bounds()
+			for gr in kids:
+				gr.set(x = 0, y = 0)
+				self.update_now()	# GnomeCanvas bug?
+				(lx, ly, hx, hy) = gr.get_bounds()
 				x -= lx
-				fast_set(g._o, {'x': x, 'y': y - ly})
-				group.lines.append(add_line(group,
+				gr.set(x = x, y = y - ly)
+				group.lines.append(group.add(canvas.CanvasLine,
 						points = (x, y - 4, x, y - ly - 4),
 						fill_color = 'black',
 						width_pixels = 1))
 				right_child = x
 				x += hx - lx + 8
-			group.lines.append(add_line(group,
+			group.lines.append(group.add(canvas.CanvasLine,
 					points = (0, 4, 0, y - 4, right_child, y - 4),
 					fill_color = 'black',
 					width_pixels = 1))
@@ -406,20 +382,20 @@ class Display(GnomeCanvas):
 		pass
 
 	def bg_event(self, widget, event):
-		if event.type == BUTTON_PRESS and event.button == 3:
+		if event.type == g.gdk.BUTTON_PRESS and event.button == 3:
 			self.show_menu(event)
 			return 1
 
 	# 'group' and 'node' may be None (for the background)
 	def node_event(self, group, event, node):
-		if (event.type == BUTTON_PRESS or event.type == _2BUTTON_PRESS) and event.button == 1:
+		if (event.type == g.gdk.BUTTON_PRESS or event.type == g.gdk._2BUTTON_PRESS) and event.button == 1:
 			self.do_update_now()
 			self.node_clicked(node, event)
 			return 1
 		return 0
 
 	def attrib_event(self, group, event, element, attrib):
-		if event.type != BUTTON_PRESS or event.button == 3:
+		if event.type != g.gdk.BUTTON_PRESS or event.button == 3:
 			return 0
 		self.do_update_now()
 		self.attrib_clicked(element, attrib, event)
@@ -483,22 +459,22 @@ class Display(GnomeCanvas):
 	def highlight(self, group, state):
 		node = group.node
 		if state:
-			fast_set(group.rect._o, {'fill_color': 'blue'})
-			fast_set(group.text._o, {'fill_color': 'white'})
+			group.rect.set(fill_color = 'blue')
+			group.text.set(fill_color = 'white')
 		else:
-			fast_set(group.rect._o, {'fill_color': ''})
+			group.rect.set(fill_color = '')
 			if node.nodeType == Node.ELEMENT_NODE:
-				fast_set(group.text._o, {'fill_color': 'black'})
+				group.text.set(fill_color = 'black')
 			elif node.nodeType == Node.TEXT_NODE:
-				fast_set(group.text._o, {'fill_color': 'blue'})
+				group.text.set(fill_color = 'blue')
 			elif node.nodeType == Node.COMMENT_NODE:
-				fast_set(group.text._o, {'fill_color': 'darkgreen'})
+				group.text.set(fill_color = 'darkgreen')
 			else:
-				fast_set(group.text._o, {'fill_color': 'red'})
+				group.text.set(fill_color = 'red')
 		if node in self.view.marked:
-			fast_set(group.rect._o, {'outline_color': 'orange'})
+			group.rect.set(outline_color = 'orange')
 		else:
-			fast_set(group.rect._o, {'outline_color': None})
+			group.rect.set(outline_color = None)
 
 	def world_to_canvas(self, (x, y)):
 		"Canvas routine seems to be broken..."
@@ -510,6 +486,7 @@ class Display(GnomeCanvas):
 			group = self.node_to_group[node]
 		except KeyError:
 			return
+		self.update_now()	# GnomeCanvas bug?
 		(lx, ly, hx, hy) = group.rect.get_bounds()
 		x, y = self.world_to_canvas(group.i2w(0, 0))
 		lx += x

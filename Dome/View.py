@@ -1,5 +1,7 @@
 from __future__ import nested_scopes
 
+from rox import alert
+
 import GDK
 from support import *
 from xml.dom import Node, XMLNS_NAMESPACE
@@ -248,7 +250,7 @@ class View:
 	
 	def record_at_point(self):
 		if not self.exec_point:
-			support.report_error("No current point!")
+			alert("No current point!")
 			return
 		self.set_rec(self.exec_point)
 		self.set_exec(None)
@@ -258,7 +260,7 @@ class View:
 			self.set_exec(self.rec_point)
 			self.set_rec(None)
 		else:
-			support.report_error("Not recording!")
+			alert("Not recording!")
 
 	def may_record(self, action):
 		"Perform and, possibly, record this action"
@@ -531,10 +533,10 @@ class View:
 		"- if the operation is started but not complete, raise InProgress and "
 		"  arrange to resume() later."
 		if self.op_in_progress:
-			support.report_error("Already executing something.")
+			alert("Already executing something.")
 			raise Done()
 		if not self.exec_point:
-			support.report_error("No current playback point.")
+			alert("No current playback point.")
 			raise Done()
 		(op, exit) = self.exec_point
 
@@ -1674,14 +1676,14 @@ class View:
 		env = copy.documentElement
 
 		if env.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/':
-			support.report_error("Not a SOAP-ENV:Envelope (bad namespace)")
+			alert("Not a SOAP-ENV:Envelope (bad namespace)")
 			raise Done()
 		if env.localName != 'Envelope':
-			support.report_error("Not a SOAP-ENV:Envelope (bad local name)")
+			alert("Not a SOAP-ENV:Envelope (bad local name)")
 			raise Done()
 
 		if len(env.childNodes) != 2:
-			support.report_error("SOAP-ENV:Envelope must have one header and one body")
+			alert("SOAP-ENV:Envelope must have one header and one body")
 			raise Done()
 
 		kids = elements(env)
@@ -1690,12 +1692,12 @@ class View:
 
 		if head.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/' or \
 		   head.localName != 'Head':
-			support.report_error("First child must be a SOAP-ENV:Head element")
+			alert("First child must be a SOAP-ENV:Head element")
 			raise Done()
 
 		if body.namespaceURI != 'http://schemas.xmlsoap.org/soap/envelope/' or \
 		   body.localName != 'Body':
-			support.report_error("Second child must be a SOAP-ENV:Body element")
+			alert("Second child must be a SOAP-ENV:Body element")
 			raise Done()
 
 		sft = None
@@ -1707,7 +1709,7 @@ class View:
 			print header.localName
 
 		if not sft:
-			support.report_error("Head must contain a dome:soap-forward-to element")
+			alert("Head must contain a dome:soap-forward-to element")
 			raise Done()
 
 		dest = sft.childNodes[0].data
@@ -1721,7 +1723,7 @@ class View:
 
 		(scheme, addr, path, p, q, f) = urlparse.urlparse(dest, allow_fragments = 0)
 		if scheme != 'http':
-			support.report_error("SOAP is only supported for 'http:' -- sorry!")
+			alert("SOAP is only supported for 'http:' -- sorry!")
 			raise Done()
 
 		stream = StrGrab()
