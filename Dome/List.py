@@ -552,6 +552,10 @@ class ChainBlock(ChainOp):
 	
 	def where(self, x, y):
 		return None
+	
+	def contains(self, x, y):
+		return x >= self.x and y >= self.y and \
+			x < self.x + self.width and y < self.y + self.height
 
 class ChainDisplay(g.EventBox):
 	"A graphical display of a chain of nodes."
@@ -582,9 +586,11 @@ class ChainDisplay(g.EventBox):
 
 		self.connect('expose-event', self.expose)
 
-		self.add_events(g.gdk.BUTTON_PRESS_MASK |
+		self.drag_box = None
+		self.add_events(g.gdk.BUTTON_PRESS_MASK | g.gdk.BUTTON_RELEASE_MASK |
 				g.gdk.POINTER_MOTION_MASK)
 		self.connect('button-press-event', self.button_press)
+		self.connect('button-release-event', self.button_release)
 		self.hover = None
 		self.connect('motion-notify-event', self.motion)
 
@@ -695,7 +701,15 @@ class ChainDisplay(g.EventBox):
 		self.put_point(self.view.rec_point)
 		self.put_point(self.view.exec_point)
 
-		if self.hover:
+		if self.drag_box:
+			pen = self.style.black_gc
+			x = min(self.drag_box[0], self.drag_box[2])
+			y = min(self.drag_box[1], self.drag_box[3])
+			width = abs(self.drag_box[0] - self.drag_box[2])
+			height = abs(self.drag_box[1] - self.drag_box[3])
+			self.window.draw_rectangle(pen, False, int(x), int(y),
+								int(width), int(height))
+		elif self.hover:
 			op, exit = self.hover
 			pen = self.style.black_gc
 			w = self.window
@@ -707,19 +721,104 @@ class ChainDisplay(g.EventBox):
 								box_size, box_size)
 
 	def motion(self, box, event):
-		hover = None
-		for op in self.op_to_object.itervalues():
-			pos = op.where(event.x, event.y)
-			if pos in ('next', 'fail'):
-				hover = (op, pos)
-		if hover == self.hover:
-			return
-		self.hover = hover
+		if self.drag_box:
+			if (event.x, event.y) == self.drag_box[2:]:
+				return
+			self.drag_box = (self.drag_box[0], self.drag_box[1],
+					 event.x, event.y)
+		else:
+			hover = None
+			for op in self.op_to_object.itervalues():
+				pos = op.where(event.x, event.y)
+				if pos in ('next', 'fail'):
+					hover = (op, pos)
+			if hover == self.hover:
+				return
+			self.hover = hover
 		self.queue_draw()
 	
+	def box(self, block, x1, y1, x2, y2):
+		print "Boxed in", block
+
+		ops = {}
+		top = None
+
+		for op in self.op_to_object.itervalues():
+			if op.op.parent != block: continue
+			if op.x + 8 < x1 or op.x > x2: continue
+			if op.y + 8 < y1 or op.y > y2: continue
+			ops[op] = True
+			if top is None or op.y < top.y:
+				top = op
+
+		if not ops: return
+
+		next = fail = None
+		
+		for op in ops:
+			if op.next and op.next not in ops:
+				if next: rox.alert("New block can't have two next exits!")
+				next = op
+			if op.fail and op.fail not in ops:
+				if fail: rox.alert("New block can't have two fail exits!")
+				fail = op
+
+		if not rox.confirm('Put these %d nodes in a new block?' % len(ops),
+					'Create block'):
+			return
+
+		new_exits = (next and next.op.next, fail and fail.op.fail)
+
+		if next: next.op.unlink('next', may_delete = False)
+		if fail: fail.op.unlink('fail', may_delete = False)
+
+		top = top.op
+
+		new = Block(block)
+		prev = top.prev[0]
+		if prev.next == top: exit = 'next'
+		else: exit = 'fail'
+		prev.unlink(exit, may_delete = 0)
+		prev.link_to(new, exit)
+		
+		top.set_parent(None)
+		top.set_parent(new)
+		new.start.link_to(top, 'next')
+		if new_exits[0]: new.link_to(new_exits[0], 'next')
+		if new_exits[1]: new.link_to(new_exits[1], 'fail')
+	
+	def button_release(self, da, event):
+		if event.button != 1 or not self.drag_box:
+			return
+		
+		x1, y1, x2, y2 = self.drag_box
+		if x1 > x2: x1,x2 = x2,x1
+		if y1 > y2: y1,y2 = y2,y1
+
+		best = None
+		for op in self.op_to_object.itervalues():
+			if isinstance(op, ChainBlock):
+				if best is None or best.width > op.width:
+					if op.contains(x1, y1):
+						best = op
+
+		self.drag_box = None
+		self.queue_draw()
+
+		if best:
+			try:
+				self.box(best.op, x1, y1, x2, y2)
+			except:
+				rox.report_exception()
+
 	def button_press(self, da, event):
 		for op in self.op_to_object.itervalues():
-			if op.maybe_clicked(event): break
+			if op.maybe_clicked(event): return
+			
+		if event.type != g.gdk.BUTTON_PRESS or event.button != 1:
+			return
+
+		self.drag_box = (event.x, event.y, event.x, event.y)
 	
 	def op_colour(self, op):
 		if op in self.view.exec_stack:
