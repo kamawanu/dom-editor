@@ -1,6 +1,7 @@
 # An model contains:
 # - A DOM document
 # - The undo history
+# - The root program
 # All changes to the DOM must go through here.
 # Notification to views of changes is done.
 
@@ -14,14 +15,49 @@ import Change
 from Beep import Beep
 
 class Model:
-	def __init__(self, uri):
-		self.doc = implementation.createDocument(None, 'root', None)
+	def __init__(self, path, load = 1):
+		self.uri = 'Document'
+		root = None
+		if path:
+			if path != '-':
+				self.uri = path
+			if load:
+				from xml.dom.ext.reader import PyExpat
+				reader = PyExpat.Reader()
+				doc = reader.fromUri(path)
+				root = doc.documentElement
+		if not root:
+			root = implementation.createDocument(None, 'root', None)
+
+		self.root_program = None
+		data_to_load = None
+
+		from Program import Program, load_dome_program
+		import constants
+		if root.namespaceURI == constants.DOME_NS and root.localName == 'dome':
+			for x in root.childNodes:
+				if x.namespaceURI == constants.DOME_NS:
+					if x.localName == 'dome-program':
+						self.root_program = load_dome_program(x)
+					elif x.localName == 'dome-data':
+						for y in x.childNodes:
+							if y.nodeType == Node.ELEMENT_NODE:
+								data_to_load = y
+		else:
+			data_to_load = root
+
+		if not self.root_program:
+			self.root_program = Program('Root')
+
+		if data_to_load:
+			self.doc = implementation.createDocument(None, 'root', None)
+			if load:
+				node = self.doc.importNode(data_to_load, deep = 1)
+				self.doc.replaceChild(node, self.doc.documentElement)
+				self.strip_space()
+		
 		self.views = []		# Notified when something changes
 		self.locks = {}		# Node -> number of locks
-		if uri:
-			self.uri = uri
-		else:
-			self.uri = 'Document'
 	
 	def lock(self, node):
 		"""Prevent removal of this node (or any ancestor)."""
@@ -58,7 +94,7 @@ class Model:
 		"""Locks 'node' in the current model and returns a new model
 		with a copy of the subtree."""
 		self.lock(node)
-		m = Model(self.get_base_uri(node))
+		m = Model(self.get_base_uri(node), load = 0)
 		copy = m.doc.importNode(node, deep = 1)
 		root = m.get_root()
 		m.replace_node(root, copy)

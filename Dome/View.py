@@ -86,10 +86,8 @@ class Done(Exception):
 	"Thrown when the chain is completed successfully"
 
 class View:
-	def __init__(self, model, program, callback_handlers = None):
+	def __init__(self, model, callback_handlers = None):
 		"""callback_handlers is an (idle_add, idle_remove) tuple"""
-		self.root_program = program
-		program.watchers.append(self)
 		self.root = None
 		self.displays = []
 		self.lists = []
@@ -132,7 +130,9 @@ class View:
 		self.root = None
 		if self.model:
 			self.model.remove_view(self)
+			self.model.root_program.watchers.remove(self)
 		self.model = model
+		self.model.root_program.watchers.append(self)
 		model.add_view(self)
 		self.set_display_root(self.model.get_root())
 		self.move_to(self.root)
@@ -280,7 +280,7 @@ class View:
 	
 	def delete(self):
 		print "View deleted"
-		self.root_program.watchers.remove(self)
+		self.model.root_program.watchers.remove(self)
 		self.move_to([])
 		for l in self.lists:
 			l.destroy()
@@ -751,7 +751,7 @@ class View:
 	
 	def name_to_prog(self, name):
 		comps = string.split(name, '/')
-		prog = self.root_program
+		prog = self.model.root_program
 		if prog.name != comps[0]:
 			raise Exception("No such program as '%s'!" % name)
 		del comps[0]
@@ -1236,7 +1236,7 @@ class View:
 	def export_all(self):
 		from xml.dom import implementation
 		doc = implementation.createDocument(DOME_NS, 'dome', None)
-		node = self.root_program.to_xml(doc)
+		node = self.model.root_program.to_xml(doc)
 		doc.documentElement.appendChild(node)
 		node = doc.createElementNS(DOME_NS, 'dome-data')
 		doc.documentElement.appendChild(node)

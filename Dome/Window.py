@@ -25,11 +25,10 @@ class Window(GtkWindow):
 		gdk_flush()
 
 		import Model
-		self.model = Model.Model('Document')
+		self.model = Model.Model(path)
 		self.gui_view = None
 		self.state = ""
 		
-		from Program import Program, load_dome_program
 		from GUIView import GUIView
 		from List import List
 
@@ -55,42 +54,13 @@ class Window(GtkWindow):
 		paned = GtkHPaned()
 		vbox.pack_start(paned)
 
-		root_program = None
-		data_to_load = None
-
-		if path:
-			if path != '-':
-				self.model.uri = path
-			from xml.dom.ext.reader import PyExpat
-			reader = PyExpat.Reader()
-			doc = reader.fromUri(path)
-			root = doc.documentElement
-			import constants
-			if root.namespaceURI == constants.DOME_NS and root.localName == 'dome':
-				for x in root.childNodes:
-					if x.namespaceURI == constants.DOME_NS:
-						if x.localName == 'dome-program':
-							root_program = load_dome_program(x)
-						elif x.localName == 'dome-data':
-							for y in x.childNodes:
-								if y.nodeType == Node.ELEMENT_NODE:
-									data_to_load = y
-			else:
-				data_to_load = root
-
-		if not root_program:
-			root_program = Program('Root')
-
 		import View
-		view = View.View(self.model, root_program)
+		view = View.View(self.model)
 		self.view = view
 		self.list = List(view)
 		paned.add1(self.list)
 		self.list.show()
 
-		if data_to_load:
-			self.view.load_node(data_to_load)
-		
 		swin = GtkScrolledWindow()
 		swin.set_policy(POLICY_AUTOMATIC, POLICY_ALWAYS)
 		paned.add2(swin)

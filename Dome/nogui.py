@@ -18,16 +18,8 @@ from View import View, Done, InProgress
 from Program import Program, load_dome_program
 
 if len(sys.argv) < 2:
-	print "Usage: python nogui.py <code> [<document>]"
+	print "Usage: python nogui.py <document>"
 	sys.exit(0)
-
-code = choices.load('Dome', 'RootProgram.xml')
-if code:
-	reader = PyExpat.Reader()
-	doc = reader.fromUri(code)
-	root_program = load_dome_program(doc.documentElement)
-else:
-	root_program = Program('Root')
 
 idle_list = []
 
@@ -46,21 +38,17 @@ def idle_remove(tag):
 	except ValueError:
 		pass
 
-model = Model('Document')
-view = View(model, root_program, callback_handlers = (idle_add, idle_remove))
+source = sys.argv[1]
+model = Model(source)
 
-code = sys.argv[1]
+view = View(model, callback_handlers = (idle_add, idle_remove))
 
-if len(sys.argv) > 2:
-	source = sys.argv[2]
-	view.load_xml(source)
-
-print "Starting program", sys.argv[1]
+print "Starting root program of", source
 
 view.run_new(None)
 
 try:
-	view.may_record(['play', sys.argv[1]])
+	view.may_record(['play', model.root_program.name])
 except InProgress:
 	pass
 
@@ -75,4 +63,5 @@ import shutil
 
 shutil.copyfile(source, source + '.bak')
 
-ext.PrettyPrint(model.doc, stream = open(source, 'w'))
+doc = view.export_all()
+ext.PrettyPrint(doc, stream = open(source, 'w'))
