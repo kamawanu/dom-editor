@@ -22,6 +22,9 @@ import traceback
 
 from constants import *
 
+import re
+entrefpattern = re.compile('&(\D\S+);')
+
 def elements(node):
 	out = []
 	for x in node.childNodes:
@@ -46,8 +49,10 @@ stuff (eg, MS Word output). Returns None if data is OK"""
 def to_html(data):
 	(r, w) = os.pipe()
 	child = os.fork()
-	data = data.replace('&nbsp;', ' ')
-	data = data.replace('&copy;', '(c)')
+	#data = data.replace('&nbsp;', ' ')
+	#data = data.replace('&copy;', '(c)')
+	#data = data.replace('&auml;', '(auml)')
+	#data = data.replace('&ouml;', '(ouml)')
 	fixed = fix_broken_html(data)
 	if child == 0:
 		# We are the child
@@ -1369,24 +1374,7 @@ class View:
 		from Ft.Xml.FtMiniDom import nonvalParse
 		isrc = InputSourceFactory()
 
-		try:
-			# Hack to stop 4Suite getting confused with the namespaces
-			i = data.find('<!DOCTYPE')
-			if i != -1: data = data[:i] + data[data.find('>', i) + 1:]
-			root = nonvalParse(isrc.fromString(data, uri))
-			#ext.StripHtml(root)
-		except:
-			type, val, tb = sys.exc_info()
-			traceback.print_exception(type, val, tb)
-			print "parsing failed!"
-			print "Data was:"
-			print data
-			#rox.report_exception()
-			raise Beep
-		else:
-			print "parse OK...",
-			#print "Root node is", root.documentElement.namespaceURI, \
-			#		      root.documentElement.localName
+		root = parse_data(data, uri)
 		
 		new = node.ownerDocument.importNode(root.documentElement, 1)
 		new.setAttributeNS(None, 'uri', uri)
@@ -1621,7 +1609,12 @@ class View:
 		isrc = InputSourceFactory()
 
 		try:
-			doc = nonvalParse(isrc.fromString(data, path))
+			try:
+				doc = nonvalParse(isrc.fromString(data, path))
+			except:
+				print "Parse failed.. retry without entities..."
+				data = entrefpattern.sub('&amp;\\1;',data)
+				doc = nonvalParse(isrc.fromString(data, path))
 		except:
 			type, val, tb = sys.exc_info()
 			traceback.print_exception(type, val, tb)
