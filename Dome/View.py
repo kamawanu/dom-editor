@@ -536,7 +536,6 @@ class View:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
 		print "ns was", ns
-		ns = {}
 		c = Context.Context(self.get_current(), processorNss = ns)
 		nodes = XPath.Evaluate(self.macro_pattern(pattern), context = c)
 		print "Found", nodes

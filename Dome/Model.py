@@ -7,7 +7,7 @@ from __future__ import nested_scopes
 # All changes to the DOM must go through here.
 # Notification to views of changes is done.
 
-from Ft.Xml.Domlette import implementation
+from Ft.Xml.cDomlette import implementation, nonvalParse
 from Ft.Xml import XMLNS_NAMESPACE
 from xml.dom import ext
 from xml.dom import Node
@@ -38,7 +38,6 @@ class Model:
 				self.uri = path
 			if not root_program:
 				#from xml.dom.ext.reader import PyExpat
-				from Ft.Xml.Domlette import nonvalParse
 				from Ft.Xml.InputSource import InputSourceFactory
 				isrc = InputSourceFactory()
 				doc = nonvalParse(isrc.fromUri(path))

@@ -7,9 +7,9 @@ def int_handler(signum, frame):
 		line = raw_input("(debug) ")
 		try:
 			try:
-				a = eval(line, globals(), locals())
-				if a is not None:
-					print a
+				_ = eval(line, globals(), locals())
+				if _ is not None:
+					print _
 			except:
 				exec line
 		except:

@@ -50,7 +50,8 @@ def import_with_ns(doc, node):
 	nss = GetAllNs(node)
 	print "nss", nss
 	print "node, doc", node, doc
-	node = doc.importNode(node, deep = 1)
+	
+	node = doc.importNode(node, 1)
 	print "node", node
 	for ns in nss.keys():
 		if ns == 'xml':
@@ -62,4 +63,5 @@ def import_with_ns(doc, node):
 		else:
 			ns = 'xmlns:' + ns
 		node.setAttributeNS(XMLNS_NAMESPACE, ns, uri)
+	print "Dome"
 	return node

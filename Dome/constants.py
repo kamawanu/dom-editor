@@ -1,3 +1,5 @@
+from Ft.Xml import XMLNS_NAMESPACE
+
 FALSE=0
 TRUE=1
 
