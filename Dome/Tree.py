@@ -11,6 +11,9 @@ import Change
 
 # Graphical tree widget
 
+class Beep(Exception):
+	pass
+
 def get_text(node, line):
 	return string.split(node.nodeValue, '\n')[line]
 
@@ -67,7 +70,15 @@ class Tree(GtkDrawingArea):
 		except KeyError:
 			return 0
 
-		new = action(self, self.line_to_node[self.current_line])
+		try:
+			new = action(self, self.line_to_node[self.current_line])
+		except Beep:
+			gdk_beep()
+			return 1
+		
+		if self.recording != None:
+			self.recording.append(action)
+			print "Recorded:", action.__doc__
 			
 		if new:
 			self.build_index()
@@ -266,23 +277,27 @@ class Tree(GtkDrawingArea):
 	# Motions
 	def move_up(self, node):
 		"Up"
+		if self.current_line < 1:
+			raise Beep
 		self.move_to(self.current_line - 1)
 
 	def move_down(self, node):
 		"Down"
+		if self.current_line + 1 >= len(self.line_to_node):
+			raise Beep
 		self.move_to(self.current_line + 1)
 
 	def move_left(self, node):
 		"Left"
 		if node is self.display_root:
-			return
+			raise Beep
 		self.left_hist.append(self.current_line)
 		self.move_to_node(node.parentNode)
 
 	def move_right(self, cur):
 		"Right"
  		if len(self.left_hist) == 0:
-			return
+			raise Beep
 		line = self.left_hist.pop()
 		node = None
 		try:
@@ -293,6 +308,7 @@ class Tree(GtkDrawingArea):
 			self.move_to(line)
 		else:
 			self.left_hist = []
+			raise Beep
 
 	def move_home(self, node):
 		"Home"
@@ -308,7 +324,7 @@ class Tree(GtkDrawingArea):
 	def chroot(self, cur):
 		"Chroot"
 		if cur == self.display_root:
-			return
+			raise Beep
 		node = cur
 		while node.parentNode != self.display_root:
 			node = node.parentNode
@@ -318,20 +334,24 @@ class Tree(GtkDrawingArea):
 	def unchroot(self, cur):
 		"Unchroot"
 		if not self.display_root.parentNode:
-			return
+			raise Beep
 		self.display_root = self.display_root.parentNode
 		return cur
 		
 	def move_prev_sib(self, cur):
 		"Previous sibling"
-		if cur is not self.display_root:
-			self.move_to_node(cur.previousSibling)
+		if cur is self.display_root or not cur.previousSibling:
+			raise Beep
+		self.move_to_node(cur.previousSibling)
 
 	def move_next_sib(self, cur):
-		if cur is not self.display_root:
-			self.move_to_node(cur.nextSibling)
+		"Next sibling"
+		if cur is self.display_root or not cur.nextSibling:
+			raise Beep
+		self.move_to_node(cur.nextSibling)
 
 	def search(self, node):
+		"Search"
 		Search(self)
 
 	# Changes
@@ -388,29 +408,36 @@ class Tree(GtkDrawingArea):
 
 	def put_before(self, node):
 		"Put before"
+		if self.clipboard == None:
+			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
 		Change.insert_before(node, new)
 		return new
 
 	def put_after(self, node):
 		"Put after"
+		if self.clipboard == None:
+			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
 		Change.insert_after(node, new)
 		return new
 
 	def put_as_child(self, node):
 		"Put as child"
+		if self.clipboard == None:
+			raise Beep
 		new = self.clipboard.cloneNode(deep = 1)
 		Change.insert(node, new, index = 0)
 		return new
 
 	def edit_node(self, node):
+		"Edit node"
 		edit_node(self, node)
-		pass
-
 
 	def delete_node(self, cur):
 		"Delete"
+		if cur is self.display_root:
+			raise Beep
 		new = cur.nextSibling
 		if not new:
 			self.move_to(self.current_line - 1)
@@ -421,9 +448,11 @@ class Tree(GtkDrawingArea):
 
 	def delete_prev_sib(self, cur):
 		"Delete previous sibling"
+		if cur is self.display_root:
+			raise Beep
 		cur, new = cur.previousSibling, cur
 		if not cur:
-			return
+			raise Beep
 		self.clipboard = cur.cloneNode(deep = 1)
 		Change.delete(cur)
 		return new
@@ -433,11 +462,15 @@ class Tree(GtkDrawingArea):
 		if Change.can_undo(self.display_root):
 			Change.do_undo(self.display_root)
 			return cur
+		else:
+			raise Beep
 
 	def redo(self, cur):
 		if Change.can_redo(self.display_root):
 			Change.do_redo(self.display_root)
 			return cur
+		else:
+			raise Beep
 
 	key_to_action = {
 		# Motions
