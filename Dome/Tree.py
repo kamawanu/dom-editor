@@ -71,7 +71,7 @@ class Tree(GtkDrawingArea):
 			return 0
 
 		try:
-			new = action(self, self.line_to_node[self.current_line])
+			need_update = self.do_action(action)
 		except Beep:
 			gdk_beep()
 			return 1
@@ -80,17 +80,23 @@ class Tree(GtkDrawingArea):
 			self.recording.append(action)
 			print "Recorded:", action.__doc__
 			
+		if need_update:
+			def cb(self = self, line = self.current_line):
+				self.move_to(line)
+				return 0
+			idle_add(cb)
+			self.force_redraw()
+		return 1
+	
+	def do_action(self, action):
+		new = action(self, self.line_to_node[self.current_line])
 		if new:
 			self.build_index()
 			if not self.node_to_line.has_key(new):
 				new = self.display_root
-			def cb(self = self, new = new):
-				self.move_to_node(new)
-				return 0
 			self.move_to_node(new)
-			idle_add(cb)
-			self.force_redraw()
-		return 1
+			return 1
+		return 0
 	
 	def tree_changed(self):
 		if not self.display_root.parentNode:
@@ -271,6 +277,7 @@ class Tree(GtkDrawingArea):
 		return 1
 	
 	def create_macro(self):
+		self.macro = self.recording
 		self.recording = None
 		self.window.update_title()
 
@@ -456,6 +463,18 @@ class Tree(GtkDrawingArea):
 		self.clipboard = cur.cloneNode(deep = 1)
 		Change.delete(cur)
 		return new
+	
+	def playback(self, node):
+		"Playback"
+		up = 0
+		for action in self.macro:
+			up = up | self.do_action(action)
+		if up:
+			def cb(self = self, line = self.current_line):
+				self.move_to(line)
+				return 0
+			idle_add(cb)
+			self.force_redraw()
 
 	# Undo/redo
 	def undo(self, cur):
@@ -508,6 +527,8 @@ class Tree(GtkDrawingArea):
 
 		x	: delete_node,
 		X	: delete_prev_sib,
+
+		at	: playback,
 
 		# Undo/redo
 		u	: undo,
