@@ -2,7 +2,7 @@
 # vi: set syntax=python : */
 
 import gc
-show_leaks = True
+show_leaks = False
 
 import findrox
 import rox
