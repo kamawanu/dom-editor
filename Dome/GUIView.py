@@ -397,6 +397,30 @@ class GUIView(Display):
 			do_search, ['XPath:'],
 			'(@CURRENT@ is the current node\'s value)')
 
+	def show_add_box(self, action):
+		if action[0] == 'i':
+			text = 'Insert'
+		elif action[0] == 'a':
+			text = 'Append'
+		elif action[0] == 'o':
+			text = 'Open'
+		elif action[0] == 'e':
+			text = 'Open at end'
+		else:
+			assert 0
+		if action[1] == 'e':
+			text += ' element'
+			prompt = 'Node name'
+		elif action[1] == 't':
+			text += ' text'
+			prompt = 'Text'
+		else:
+			assert 0
+
+		def cb(value):
+			self.view.may_record(['add_node', action, value])
+		GetArg('Add node', cb, [prompt], text)
+	
 	def new_name(self):
 		cur = self.view.get_current()
 		if cur.nodeType == Node.ELEMENT_NODE:
@@ -405,43 +429,35 @@ class GUIView(Display):
 	
 	def menu_insert_element(self):
 		"Insert element"
-		self.view.may_record(['add_node', 'ie', self.new_name()])
-		self.show_editbox()
+		self.show_add_box('ie')
 
 	def menu_append_element(self):
 		"Append element"
-		self.view.may_record(['add_node', 'ae', self.new_name()])
-		self.show_editbox()
+		self.show_add_box('ae')
 
 	def menu_open_element(self):
 		"Open element"
-		self.view.may_record(['add_node', 'oe', self.new_name()])
-		self.show_editbox()
+		self.show_add_box('oe')
 		
 	def menu_open_element_end(self):
 		"Open element at end"
-		self.view.may_record(['add_node', 'ee', self.new_name()])
-		self.show_editbox()
+		self.show_add_box('ee')
 		
 	def menu_insert_text(self):
 		"Insert text"
-		self.view.may_record(['add_node', 'it', ''])
-		self.show_editbox()
+		self.show_add_box('it')
 
 	def menu_append_text(self):
 		"Append text"
-		self.view.may_record(['add_node', 'at', ''])
-		self.show_editbox()
+		self.show_add_box('at')
 
 	def menu_open_text(self):
 		"Open text"
-		self.view.may_record(['add_node', 'ot', ''])
-		self.show_editbox()
+		self.show_add_box('ot')
 
 	def menu_open_text_end(self):
 		"Open text at end"
-		self.view.may_record(['add_node', 'et', ''])
-		self.show_editbox()
+		self.show_add_box('et')
 
 	def menu_close_window(self):
 		self.window.destroy()
