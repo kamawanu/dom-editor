@@ -1,5 +1,6 @@
 import os
 from os.path import exists
+import string
 
 paths = None
 

@@ -6,6 +6,7 @@ import os, re, string, types
 import urlparse
 import Html
 
+from Program import Op
 from Beep import Beep
 from GetArg import GetArg
 import Exec
@@ -72,6 +73,7 @@ class View:
 			report_error("No current point!")
 			return
 		self.set_rec(self.exec_point)
+		self.set_exec(None)
 
 	def toggle_record(self):
 		"Start or stop recording"
@@ -100,7 +102,8 @@ class View:
 		# Only record if we were recording when this action started
 		if rec:
 			(op, old_exit) = rec
-			new_op = op.link_to(Op(op.program, action), old_exit)
+			new_op = Op(op.program, action)
+			op.link_to(new_op, old_exit)
 			self.set_rec((new_op, exit))
 	
 	def add_display(self, display):

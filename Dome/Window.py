@@ -87,8 +87,22 @@ class Window(GtkWindow):
 		self.connect('destroy', self.destroyed)
 	
 	def destroyed(self, widget):
+		path = choices.save('Dome', 'RootProgram')
+		if not path:
+			print "Not saving macros..."
+			return
+
 		print "Saving macros..."
-		self.model.macro_list.save_all()
+		data = self.model.root_program.to_xml()
+
+		file = open(path, 'wb')
+
+		file.write('<?xml version="1.0"?>\n')
+		file.write(data)
+		file.close()
+
+		print "Saved to ", path
+
 
 	def load_file(self, path):
 		if path[-5:] == '.html':

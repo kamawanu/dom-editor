@@ -12,33 +12,45 @@ def el_named(node, name):
 	return None
 	
 def load_xml(op_xml):
+	"op_xml is '<chain>...</chain>'"
 	reader = PyExpat.Reader()
 	doc = reader.fromStream(StringIO(op_xml))
 	return load(doc.documentElement)
 
-# Node is a DOM node: <node action="...">[<fail>][<node>]</node>.
+# Node is a DOM <dome-program> or <node> node.
 # Returns the start Op.
-def load(program, node):
-	attr = node.getAttributeNS('', 'action')
-	action = eval(str(attr))
-	if action[0] == 'chroot':
-		action[0] = 'enter'
-	elif action[0] == 'unchroot':
-		action[0] = 'leave'
-	elif action[0] == 'playback':
-		action[0] = 'map'
-
-	op = Op(program, action)
+def load(program, chain):
+	start = None
+	prev = None
+	print "Load chain", chain
+	for op_node in chain.childNodes:
+		if str(op_node.localName) != 'node':
+			continue
 		
-	next = el_named(node, 'node')
-	fail = el_named(node, 'fail')
+		attr = op_node.getAttributeNS('', 'action')
+		action = eval(str(attr))
+		print "action=", action
+		if action[0] == 'chroot':
+			action[0] = 'enter'
+		elif action[0] == 'unchroot':
+			action[0] = 'leave'
+		elif action[0] == 'playback':
+			action[0] = 'map'
 
-	if next:
-		op.link_to(load(program, next), 'next')
-	if fail:
-		op.link_to(load(program, fail), 'fail')
-	
-	return op
+		op = Op(program, action)
+
+		if not start:
+			start = op
+		if prev:
+			print "Giving", prev, " a next link"
+			prev.link_to(op, 'next')
+		prev = op
+		
+		fail = load(program, op_node)
+		if fail:
+			op.link_to(fail, 'fail')
+		print "Start, prev", start, prev
+	return start
 
 def load_dome_program(prog):
 	"prog should be a DOM 'dome-program' node."
@@ -47,9 +59,10 @@ def load_dome_program(prog):
 
 	new = Program(str(prog.getAttributeNS('', 'name')))
 
-	node = el_named(prog, 'node')
-	if node:
-		new.set_start(load(new, node))
+	start = load(new, prog)
+	print "Start = ", start.next
+	if start:
+		new.set_start(start)
 
 	print "Loading '%s'..." % new.name
 
@@ -74,10 +87,10 @@ class Program:
 		self.changed(None)
 
 	def changed(self, op):
-		if op:
-			print "%s: Op(%s) changed." % (self.name, op.action)
-		else:	
-			print "%s: Changed" % self.name
+		#if op:
+			#print "%s: Op(%s) changed." % (self.name, op.action)
+		#else:	
+			#print "%s: Changed" % self.name
 		for w in self.watchers:
 			w.program_changed(self)
 	
@@ -87,6 +100,16 @@ class Program:
 		prog.parent = self
 		self.subprograms.append(prog)
 		self.changed(None)
+	
+	def to_xml(self):
+		data = "<dome-program name='%s'>\n" % escape_attval(self.name)
+	
+		data += self.start.to_xml_int()
+
+		for p in self.subprograms:
+			data += p.to_xml()
+
+		return data + "</dome-program>\n"
 	
 class Op:
 	"Each node in a chain is an Op. There is no graphical stuff in here."
@@ -166,20 +189,23 @@ class Op:
 		return xml
 	
 	def to_xml(self):
+		return '<dome-program>\n' + self.to_xml_int() + '</dome-program>\n'
+		
+	def to_xml_int(self):
+		"Returns a chain of <Node> elements. So, if you want XML, enclose it "
+		"in something."
 		next = self.next
 		fail = self.fail
 		act = escape_attval(`self.action`)
 		ret = '<node action="%s"' % act
-		if next == None and fail == None:
-			return ret + '/>\n'
-		ret += '>\n'
+		if fail == None:
+			ret += '/>\n'
+		else:
+			ret += '>\n' + self.fail.to_xml_int() + '</node>'
 
-		if fail:
-			ret += '<fail>\n' + fail.add() + '</fail>'
-
-		if next:
-			return ret + next.add() + '</node>'
-		return ret + '</node>'
+		if self.next:
+			ret += self.next.to_xml_int()
+		return ret
 	
 	def __str__(self):
 		return "{" + `self.action` + "}"

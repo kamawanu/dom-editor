@@ -26,6 +26,9 @@ def wrap(str, width):
 		str = str[i + 1:]
 	return ret + str
 
+cramped_indent = 16
+normal_indent = 24
+
 class Display(GnomeCanvas):
 	def __init__(self, window, view):
 		GnomeCanvas.__init__(self)
@@ -128,8 +131,8 @@ class Display(GnomeCanvas):
 						self.root_group.destroy()
 					self.root_group = self.root().add('group', x = 0, y = 0)
 					group = self.root_group
-					group.connect('event', self.node_event, node)
 					node = self.view.root
+					group.connect('event', self.node_event, node)
 					self.create_tree(node, group)
 					self.auto_highlight_rec(node)
 			self.move_from()
@@ -184,7 +187,7 @@ class Display(GnomeCanvas):
 		group.node = node
 		group.cramped = cramped
 		if node.nodeType == Node.TEXT_NODE:
-			c = 'blue'
+			c = 'lightblue'
 		else:
 			c = 'yellow'
 		group.add('ellipse', x1 = -4, y1 = -4, x2 = 4, y2 = 4,
@@ -193,22 +196,22 @@ class Display(GnomeCanvas):
 		try:
 			text = str(text)
 		except UnicodeError:
-			text = `text`
+			text = '!' + `text`
+
+		hbox = node.nodeName == 'TR'
 		if cramped:
 			text = wrap(text, 32)
-		group.text = group.add('text', x = 12, y = -6, anchor = ANCHOR_NW,
+		group.text = group.add('text', x = 10 , y = -6, anchor = ANCHOR_NW,
 					font = 'fixed', fill_color = 'black',
 					text = text)
 		self.node_to_group[node] = group
 
 		(lx, ly, hx, hy) = group.text.get_bounds()
 		group.rect = group.add('rect',
-					x1 = lx - 1, y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
+					x1 = -8 , y1 = ly - 1, x2 = hx + 1, y2 = hy + 1,
 					fill_color = 'blue')
-		group.rect.lower_to_bottom()
 		group.rect.hide()
 
-		hbox = node.nodeName == 'TR'
 		if hbox:
 			cramped = 1
 
@@ -243,15 +246,16 @@ class Display(GnomeCanvas):
 			kids.append(g)
 		
 		self.position_kids(group, kids)
+		group.rect.lower_to_bottom()
 
 	def position_kids(self, group, kids):
 		if not kids:
 			return
 
 		if group.cramped:
-			indent = 16
+			indent = cramped_indent
 		else:
-			indent = 32
+			indent = normal_indent
 
 		node = group.node
 		hy = group.hy
@@ -269,7 +273,8 @@ class Display(GnomeCanvas):
 				(lx, ly, hx, hy) = g.get_bounds()
 				x -= lx
 				g.set(x = x, y = y - ly)
-				group.lines.append(group.add('line', points = (x, y - 4, x, y - ly - 4),
+				group.lines.append(group.add('line',
+						points = (x, y - 4, x, y - ly - 4),
 						fill_color = 'black',
 						width_pixels = 1))
 				right_child = x
@@ -278,20 +283,22 @@ class Display(GnomeCanvas):
 					points = (0, 4, 0, y - 4, right_child, y - 4),
 					fill_color = 'black',
 					width_pixels = 1))
+			group.lines[-1].lower_to_bottom()
 		else:
-			y = hy + 4
+			y = hy + 8
+			top = y - 4
 			for g in kids:
 				g.set(x = 0, y = 0)
 				(lx, ly, hx, hy) = g.get_bounds()
 				y -= ly
 				lowest_child = y
-				group.lines.append(group.add('line', points = (0, y, indent - 4, y),
-						fill_color = 'black',
-						width_pixels = 1))
 				g.set(x = indent, y = y)
 				y = y + hy + 4
-			group.lines.append(group.add('line', points = (0, 4, 0, lowest_child),
+			group.lines.append(group.add('line',
+					points = (0, 4, 0, top, indent, top, indent, lowest_child),
 					fill_color = 'black', width_pixels = 1))
+			group.lines[-1].lower_to_bottom()
+
 
 	def get_text(self, node):
 		if node.nodeType == Node.TEXT_NODE:

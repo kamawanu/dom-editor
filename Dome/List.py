@@ -156,7 +156,6 @@ class List(GnomeCanvas):
 			t = g.add('text', fill_color = 'black', x = 0, y = 0, anchor = ANCHOR_CENTER,
 								text = p.name, font = 'fixed')
 			(lx, ly, hx, hy) = t.get_bounds()
-			print lx, ly, hx, hy
 			if -lx > hx:
 				w = -lx
 			else:
@@ -201,6 +200,7 @@ class List(GnomeCanvas):
 					x1 = -4, x2 = 4,
 					y1 = -4, y2 = 4,
 					width_pixels = 1)
+		circle.connect('event', self.op_event, op)
 		label = group.add('text',
 					x = -8, 
 					y = 0,
@@ -223,21 +223,43 @@ class List(GnomeCanvas):
 					width_pixels = 4)
 		group.next_line.connect('event', self.line_event, op, 'next')
 
+		(x, y) = (16, 16)
 		if op.fail:
-			g = group.add('group', x = 40, y = 30)
+			y = 46
+			g = group.add('group', x = 4, y = 4)
 			self.create_node(op.fail, g)
+			(lx, ly, hx, hy) = g.get_bounds()
+			x = 20 - lx
+			print "lx", lx
+			g.move(x, y)
 		group.fail_line = group.add('line',
 					fill_color = '#ff6666',
-					points = (6, 6, 16, 16),
+					points = (6, 6, x, y),
 					width_pixels = 4)
+		group.fail_line.lower_to_bottom()
 		group.fail_line.connect('event', self.line_event, op, 'fail')
 
 		self.op_to_group[op] = group
 	
+	def op_event(self, item, event, op):
+		if event.type == BUTTON_PRESS and event.button == 1:
+			print op
+		elif event.type == ENTER_NOTIFY:
+			item.set(fill_color = 'white')
+		elif event.type == LEAVE_NOTIFY:
+			item.set(fill_color = 'blue')
+
 	def line_event(self, item, event, op, exit):
 		if event.type == BUTTON_PRESS and event.button == 1:
 			print "Clicked exit %s of %s" % (exit, op)
 			self.view.set_exec((op, exit))
+		elif event.type == ENTER_NOTIFY:
+			item.set(fill_color = 'white')
+		elif event.type == LEAVE_NOTIFY:
+			if exit == 'next':
+				item.set(fill_color = 'black')
+			else:
+				item.set(fill_color = '#ff6666')
 	
 	def set_bounds(self):
 		m = 8

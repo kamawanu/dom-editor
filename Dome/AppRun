@@ -1,6 +1,10 @@
 #! /usr/bin/env python
 # vi: set syntax=python : */
 
+# Ugly hack to stop wierd chars appearing...
+import xml.dom.html
+xml.dom.html.HTML_CHARACTER_ENTITIES = {}
+
 from gtk import *
 import sys
 from os.path import dirname
