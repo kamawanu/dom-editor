@@ -608,11 +608,7 @@ class View:
 			if self.op_in_progress and pattern.find('@CURRENT@') == -1:
 				self.op_in_progress.cached_code = code
 
-		ns = {}
-		if not ns:
-			ns = GetAllNs(self.current_nodes[0])	 # XXX
-		ns['ext'] = FT_EXT_NAMESPACE
-		#print "ns is", ns
+		ns = self.model.namespaces.uri
 		c = Context.Context(self.get_current(), processorNss = ns)
 		#print code
 		nodes = code.evaluate(c)
@@ -636,9 +632,8 @@ class View:
 		if len(self.current_nodes) == 0:
 			raise Beep
 		src = self.current_nodes[-1]
-		if not ns:
-			ns = GetAllNs(src)	# XXX
-		ns['ext'] = FT_EXT_NAMESPACE
+
+		ns = self.model.namespaces.uri
 		c = Context.Context(src, [src], processorNss = ns)
 		rt = XPath.Evaluate(path, context = c)
 		node = None
@@ -697,9 +692,7 @@ class View:
 			if self.op_in_progress and pattern.find('@CURRENT@') == -1:
 				self.op_in_progress.cached_code = code
 
-		if not ns:
-			ns = GetAllNs(src)	 # XXX
-		ns['ext'] = FT_EXT_NAMESPACE
+		ns = self.model.namespaces.uri
 		c = Context.Context(src, [src], processorNss = ns)
 		
 		rt = code.evaluate(c)
@@ -783,8 +776,7 @@ class View:
 			if self.op_in_progress and expr.find('@CURRENT@') == -1:
 				self.op_in_progress.cached_code = code
 
-		ns = GetAllNs(src)	# XXX
-		ns['ext'] = FT_EXT_NAMESPACE
+		ns = self.model.namespaces.uri
 		c = Context.Context(src, [src], processorNss = ns)
 		
 		rt = code.evaluate(c)
@@ -1532,8 +1524,7 @@ class View:
 	def fail_if(self, xpath):
 		"""Evaluate xpath as a boolean, and fail if true."""
 		src = self.get_current()
-		ns = GetAllNs(src)	# XXX
-		ns['ext'] = FT_EXT_NAMESPACE
+		ns = self.model.namespaces.uri
 		c = Context.Context(src.parentNode, [src.parentNode], processorNss = ns)
 		
 		rt = XPath.Evaluate(xpath, context = c)
@@ -1584,7 +1575,7 @@ class View:
 		self.move_to(node, a)
 	
 	def set_root_from_doc(self, doc):
-		new = self.root.ownerDocument.importNode(doc.documentElement, 1)
+		new = self.model.import_with_ns(doc.documentElement)
 
 		if self.root:
 			self.model.unlock(self.root)
@@ -1787,10 +1778,10 @@ class View:
 		pass
 	
 	def export_all(self):
-		doc = implementation.createDocument(DOME_NS, 'dome', None)
+		doc = implementation.createDocument(DOME_NS, 'dome:dome', None)
 		node = self.model.root_program.to_xml(doc)
 		doc.documentElement.appendChild(node)
-		node = doc.createElementNS(DOME_NS, 'dome-data')
+		node = doc.createElementNS(DOME_NS, 'dome:dome-data')
 		doc.documentElement.appendChild(node)
 
 		if self.chroots:

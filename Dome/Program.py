@@ -10,7 +10,7 @@ def el_named(node, name):
 	return None
 	
 # Converts a DOM <block> node to a Block object.
-def load(node, parent):
+def load(node, parent, ns):
 	#assert node.localName == 'block'
 
 	block = Block(parent)
@@ -51,6 +51,14 @@ def load(node, parent):
 					action[0] = 'map'
 				elif action[0] == 'add_attrib':
 					action[1] = "UNUSED"
+				elif action[0] == 'do_search' and action[2] != 'unused':
+					print "Converting search namespaces..."
+					for p, u in action[2].iteritems():
+						print "Convert", p, u
+						new_prefix = ns.ensure_ns(p, u)
+						action[1] = action[1].replace(p + ':',
+									new_prefix + ':')
+					action[2] = 'unused'
 				op = Op(action)
 			elif op_node.localName == 'block':
 				op = load(op_node, block)
@@ -103,8 +111,10 @@ def load(node, parent):
 			op.link_to(to, exit)
 	return block
 
-def load_dome_program(prog):
-	"prog should be a DOM 'dome-program' node."
+def load_dome_program(prog, ns):
+	"prog should be a DOM 'dome-program' node. ns will be updated"
+	import Namespaces
+	assert isinstance(ns, Namespaces.Namespaces)
 	#print "Loading", prog
 	if prog.localName != 'dome-program':
 		raise Exception('Not a DOME program: %s!' % prog)
@@ -121,7 +131,7 @@ def load_dome_program(prog):
 			done_update = 1
 		if node.localName == 'block':
 			assert not done_update
-			new.code = load(node, new)
+			new.code = load(node, new, ns)
 		if node.localName == 'dome-program':
 			new.add_sub(load_dome_program(node))
 		
@@ -195,7 +205,7 @@ class Program:
 			self.tree_changed()
 	
 	def to_xml(self, doc):
-		node = doc.createElementNS(DOME_NS, 'dome-program')
+		node = doc.createElementNS(DOME_NS, 'dome:dome-program')
 		node.setAttributeNS(None, 'name', self.name)
 		
 		node.appendChild(self.code.to_xml(doc))
@@ -368,12 +378,12 @@ class Op:
 	
 	def to_doc(self):
 		from Ft.Xml.cDomlette import implementation
-		doc = implementation.createDocument(DOME_NS, 'dome-program', None)
+		doc = implementation.createDocument(DOME_NS, 'dome:dome-program', None)
 		self.to_xml_int(doc.documentElement)
 		return doc
 	
 	def to_xml(self, doc):
-		node = doc.createElementNS(DOME_NS, 'node')
+		node = doc.createElementNS(DOME_NS, 'dome:node')
 		node.setAttributeNS(None, 'action', `self.action`)
 		node.setAttributeNS(None, 'dx', str(self.dx))
 		node.setAttributeNS(None, 'dy', str(self.dy))
@@ -389,14 +399,14 @@ class Op:
 			node.setAttributeNS(None, 'id', str(id(self)))
 
 		def add_link(op, parent):
-			node = parent.ownerDocument.createElementNS(DOME_NS, 'link')
+			node = parent.ownerDocument.createElementNS(DOME_NS, 'dome:link')
 			parent.appendChild(node)
 			node.setAttributeNS(None, 'target', str(id(op)))
 
 		if self.fail:
 			if self.fail.prev[0] == self:
 				if isinstance(self, Block):
-					fail = parent.ownerDocument.createElementNS(DOME_NS, 'fail')
+					fail = parent.ownerDocument.createElementNS(DOME_NS, 'dome:fail')
 					self.fail.to_xml_int(fail)
 					node.appendChild(fail)
 				else:
@@ -446,7 +456,7 @@ class Block(Op):
 		Op.link_to(self, child, exit)
 	
 	def to_xml(self, doc):
-		node = doc.createElementNS(DOME_NS, 'block')
+		node = doc.createElementNS(DOME_NS, 'dome:block')
 		node.setAttributeNS(None, 'foreach', str(self.foreach))
 		node.setAttributeNS(None, 'enter', str(self.enter))
 		node.setAttributeNS(None, 'restore', str(self.restore))

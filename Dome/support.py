@@ -76,6 +76,7 @@ stuff (eg, MS Word output). Returns None if data is OK"""
 	return data
 
 def to_html_doc(data):
+	"Run data though tidy and return the resulting XML text"
 	(r, w) = os.pipe()
 	child = os.fork()
 	#data = data.replace('&nbsp;', ' ')

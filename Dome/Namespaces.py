@@ -3,7 +3,12 @@ from xml.dom import XMLNS_NAMESPACE, XML_NAMESPACE
 import rox
 from rox import g
 
-fixed_ns = {'xml': XML_NAMESPACE, 'xmlns': XMLNS_NAMESPACE}
+fixed_ns = {'xml': XML_NAMESPACE, 'xmlns': XMLNS_NAMESPACE,
+	    'dome': 'http://www.ecs.soton.ac.uk/~tal00r/Dome'}
+
+common_ns = {'http://www.w3.org/1999/xhtml': 'xhtml',
+	     'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'rdf',
+	     'http://xmlns.4suite.org/ext': 'ft'}
 
 class Namespaces(g.GenericTreeModel):
 	def __init__(self):
@@ -80,7 +85,7 @@ class Namespaces(g.GenericTreeModel):
 			return self.prefix[uri]
 		except KeyError:
 			if not suggested_prefix:
-				suggested_prefix = 'ns'
+				suggested_prefix = common_ns.get(uri, 'ns')
 			if suggested_prefix in self.uri:
 				x = 1
 				while suggested_prefix + `x` in self.uri: x += 1

@@ -185,14 +185,13 @@ class GUIView(Display, XDSLoader):
 				select_region = shift and node.nodeType == Node.ELEMENT_NODE
 				lit = shift and not select_region
 					
-				ns = {}
-				path = make_relative_path(src, node, lit, ns)
+				path = make_relative_path(src, node, lit, self.view.model.namespaces)
 				if path == '.' and self.view.current_nodes and not self.view.current_attrib:
 					return
 				if select_region:
-					self.view.may_record(["select_region", path, ns])
+					self.view.may_record(["select_region", path, "unused"])
 				else:
-					self.view.may_record(["do_search", path, ns, add])
+					self.view.may_record(["do_search", path, "unused", add])
 			else:
 				self.view.may_record(["toggle_hidden"])
 
@@ -201,12 +200,11 @@ class GUIView(Display, XDSLoader):
 			src = self.view.root
 		else:
 			src = self.view.current_nodes[-1]
-		ns = {}
 
 		print "attrib_clicked", attrib, attrib.namespaceURI, attrib.localName
-		path = make_relative_path(src, element, FALSE, ns)
+		path = make_relative_path(src, element, FALSE, self.view.model.namespaces)
 		if path != '.':
-			self.view.may_record(["do_search", path, ns, FALSE])
+			self.view.may_record(["do_search", path, "unused", FALSE])
 		self.view.may_record(["attribute", attrib.namespaceURI, attrib.localName])
 	
 	def menu_save(self):

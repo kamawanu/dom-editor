@@ -4,7 +4,6 @@ def literal_match(node):
 	return "[ext:match('%s')]" % node.nodeValue
 
 # Return a string that will match this node in an XPath.
-# ns is updated with any new namespace required.
 def match_name(node, ns):
 	if node.nodeType == Node.TEXT_NODE:
 		return 'text()'
@@ -12,24 +11,13 @@ def match_name(node, ns):
 		return 'comment()'
 	elif node.nodeType == Node.ELEMENT_NODE:
 		if node.namespaceURI:
-			for x in ns.keys():
-				if ns[x] == node.namespaceURI:
-					return '%s:%s' % (x, node.localName)
-			n = 1
-			while 1:
-				key = '_ns_%d' % n
-				if not ns.has_key(key):
-					break
-				n += 1
-			ns[key] = node.namespaceURI
-			return '%s:%s' % (key, node.localName)
+			return '%s:%s' % (ns.prefix[node.namespaceURI], node.localName)
 		return node.nodeName
 	else:
 		return node.nodeName
 
 def jump_to_sibling(src, dst, ns):
 	"Return an XPath which, given a context 'src' will move to sibling 'dst'."
-	"Namespace 'ns' may be updated if new names are required"
 
 	if dst.nodeType == Node.ATTRIBUTE_NODE:
 		return 'attribute::%s/' % dst.nodeName
@@ -68,7 +56,7 @@ def path_to(node):
 def make_relative_path(src_node, dst_node, lit, ns):
 	"Return an XPath string which will move us from src to dst."
 	"If 'lit' then the text of the (data) node must match too."
-	"Namespace 'ns' is updated with any required namespaces."
+	"Namespace 'ns' is used to find the prefixes."
 
 	assert src_node
 	assert dst_node

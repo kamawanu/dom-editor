@@ -59,7 +59,8 @@ class Model:
 			for x in root.childNodes:
 				if x.namespaceURI == constants.DOME_NS:
 					if x.localName == 'dome-program':
-						self.root_program = load_dome_program(x)
+						self.root_program = load_dome_program(x,
+										self.namespaces)
 					elif x.localName == 'dome-data':
 						for y in x.childNodes:
 							if y.nodeType == Node.ELEMENT_NODE:
@@ -258,6 +259,7 @@ class Model:
 		return new
 	
 	def remove_ns(self, node):
+		raise Exception("Shouldn't need this now!")
 		nss = GetAllNs(node.parentNode)
 		dns = nss.get(None, None)
 		create = node.ownerDocument.createElementNS
@@ -461,6 +463,7 @@ class Model:
 	
 	def prefix_to_namespace(self, node, prefix):
 		"Using attributes for namespaces was too confusing. Keep a global list instead."
+		if prefix is None: return None
 		try:
 			return self.namespaces.uri[prefix]
 		except KeyError:
