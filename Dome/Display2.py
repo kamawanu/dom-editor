@@ -35,7 +35,7 @@ def calc_node(display, node, pos):
 
 	def draw_fn():
 		surface = display.pm
-		style = display.style
+		style = display.surface.style	# Different surface ;-)
 		fg = display.style.fg_gc
 		bg = display.style.bg_gc
 
@@ -206,6 +206,7 @@ class Display(g.HBox):
 	
 	def quick_walk(self):
 		"Return all the nodes in the document, in document order. Not attributes."
+		yield self.view.root.parentNode
 		node = self.view.root
 		while node:
 			yield node
@@ -314,7 +315,7 @@ class Display(g.HBox):
 			if x > 10: return x - 10
 			if x < -10: return x + 10
 			return 0
-		x, y, mask = self.window.get_pointer()
+		x, y, mask = self.surface.window.get_pointer()
 		sx, sy = self.pan_start
 		dx, dy = scale(chop(x - sx)) / 20, scale(chop(y - sy))
 		dx = max(dx, 10 - self.h_limits[1])
@@ -411,5 +412,5 @@ class Display(g.HBox):
 		while node.parentNode:
 			x += 16
 			node = node.parentNode
-		self.ref_pos = (x, self.ref_pos[1])
+		self.ref_pos = (x, 0)
 		self.update_all()
