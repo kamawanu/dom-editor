@@ -192,7 +192,9 @@ class List(g.VBox):
 		del sel
 		
 	def set_innermost_failure(self, op):
-		self.show_prog(op.get_program())
+		prog = op.get_program()
+		print "list: set_innermost_failure:", prog
+		self.show_prog(prog)
 	
 	def destroy(self):
 		self.view.lists.remove(self)
@@ -320,6 +322,10 @@ class List(g.VBox):
 	
 	def show_prog(self, prog):
 		path = self.prog_to_path[prog]
+		partial = []
+		for p in path[:-1]:
+			partial.append(p)
+			self.tree.expand_row(tuple(partial), FALSE)
 		iter = self.prog_model.get_iter(path)
 		self.tree.get_selection().select_iter(iter)
 
