@@ -77,6 +77,7 @@ class List(GtkVBox):
 
 	def build_tree(self, tree, prog):
 		item = GtkTreeItem(prog.name)
+		item.connect('button-press-event', self.prog_event, prog)
 		item.connect('select', lambda widget, c = self.chains, p = prog: \
 							c.switch_to(p))
 		item.show()
@@ -94,8 +95,21 @@ class List(GtkVBox):
 			self.prog.add_sub(new)
 			#self.switch_to(new)
 		GetArg('New program', create, ['Program name:'])
+	
+	def prog_event(self, item, event, prog):
+		if event.button == 2 or event.button == 3:
+			item.emit_stop_by_name('button-press-event')
+			#item.select()
+			if event.button == 3:
+				self.show_menu(event, prog)
+			else:
+				if event.state & SHIFT_MASK:
+					self.view.map(prog)
+				else:
+					self.view.play(prog)
+		return 1
 
-	def show_menu(self, sub):
+	def show_menu(self, event, sub):
 		def del_prog(self = self, sub = sub):
 			parent = sub.parent
 			sub.parent.remove_sub(sub)
@@ -112,7 +126,6 @@ class List(GtkVBox):
 		items = [
 			('Play', lambda view = view, s = sub: view.play(s)),
 			('Map', lambda view = view, s = sub: view.map(s)),
-			('View', lambda self = self, s = sub: self.switch_to(s)),
 			('Rename', rename_prog),
 			('Delete', dp),
 			]

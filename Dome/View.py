@@ -463,7 +463,7 @@ class View:
 	def redo(self):
 		self.model.redo(self.root)
 
-	def play(self, prog):
+	def play(self, prog, when_done = None):
 		print "Play", prog.name
 		self.single_step = 0
 		self.set_exec((prog.start, 'next'))
@@ -498,19 +498,17 @@ class View:
 
 	def map(self, prog):
 		print "Map", prog.name
-		return
 
 		nodes = self.current_nodes[:]
 		inp = [nodes, None]
-		def next(self = self, macro_name = macro_name, inp = inp):
+		def next(self = self, prog = prog, inp = inp):
 			nodes, next = inp
 			self.move_to(nodes[0])
 			print "Next:", self.current
 			del nodes[0]
-			self.exec_state = Exec.exec_state	# XXX
 			if not nodes:
 				next = None
-			self.exec_state.play(macro_name, when_done = next)
+			self.play(prog, when_done = next)
 		inp[1] = next
 		next()
 
