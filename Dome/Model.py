@@ -224,7 +224,8 @@ class Model:
 		nss = GetAllNs(node.parentNode)
 		dns = nss.get(None, None)
 		create = node.ownerDocument.createElementNS
-		def ns_clone(node):
+		# clone is an argument to fix a wierd gc bug in python2.2
+		def ns_clone(node, clone):
 			if node.nodeType != Node.ELEMENT_NODE:
 				return node.cloneNode(1)
 			new = create(dns, node.nodeName)
@@ -233,11 +234,10 @@ class Model:
 					print "Removing xmlns attrib on", node
 					continue
 				new.setAttributeNS(a.namespaceURI, a.name, a.value)
-			#print "Now", new
 			for k in node.childNodes:
-				new.appendChild(ns_clone(k))
+				new.appendChild(clone(k, clone))
 			return new
-		new = ns_clone(node)
+		new = ns_clone(node, ns_clone)
 		self.replace_node(node, new)
 		return new
 	

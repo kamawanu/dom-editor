@@ -99,6 +99,12 @@ def run_nogui():
 
 if show_leaks:
 	`[]`	# Load repr stuff
+	from Ft.Xml.XPath import XPathParser	# Load XPath stuff
+	XPathParser.new().parse('/')
+	import urllib2
+	r = urllib2.Request('http://www.ecs.soton.ac.uk')	# HTTP
+	stream = urllib2.urlopen(r)
+
 	gc.collect()
 	old = {}
 	for x in gc.get_objects():
