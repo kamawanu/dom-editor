@@ -74,7 +74,7 @@ def load(node, parent):
 			exit = 'next'
 			prev = op
 			
-			if op_node.nodeName == 'block':
+			if op_node.localName == 'block':
 				# Block nodes have a special failure child
 				for x in op_node.childNodes:
 					if x.localName == 'fail':
