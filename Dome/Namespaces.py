@@ -52,7 +52,11 @@ class Namespaces(g.GenericTreeModel):
 			return
 
 		assert prefix
-		assert prefix not in fixed_ns
+		if prefix in fixed_ns:
+			raise Exception('That namespace prefix cannot be changed')
+
+		if prefix in self.dict:
+			del self[self.get_iter((self.list.index(prefix)))]
 
 		self.dict[prefix] = uri
 		self.update_list()
@@ -81,7 +85,7 @@ class GUI(rox.Dialog):
 
 		def response(dialog, resp):
 			if resp == 1:
-				model.namespaces.add_new()
+				self.add_new(model.namespaces)
 			elif resp == 2:
 				self.delete_selected(tree.get_selection())
 			else:
@@ -117,3 +121,38 @@ class GUI(rox.Dialog):
 			del model[iter]
 		except:
 			rox.report_exception()
+	
+	def add_new(self, ns):
+		d = rox.Dialog()
+
+		hbox = g.HBox(False, 2)
+		d.vbox.pack_start(hbox, False, True)
+		hbox.pack_start(g.Label('Prefix:'), False, True, 0)
+		prefix = g.Entry()
+		hbox.pack_start(prefix, True, True, 0)
+
+		hbox = g.HBox(False, 2)
+		d.vbox.pack_start(hbox, False, True)
+		hbox.pack_start(g.Label('Namespace URI:'), False, True, 0)
+		uri = g.Entry()
+		hbox.pack_start(uri, True, True, 0)
+		uri.set_activates_default(True)
+
+		d.vbox.show_all()
+		d.set_position(g.WIN_POS_MOUSE)
+
+		prefix.grab_focus()
+		
+		d.add_button(g.STOCK_CANCEL, g.RESPONSE_CANCEL)
+		d.add_button(g.STOCK_OK, g.RESPONSE_OK)
+		
+		d.set_default_response(g.RESPONSE_OK)
+
+		if d.run() != g.RESPONSE_OK:
+			d.destroy()
+			return
+		try:
+			ns[prefix.get_text()] = uri.get_text()
+		except:
+			rox.report_exception()
+		d.destroy()
