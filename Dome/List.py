@@ -850,7 +850,7 @@ class ChainDisplay(canvas.Canvas):
 		if not next:
 			rox.alert('Nothing to yank!')
 			return
-		self.clipboard = op.to_doc()
+		self.clipboard = next.to_doc()
 		print self.clipboard
 	
 	def line_del_chain(self):
