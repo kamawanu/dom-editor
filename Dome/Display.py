@@ -156,10 +156,12 @@ class Display(GnomeCanvas):
 					print "highlighting..."
 					self.auto_highlight(node, rec = 1)
 					print "done"
+			print "move"
 			self.move_from()
 			self.set_bounds()
 			if self.view.current_nodes:
 				self.scroll_to_show(self.view.current_nodes[0])
+			print "really done"
 		finally:
 			set_busy(self, FALSE)
 			self.update_nodes = {}

@@ -50,6 +50,6 @@ else:
 
 if tl_windows > 0:
 	#import profile
-	#profile.run('mainloop()')
+	#profile.run('gtk.mainloop()')
 
 	gtk.mainloop()

@@ -638,18 +638,21 @@ class View:
 	def subst(self, replace, with):
 		"re search and replace on the current node"
 		check = len(self.current_nodes) == 1
-		for n in self.current_nodes:
-			if n.nodeType == Node.TEXT_NODE:
-				old = str(n.data).replace('\n', ' ')
-				print `old`
-				new, num = re.subn(replace, with, old)
-				print "To", new, num
-				if check and not num:
+		a = self.current_attrib
+		if a:
+			new = re.sub(replace, with, a.value)
+			self.model.set_attrib(self.get_current(), a.name, new)
+		else:
+			for n in self.current_nodes:
+				if n.nodeType == Node.TEXT_NODE:
+					old = str(n.data).replace('\n', ' ')
+					new, num = re.subn(replace, with, old)
+					if check and not num:
+						raise Beep
+					self.model.set_data(n, new)
+				else:
+					self.move_to(n)
 					raise Beep
-				self.model.set_data(n, new)
-			else:
-				self.move_to(n)
-				raise Beep
 
 	def python(self, expr):
 		"Replace node with result of expr(old_value)"

@@ -8,7 +8,12 @@ try:
 except:
 	print "(no GUI, but that's OK)"
 
-from rox import choices
+from rox import choices, support
+
+def error(message, title = 'Error'):
+	print "*********", title
+	print message, "\n"
+support.report_error = error
 
 import sys
 from xml.dom import ext

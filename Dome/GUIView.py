@@ -213,7 +213,6 @@ class GUIView(Display):
 	
 	def hide_editbox(self):
 		if self.cursor_node:
-			group = self.node_to_group[self.cursor_node]
 			if self.cursor_attrib:
 				self.cursor_hidden_text.set(text = '%s=%s' %
 					(self.cursor_attrib.name, self.cursor_attrib.value))
