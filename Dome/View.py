@@ -18,13 +18,34 @@ class Beep(Exception):
 class View:
 	def __init__(self, model):
 		self.model = model
-		View.update_all(self)
-		model.add_view(self)
-	
-	def update_all(self):
 		self.chroots = []
 		self.current = self.model.get_root()
 		self.root = self.current
+		model.add_view(self)
+	
+	def has_ancestor(self, node, ancestor):
+		while node != ancestor:
+			node = node.parentNode
+			if not node:
+				return FALSE
+		return TRUE
+	
+	def update_all(self):
+		# Is the root node still around?
+		if not self.has_ancestor(self.root, self.model.get_root()):
+			# No - reset everything
+			print "[ lost root - using doc root ]"
+			self.root = doc_root
+			self.chroots = []
+		
+		# Is the current node still around?
+		if not self.has_ancestor(self.current, self.root):
+			# No - move to root
+			print "[ lost current - using root ]"
+			self.current = self.root
+			return
+
+		return
 	
 	def delete(self):
 		self.model.remove_view(self)
@@ -63,15 +84,19 @@ class View:
 		else:
 			raise Beep
 	
+	def set_display_root(self, root):
+		self.root = root
+		self.update_all()
+	
 	def enter(self):
 		"Change the display root to the current node."
 		n = 0
-		node = self.current_node
+		node = self.current
 		while node != self.root:
 			n += 1
 			node = node.parentNode
-		self.root = self.current_node
 		self.chroots.append(n)
+		self.set_display_root(self.current)
 	
 	def leave(self):
 		"Undo the effect of the last chroot()."
@@ -79,9 +104,11 @@ class View:
 			raise Exception('No Enter to undo!')
 
 		n = self.chroots.pop()
+		root = self.root
 		while n > 0:
 			n = n - 1
-			self.root = self.root.parentNode
+			root = root.parentNode
+		self.set_display_root(root)
 
 	def do_action(self, action):
 		"'action' is a tuple (function, arg1, arg2, ...)"

@@ -57,6 +57,7 @@ class Window(GtkWindow):
 		hbox.pack_start(swin, TRUE, TRUE, 0)
 		swin.set_policy(POLICY_NEVER, POLICY_ALWAYS)
 		self.swin = swin
+		self.vadj = swin.get_vadjustment()
 
 		self.uri = "Document"
 

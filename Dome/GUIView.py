@@ -14,7 +14,7 @@ class GUIView(Display):
 	vmargin = 4
 
 	def __init__(self, window, model):
-		Display.__init__(self, model)
+		Display.__init__(self, model, window.vadj)
 		self.window = window
 		self.connect('button-press-event', self.button_event)
 		window.connect('key-press-event', self.key_press)
@@ -69,8 +69,8 @@ class GUIView(Display):
 		if bev.button == 3:
 			items = [
 				('Search', self.show_search),
-				#('Enter', self.chroot),
-				#('Leave', self.unchroot),
+				('Enter', self.enter),
+				('Leave', self.leave),
 				(None, None),
 				#('Delete', self.delete_node),
 				('Substitute', self.show_subst),
@@ -98,14 +98,6 @@ class GUIView(Display):
 			#self.recording_where = rec.record(action, self.recording_exit)
 			#self.recording_exit = 'next'
 	
-	def move_to(self, node):
-		old_node = self.current
-		Display.move_to(self, node)
-		if old_node == self.current:
-			return
-		self.redraw_node(old_node)
-		self.redraw_node(self.current)
-
 	def show_ask(self):
 		def do_ask(q, self = self):
 			action = ["ask", q]
