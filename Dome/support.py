@@ -27,8 +27,10 @@ bad_xpm = [
 
 def html_to_xml(html):
 	"Takes an HTML DOM and creates a corresponding XML DOM."
+	print html
+	old_root = html.documentElement
 	root = implementation.createDocument('', 'root', None)
-	node = root.importNode(html.documentElement, deep = 1)
+	node = root.importNode(old_root, deep = 1)
 	root.replaceChild(node, root.documentElement)
 	return root
 

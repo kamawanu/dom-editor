@@ -136,20 +136,21 @@ class Tree(GtkDrawingArea):
 
 		self.may_record(action)
 
-	def toggle_record(self):
+	def toggle_record(self, extend = FALSE):
 		"Start or stop recording"
 		if self.recording_where:
 			self.recording_where = None
-		else:
+		elif extend:
 			self.recording_where = self.exec_state.where
+			if not self.recording_where:
+				report_error("No current point!")
+				return
 
+			self.recording_exit = self.exec_state.exit
+		else:
 			node = self.line_to_node[self.current_line]
-			if self.recording_where:
-				self.recording_exit = self.exec_state.exit
-			else:
-				self.recording_where = \
-					self.window.macro_list.record_new(node.nodeName).start
-				self.recording_exit = 'next'
+			self.recording_where = self.window.macro_list.record_new(node.nodeName).start
+			self.recording_exit = 'next'
 		
 		self.window.update_title()
 			
@@ -676,7 +677,7 @@ class Tree(GtkDrawingArea):
 					break
 		if not uri:
 			raise Beep
-		command = "lynx -source '%s'" % uri
+		command = "lynx -source '%s' | tidy" % uri
 		print command
 		cout = os.popen(command)
 
