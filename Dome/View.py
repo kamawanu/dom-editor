@@ -141,9 +141,6 @@ class View:
 		self.current_nodes = []
 		self.set_model(model)
 
-		import debug
-		debug.view = self
-	
 	def get_current(self):
 		if len(self.current_nodes) == 1:
 			return self.current_nodes[0]
@@ -416,6 +413,8 @@ class View:
 		if not self.chroots:
 			raise Beep
 
+		model = self.model
+
 		(old_model, old_node) = self.chroots.pop()
 
 		copy = old_model.doc.importNode(self.model.get_root(), 1)
@@ -423,6 +422,13 @@ class View:
 		old_model.unlock(old_node)
 		old_model.replace_node(old_node, copy)
 		self.move_to([copy])
+
+		if not model.views:
+			model.undo_stack = None
+			model.__dict__ = {}
+			del model
+			import gc
+			gc.collect()
 
 	def do_action(self, action):
 		"'action' is a tuple (function, arg1, arg2, ...)"

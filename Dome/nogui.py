@@ -3,6 +3,9 @@
 import findrox
 from Beep import Beep
 
+#import gc
+#gc.set_debug(gc.DEBUG_LEAK)
+
 try:
 	import rox
 except:
@@ -83,4 +86,3 @@ if source[-5:] == '.dome':
 else:
 	xml = source + '.xml'
 PrettyPrint(view.model.doc, stream = open(xml, 'w'))
-

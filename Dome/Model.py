@@ -78,9 +78,6 @@ class Model:
 		self.views = []		# Notified when something changes
 		self.locks = {}		# Node -> number of locks
 
-		import debug
-		debug.model = self
-	
 	def lock(self, node):
 		"""Prevent removal of this node (or any ancestor)."""
 		#print "Locking", node.nodeName
@@ -138,8 +135,8 @@ class Model:
 	
 	def remove_view(self, view):
 		#print "Removing view", view
-		#print "Now:", self.views
 		self.views.remove(view)
+		#print "Now:", self.views
 	
 	def update_all(self, node):
 		"Called when 'node' has been updated."
