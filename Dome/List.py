@@ -264,9 +264,15 @@ class ChainDisplay(GnomeCanvas):
 		if point == 'exec_point' and self.view.op_in_progress:
 			opexit = (self.view.op_in_progress, None)
 		if opexit:
+			g = None
 			(op, exit) = opexit
 			if op.program != self.prog:
 				return
+			if op.program == self.prog:
+				try:
+					g = self.op_to_group[op]
+				except KeyError:
+					pass
 			if point == 'rec_point':
 				c = 'red'
 				s = 6
@@ -279,16 +285,15 @@ class ChainDisplay(GnomeCanvas):
 						outline_color = 'black', width_pixels = 1)
 			setattr(self, point, item)
 
-			if op.program == self.prog:
-				g = self.op_to_group[op]
+			if g:
 				(x1, y1) = g.i2w(0, 0)
 				if exit == 'next':
-					if op.next:
+					if op.next and self.op_to_group.has_key(op.next):
 						(x2, y2) = self.op_to_group[op.next].i2w(0, 0)
 					else:
 						(x2, y2) = g.i2w(0, 20)
 				elif exit == 'fail':
-					if op.fail:
+					if op.fail and self.op_to_group.has_key(op.fail):
 						(x2, y2) = self.op_to_group[op.fail].i2w(0, 0)
 					else:
 						(x2, y2) = g.i2w(20, 20)

@@ -215,6 +215,8 @@ class Op:
 		if not self.prev:
 			raise Exception("Can't delete a Start node!")
 
+		prog = self.program
+
 		if self.next:
 			next = self.next
 		else:
@@ -238,6 +240,8 @@ class Op:
 		self.action = None
 		self.fail = None
 		self.program = None
+
+		prog.changed()
 		return xml
 	
 	def del_chain(self):

@@ -88,6 +88,7 @@ class Done(Exception):
 class View:
 	def __init__(self, model, program):
 		self.root_program = program
+		program.watchers.append(self)
 		self.root = None
 		self.displays = []
 		self.lists = []
@@ -268,6 +269,7 @@ class View:
 	
 	def delete(self):
 		print "View deleted"
+		self.root_program.watchers.remove(self)
 		self.move_to([])
 		for l in self.lists:
 			l.destroy()
@@ -809,6 +811,10 @@ class View:
 		command = "w3m -dump_source '%s' | tidy -asxml 2>/dev/null" % uri
 
 		def done(root, self = self, uri = uri):
+			if not root:
+				print "Load failed"
+				self.resume('fail')
+				return
 			node = self.get_current()
 			new = node.ownerDocument.importNode(root.documentElement, deep = 1)
 			new.setAttributeNS('', 'uri', uri)
@@ -848,7 +854,8 @@ class View:
 				root = reader.fromStream(StringIO(all[0]))
 				ext.StripHtml(root)
 			except:
-				report_exception()
+				print "dom_from_command: parsing failed"
+				#report_exception()
 				root = None
 			cb(root)
 			
@@ -1141,6 +1148,26 @@ class View:
 		self.move_to([])
 		self.model.replace_node(old, new)
 		self.move_to(new)
+	
+	def program_changed(self, prog):
+		print "Check points..."
+		if self.rec_point:
+			(op, exit) = self.rec_point
+			if not op.program:
+				print "Lost rec_point"
+				self.rec_point = None
+		if self.exec_point:
+			(op, exit) = self.exec_point
+			if not op.program:
+				print "Lost exec_point"
+				self.exec_point = None
+		for l in self.lists:
+			l.update_points()
+		self.status_changed()
+		
+	def prog_tree_changed(self, prog):
+		print "here"
+		pass
 
 class StrGrab:
 	data = ''
