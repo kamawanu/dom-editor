@@ -377,7 +377,11 @@ class ChainOp(ChainNode):
 			self.next = None
 
 		if op.fail and op.fail.prev[0] == op:
-			self.fail = da.create_op(op.fail, x + 100, y + self.height + 4)
+			if op.next:
+				indent = self.next.width + 20
+			else:
+				indent = 100
+			self.fail = da.create_op(op.fail, x + indent, y + self.height + 4)
 		else:
 			self.fail = None
 
@@ -399,7 +403,7 @@ class ChainOp(ChainNode):
 		w.draw_layout(da.style.black_gc, self.x + 12, self.y, self.layout)
 	
 		self.draw_link(self.next, 5, 10, 'black')
-		self.draw_link(self.fail, 10, 10, 'red')
+		self.draw_link(self.fail, 5, 14, 'red')
 
 		if (op, 'next') in self.da.view.breakpoints:
 			w.draw_arc(da.style.black_gc, True,
@@ -415,7 +419,8 @@ class ChainOp(ChainNode):
 		da = self.da
 		pen = da.style.white_gc
 		pen.set_rgb_fg_color(g.gdk.color_parse(colour))
-		da.backing.draw_line(pen, self.x + dx, self.y + dy, dest.x + 5, dest.y)
+		da.backing.draw_line(pen, self.x + dx, self.y + dy, dest.x + 5, self.y + dy)
+		da.backing.draw_line(pen, dest.x + 5, self.y + dy, dest.x + 5, dest.y)
 		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
 	def where(self, x, y):
