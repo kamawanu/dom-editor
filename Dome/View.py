@@ -1511,21 +1511,36 @@ class View:
 	def load_html(self, path):
 		"Replace root with contents of this HTML file."
 		print "Reading HTML..."
-		command = "tidy -asxml '%s' 2>/dev/null" % path
+		data = file(path).read()
+		data = to_html(data)
+		
+		from Ft.Xml.InputSource import InputSourceFactory
+		from Ft.Xml.cDomlette import nonvalParse
+		isrc = InputSourceFactory()
 
-		def done(root, md5, self = self):
-			print "Loaded!"
-			new = self.root.ownerDocument.importNode(root.documentElement, 1)
+		try:
+			root = nonvalParse(isrc.fromString(data, path))
+			ext.StripHtml(root)
+		except:
+			type, val, tb = sys.exc_info()
+			traceback.print_exception(type, val, tb)
+			print "parsing failed!"
+			print "Data was:"
+			print data
+			#support.report_exception()
+			raise Beep
+		else:
+			print "parse OK...",
+		
+		new = self.root.ownerDocument.importNode(root.documentElement, 1)
 
-			if self.root:
-				self.model.unlock(self.root)
-			self.move_to([])
-			self.model.replace_node(self.root, new)
-			self.model.lock(new)
-			self.root = new
-			self.move_to(self.root)
-
-		self.dom_from_command(command, done)
+		if self.root:
+			self.model.unlock(self.root)
+		self.move_to([])
+		self.model.replace_node(self.root, new)
+		self.model.lock(new)
+		self.root = new
+		self.move_to(self.root)
 
 	def load_xml(self, path):
 		"Replace root with contents of this XML (or Dome) file."
@@ -1764,6 +1779,12 @@ class View:
 		node = self.get_current()
 		self.move_to([])
 		self.move_to(self.model.remove_ns(node))
+	
+	def convert_to_text(self):
+		nodes = self.current_nodes[:]
+		self.move_to([])
+		nodes = map(self.model.convert_to_text, nodes)
+		self.move_to(nodes)
 
 class StrGrab:
 	data = ''

@@ -190,6 +190,12 @@ class Model:
 		self.add_undo(lambda: self.replace_node(node, old))
 		self.update_all(node)
 	
+	def convert_to_text(self, node):
+		assert node.nodeType == Node.COMMENT_NODE
+		new = self.doc.createCommentNode(node.data)
+		self.replace_node(node, new)
+		return new
+	
 	def remove_ns(self, node):
 		nss = ext.GetAllNs(node.parentNode)
 		dns = nss.get(None, None)

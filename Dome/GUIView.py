@@ -39,8 +39,6 @@ menu = Menu('Dome', 'main', [
 		('/Edit/Paste (after)', 'do_put_after', '', 'p'),
 		('/Edit/', '', '', '<separator>'),
 		('/Edit/Edit value', 'toggle_edit', '', 'Return'),
-		('/Edit/Normalise', 'do_normalise', '', ''),
-		('/Edit/Remove default namespaces', 'do_remove_ns', '', 'r'),
 		('/Edit/', '', '', '<separator>'),
 		('/Edit/Undo', 'do_undo', '', 'u'),
 		('/Edit/Redo', 'do_redo', '', '<Ctrl>R'),
@@ -95,6 +93,9 @@ menu = Menu('Dome', 'main', [
 		('/Process', None, '<Branch>', ''),
 		('/Process/Substitute', 'menu_show_subst', '', 's'),
 		('/Process/Python expression', 'menu_show_pipe', '', '<Shift>exclam'),
+		('/Process/Normalise', 'do_normalise', '', ''),
+		('/Process/Remove default namespaces', 'do_remove_ns', '', 'r'),
+		('/Process/Comment to text', 'do_convert_to_text', '', ''),
 
 		('/Program', None, '<Branch>', ''),
 		('/Program/Input', 'menu_show_ask', '', 'question'),
@@ -479,6 +480,7 @@ class GUIView(Display):
 	do_compare = make_do('compare')
 	do_again = make_do('again')
 	do_normalise = make_do('normalise')
+	do_convert_to_text = make_do('convert_to_text')
 	do_remove_ns = make_do('remove_ns')
 
 	do_clear_mark = make_do('clear_mark')
