@@ -2,6 +2,7 @@ from gtk import *
 from support import *
 
 from Beep import Beep
+from Macro import MacroNode
 
 # An exec represents an executing macro, including the stack, root and cursor position
 
@@ -58,7 +59,8 @@ class Exec:
 			#self.tree.toggle_record(extend = TRUE)
 			self.where.macro.show_all()
 	
-	def play(self, macro_name):
+	def play(self, macro_name, when_done = None):
+		"When macro returns call when_done(), if given."
 		self.frozen = 0
 
 		m = self.view.model.macro_list.macro_named(macro_name)
@@ -69,6 +71,9 @@ class Exec:
 			self.stack.append(self.doing_node)
 			self.doing_node.highlight('cyan')
 			self.doing_node = None
+
+		if when_done:
+			self.stack.append(when_done)
 
 		self.set_pos(m.start)
 
@@ -145,7 +150,8 @@ class Exec:
 		# XXX: Recursion won't unhighlight correctly...
 		while n > 0:
 			node = self.stack.pop()
-			node.highlight('blue')
+			if isinstance(node, MacroNode):
+				node.highlight('blue')
 			n -= 1
 			if self.stop_after > 0:
 				self.stop_after -= 1
@@ -158,7 +164,10 @@ class Exec:
 			new = self.stack[-1]
 			self.unstack_n(1)
 			print "Up to", new
-			self.set_pos(new, self.exit)
+			if callable(new):
+				new()
+			else:
+				self.set_pos(new, self.exit)
 			return
 
 		# We can't go up... now what?

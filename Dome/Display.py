@@ -144,7 +144,6 @@ class Display(GtkDrawingArea):
 		return 1
 
 	def redraw_node(self, node):
-		print "Redraw", node
 		(x, y, w, h) = self.get_allocation()
 
 		try:

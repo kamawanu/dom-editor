@@ -25,7 +25,6 @@ class View:
 		self.root = self.model.get_root()
 		self.current_nodes = [self.root]
 		self.clipboard = None
-		self.global_set = []	# List of nodes for next op
 		model.add_view(self)
 	
 	def __getattr__(self, attr):
@@ -182,6 +181,8 @@ class View:
 
 		ns = {}
 		ns['ext'] = FT_EXT_NAMESPACE
+		if len(self.current_nodes) != 1:
+			self.move_to(self.root)
 		c = Context.Context(self.current, [self.current], processorNss = ns)
 		self.global_set = path.select(c)
 		self.move_to(self.global_set)
@@ -214,11 +215,13 @@ class View:
 
 	def subst(self, replace, with):
 		"re search and replace on the current node"
-		if self.current.nodeType == Node.TEXT_NODE:
-			new = re.sub(replace, with, self.current.data)
-			self.model.set_data(self.current, new)
-		else:
-			raise Beep
+		for n in self.current_nodes:
+			if n.nodeType == Node.TEXT_NODE:
+				new = re.sub(replace, with, n.data)
+				self.model.set_data(n, new)
+			else:
+				self.move_to(n)
+				raise Beep
 
 	def python(self, expr):
 		"Replace node with result of expr(old_value)"
@@ -249,18 +252,19 @@ class View:
 		return self.model.doc.createTextNode(str(data))
 	
 	def yank(self):
-		node = self.current
-		self.clipboard = node.cloneNode(deep = 1)
-		print "Clip now", self.clipboard
+		nodes = self.current_nodes
+		if len(nodes) == 1:
+			# TODO: Grab fragment for multiple nodes?
+			self.clipboard = nodes[0].cloneNode(deep = 1)
+			print "Clip now", self.clipboard
+		else:
+			print "[ multiple nodes not yanked ]"
 	
 	def delete_node(self):
 		nodes = self.current_nodes[:]
 		if not nodes:
 			return
-		if len(nodes) == 1:
-			# TODO: Grab fragment for multiple nodes?
-			self.clipboard = nodes[0].cloneNode(deep = 1)
-			print "Clip now", self.clipboard
+		self.yank()
 		new = []
 		for x in nodes:
 			if x != self.root:
@@ -279,8 +283,19 @@ class View:
 		self.model.redo(self.root)
 
 	def playback(self, macro_name):
-		self.exec_state = Exec.exec_state	# XXX
-		self.exec_state.play(macro_name)
+		nodes = self.current_nodes[:]
+		inp = [nodes, None]
+		def next(self = self, macro_name = macro_name, inp = inp):
+			nodes, next = inp
+			self.move_to(nodes[0])
+			print "Next:", self.current
+			del nodes[0]
+			self.exec_state = Exec.exec_state	# XXX
+			if not nodes:
+				next = None
+			self.exec_state.play(macro_name, when_done = next)
+		inp[1] = next
+		next()
 
 	def change_node(self, new_data):
 		node = self.current

@@ -84,7 +84,7 @@ class GUIView(Display):
 		if node and node not in self.view.current_nodes:
 			if len(self.view.current_nodes) != 1:
 				self.view.move_to(self.view.root)
-			lit = bev.state & CONTROL_MASK
+			lit = bev.state & SHIFT_MASK
 			ns = {}
 			path = make_relative_path(self.view.current, node, lit, ns)
 			self.may_record(["do_search", path, ns])

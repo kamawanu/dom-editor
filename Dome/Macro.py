@@ -350,10 +350,9 @@ class MacroNode:
 	def show_menu(self, event):
 		if self.next and self.fail:
 			del_node = None
-			del_chain = None
 		else:
 			del_node = self.del_node
-			del_chain = self.del_chain
+		del_chain = self.del_chain
 
 		if not self.prev:
 			del_node = None
