@@ -22,14 +22,6 @@ from View import View
 from View import InProgress, Done
 from Program import Program, load_dome_program
 
-code = choices.load('Dome', 'RootProgram.xml')
-if code:
-	reader = PyExpat.Reader()
-	doc = reader.fromUri(code)
-	root_program = load_dome_program(doc.documentElement)
-else:
-	root_program = Program('Root')
-	
 class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
@@ -55,6 +47,7 @@ class Window(GtkWindow):
 
 		toolbar = Toolbar()
 		for (name, tip) in [
+			('SaveAll', 'Save both program and document'),
 			('Save', 'Save this document'),
 			('Record', 'Start recording here'),
 			('Stop', 'Stop recording or running program'),
@@ -72,6 +65,14 @@ class Window(GtkWindow):
 		paned = GtkHPaned()
 		vbox.pack_start(paned)
 
+		self.code = None
+		if code:
+			reader = PyExpat.Reader()
+			doc = reader.fromUri(code)
+			root_program = load_dome_program(doc.documentElement)
+		else:
+			root_program = Program('Root')
+			
 		view = View(self.model, root_program)
 		self.list = List(view)
 		paned.add1(self.list)
@@ -95,10 +96,12 @@ class Window(GtkWindow):
 		self.update_title()
 		
 		if path:
-			idle_add(self.load_file, path)
+			self.load_file(path)
 	
 	def load_file(self, path):
-		if path != '-':
+		if path == '-':
+			self.model.uri = None
+		else:
 			self.model.uri = path
 		self.gui_view.load_file(path)
 	
@@ -165,6 +168,9 @@ class Window(GtkWindow):
 			doc = node_to_xml(self.view.root)
 		elif self.savetype == 'html':
 			doc = node_to_html(self.view.root)
+		elif self.savetype == 'dome':
+			doc = implementation.createDocument(None, 'dome', None)
+			doc = node_to_html(self.view.root)
 		else:
 			raise Exception('Unknown save type', self.savetype)
 		self.output_data = ''
@@ -185,6 +191,9 @@ class Window(GtkWindow):
 
 	# Toolbar bits
 
+	def tool_SaveAll(self):
+		self.save('dome')
+	
 	def tool_Save(self):
 		self.save('xml')
 	

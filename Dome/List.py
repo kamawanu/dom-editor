@@ -465,6 +465,7 @@ class ChainDisplay(GnomeCanvas):
 				if next:
 					def yank_chain(self = self, op = next):
 						self.clipboard = op.to_xml()
+						print self.clipboard
 					def del_chain(self = self, op = next):
 						self.clipboard = op.del_chain()
 				else:

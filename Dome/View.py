@@ -718,6 +718,9 @@ class View:
 		print "Map", name
 
 		nodes = self.current_nodes[:]
+		if not nodes:
+			print "map of nothing: skipping..."
+			return
 		inp = [nodes, None]	# Nodes, next
 		def next(exit = exit, self = self, name = name, inp = inp):
 			"This is called while in do_one_step() - normal rules apply."
@@ -829,18 +832,24 @@ class View:
 
 		command = "w3m -dump_source '%s' | tidy -asxml 2>/dev/null" % uri
 
-		def done(root, self = self, uri = uri, last_mod = last_mod):
+		def done(root, md5, self = self, uri = uri, last_mod = last_mod):
+			node = self.get_current()
+			if md5 == "Same":
+				self.model.set_attrib(node, None, 'modified', None)
+				print "MD5 sums match => not parsing!\n"
+				self.resume('next')
+				return
 			if not root:
 				print "Load failed"
 				self.resume('fail')
 				return
-			node = self.get_current()
 			new = node.ownerDocument.importNode(root.documentElement, deep = 1)
 			new.setAttributeNS(None, 'uri', uri)
 
 			if last_mod:
 				new.setAttributeNS(None, 'last-modified', last_mod)
 			new.setAttributeNS(None, 'modified', 'yes')
+			new.setAttributeNS(None, 'md5_sum', md5)
 
 			self.move_to([])
 			if node == self.root:
@@ -853,23 +862,34 @@ class View:
 			self.move_to(new)
 			print "Loaded."
 			self.resume('next')
-		self.dom_from_command(command, done)
+		self.dom_from_command(command, done, node.getAttributeNS(None, 'md5_sum'))
 		raise InProgress
 	
-	def dom_from_command(self, command, callback = None):
+	def dom_from_command(self, command, callback = None, old_md5 = None):
 		"""Execute shell command 'command' in the background.
-		Parse the output as XML. When done, call callback(doc_root)."""
+		Parse the output as XML. When done, call callback(doc_root, md5).
+		If old_md5 is given, compare the MD5 of the document with it,
+		and do callback(None, "Same") if they match.
+		"""
 		print command
 		cout = os.popen(command)
 	
 		all = ["", None]
-		def got_html(src, cond, all = all, self = self, cb = callback):
+		def got_html(src, cond, all = all, self = self, cb = callback, m5 = old_md5):
 			data = src.read(100)
 			if data:
 				all[0] += data
 				return
 			input_remove(all[1])
 			src.close()
+
+			import md5
+			new_md5 = md5.new(all[0]).hexdigest()
+			
+			if m5 and new_md5 == m5:
+				cb(None, "Same")
+				return
+			
 			reader = PyExpat.Reader()
 			print "Parsing..."
 			
@@ -880,7 +900,7 @@ class View:
 				print "dom_from_command: parsing failed"
 				#report_exception()
 				root = None
-			cb(root)
+			cb(root, new_md5)
 			
 		all[1] = input_add(cout, GDK.INPUT_READ, got_html)
 	
@@ -1046,7 +1066,7 @@ class View:
 		print "Reading HTML..."
 		command = "tidy -asxml '%s' 2>/dev/null" % path
 
-		def done(root, self = self):
+		def done(root, md5, self = self):
 			print "Loaded!"
 			new = self.root.ownerDocument.importNode(root.documentElement, deep = 1)
 
@@ -1061,7 +1081,7 @@ class View:
 		self.dom_from_command(command, done)
 
 	def load_xml(self, path):
-		"Replace root with contents of this XML file."
+		"Replace root with contents of this XML (or Dome) file."
 		reader = PyExpat.Reader()
 		new_doc = reader.fromUri(path)
 
