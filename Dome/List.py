@@ -26,8 +26,9 @@ def connect(x1, y1, x2, y2):
 	dx = x2 - x1
 	dy = y2 - y1
 	l = math.hypot(dx, dy)
-	dx *= gap / l
-	dy *= gap / l
+	if l:
+		dx *= gap / l
+		dy *= gap / l
 	return (x1 + dx, y1 + dy, x2 - dx, y2 - dy)
 
 def action_to_text(action):
