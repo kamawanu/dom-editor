@@ -102,7 +102,7 @@ class List(g.VBox):
 		swin.set_policy(g.POLICY_NEVER, g.POLICY_AUTOMATIC)
 		pane.add1(swin)
 
-		self.prog_model = g.TreeStore(str)
+		self.prog_model = g.TreeStore(str, str)
 		tree = g.TreeView(self.prog_model)
 		tree.unset_flags(g.CAN_FOCUS)
 		tree.set_headers_visible(FALSE)
@@ -111,7 +111,18 @@ class List(g.VBox):
 		column = g.TreeViewColumn('Program', cell, text = 0)
 		tree.append_column(column)
 
-		self.chains = ChainDisplay(view, view.model.root_program)
+		sel = tree.get_selection()
+		def change_prog(tree):
+			selected = sel.get_selected()
+			if not selected:
+				return
+			model, iter = selected
+			path = model.get_value(iter, 1)
+			self.chains.switch_to(self.view.name_to_prog(path))
+
+		sel.connect('changed', change_prog)
+
+		self.chains = ChainDisplay(view)
 		self.prog_tree_changed()
 		v = g.Viewport()
 		v.add(tree)
@@ -127,6 +138,10 @@ class List(g.VBox):
 
 		pane.set_position(200)
 
+		sel.set_mode(g.SELECTION_BROWSE)
+		root_iter = self.prog_model.get_iter_first()
+		sel.select_iter(root_iter)
+		tree.expand_row(self.prog_model.get_path(root_iter), FALSE)
 		tree.show()
 		self.view.lists.append(self)
 		self.view.model.root_program.watchers.append(self)
@@ -150,47 +165,19 @@ class List(g.VBox):
 		self.prog_to_tree = {}
 		self.prog_model.clear()
 		self.build_tree(self.view.model.root_program)
-		"""
-		# Redraw goes wrong if we don't use a callback...
-		def cb():
-			global expand_history
-			old_eh = expand_history
-			expand_history = {}
-
-			def expand(prog):
-				if old_eh.get(prog, 0):
-					self.prog_to_tree[prog].expand()
-					map(expand, prog.subprograms.values())
-			expand(self.view.model.root_program)
-
-			return 0
-		idle_add(cb)
-		"""
 
 		# Check for now deleted programs still being displayed
 		root = self.view.model.root_program
-		if self.chains and not self.chains.prog.parent and self.chains.prog is not root:
-			self.chains.switch_to(self.view.model.root_program)
+		if self.chains and self.chains.prog and not self.chains.prog.parent:
+			self.chains.switch_to(None)
 		for x in self.sub_windows:
 			if x.disp.prog is not root and not x.disp.prog.parent:
 				x.destroy()
 	
 	def build_tree(self, prog, iter = None):
-		"""
-		def set_expand_state(state):
-			expand_history[prog] = state
-			print prog, "is now", expand_history[prog]
-		item = g.TreeItem(prog.name)
-		item.connect('expand', lambda widget: set_expand_state(1))
-		item.connect('collapse', lambda widget: set_expand_state(0))
-		item.connect('button-press-event', self.prog_event, prog)
-		item.connect('select', lambda widget, c = self.chains, p = prog: \
-							c.switch_to(p))
-		item.show()
-		tree.append(item)
-		"""
 		child_iter = self.prog_model.append(iter)
-		self.prog_model.set(child_iter, 0, prog.name)
+		self.prog_model.set(child_iter, 0, prog.name,
+						1, prog.get_path())
 
 		#self.prog_to_tree[prog] = item
 		for p in prog.subprograms.values():
@@ -291,7 +278,7 @@ class List(g.VBox):
 
 class ChainDisplay(canvas.Canvas):
 	"A graphical display of a chain of nodes."
-	def __init__(self, view, prog):
+	def __init__(self, view, prog = None):
 		canvas.Canvas.__init__(self)
 		self.connect('destroy', self.destroyed)
 		self.view = view
@@ -355,6 +342,9 @@ class ChainDisplay(canvas.Canvas):
 		if item:
 			item.destroy()
 			setattr(self, point, None)
+
+		if not self.prog:
+			return
 		
 		opexit = getattr(self.view, point)
 		if point == 'exec_point' and self.view.op_in_progress:
@@ -396,6 +386,8 @@ class ChainDisplay(canvas.Canvas):
 		print "(ChainDisplay destroyed)"
 	
 	def switch_to(self, prog):
+		if prog is self.prog:
+			return
 		self.prog = prog
 		self.update_all()
 	
@@ -412,7 +404,8 @@ class ChainDisplay(canvas.Canvas):
 
 		self.op_to_group = {}
 		self.nodes = self.root().add(canvas.CanvasGroup, x = 0, y = 0)
-		self.create_node(self.prog.code, self.nodes)
+		if self.prog:
+			self.create_node(self.prog.code, self.nodes)
 		self.update_links()
 		self.update_points()
 
@@ -429,6 +422,8 @@ class ChainDisplay(canvas.Canvas):
 		"""Walk through all nodes in the tree-version of the op graph,
 		making all the links (which already exist as stubs) point to
 		the right place."""
+		if not self.prog:
+			return
 		if not op:
 			op = self.prog.code
 		if op.next:
