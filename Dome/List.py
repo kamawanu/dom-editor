@@ -67,6 +67,7 @@ class List(GtkVBox):
 		GtkVBox.__init__(self)
 
 		self.view = view
+		self.sub_windows = []
 
 		self.tree = GtkTree()
 		self.tree.unset_flags(CAN_FOCUS)
@@ -95,6 +96,8 @@ class List(GtkVBox):
 	
 	def update_points(self):
 		self.chains.update_points()
+		for x in self.sub_windows:
+			x.update_points()
 	
 	def program_changed(self, prog):
 		pass
@@ -196,9 +199,20 @@ class List(GtkVBox):
 				self.view.run_new(self.run_return)
 				self.view.may_record([play, name])
 			return ret
+
+		def new_view(self = self, view = view, prog = prog):
+			cw = ChainWindow(view, prog)
+			cw.show()
+			self.sub_windows.append(cw)
+			def lost_cw(win, self = self, cw = cw):
+				self.sub_windows.remove(cw)
+				print "closed"
+			cw.connect('destroy', lost_cw)
+			
 		items = [
 			('Play', do('play')),
 			('Map', do('map')),
+			('View', new_view),
 			(None, None),
 			('New program', new_prog),
 			('Rename', rename_prog),
@@ -455,3 +469,19 @@ class ChainDisplay(GnomeCanvas):
 		sx = self.get_hadjustment().value
 		sy = self.get_hadjustment().value
 		return (x + mx + sx , y + my + sy)
+
+class ChainWindow(GtkWindow):
+	def __init__(self, view, prog):
+		GtkWindow.__init__(self)
+		swin = GtkScrolledWindow()
+		self.add(swin)
+		disp = ChainDisplay(view, prog)
+		swin.add(disp)
+
+		swin.show_all()
+		self.disp = disp
+		self.set_default_size(-1, 200)
+		self.set_title(prog.name)
+
+	def update_points(self):
+		self.disp.update_points()
