@@ -76,6 +76,7 @@ class Display(g.EventBox):
 		self.connect('expose-event', lambda w, e: 1)
 
 		self.pan_timeout = None
+		self.h_limits = (0, 0)
 		self.set_view(view)
 	
 	def size_allocate(self, alloc):
@@ -101,11 +102,21 @@ class Display(g.EventBox):
 
 		self.drawn = {}	# xmlNode -> (x1, y1, y2, y2)
 
+		n = self.ref_node
+		while n is not self.view.root:
+			n = n.parentNode
+			if not n:
+				print "(lost root)"
+				self.ref_node = self.view.root
+				self.ref_pos = (0, 0)
+				break
+
 		self.selection = {}
 		for n in self.view.current_nodes:
 			self.selection[n] = None
 
 		pos = list(self.ref_pos)
+		self.h_limits = (self.ref_pos[0], self.ref_pos[0])	# Left, Right
 		node = self.ref_node
 		for node, bbox, draw_fn in self.walk_tree(self.ref_node, self.ref_pos):
 			if bbox[1] > self.last_alloc[1]: break	# Off-screen
@@ -115,6 +126,8 @@ class Display(g.EventBox):
 			if bbox[1] < 0:
 				self.ref_node = node
 				self.ref_pos = bbox[:2]
+			self.h_limits = (min(self.h_limits[0], bbox[0]),
+					 max(self.h_limits[1], bbox[2]))
 
 		self.window.clear()
 
@@ -178,9 +191,23 @@ class Display(g.EventBox):
 				return n
 	
 	def pan(self):
+		def scale(x):
+			val = (float(abs(x)) ** 1.4)
+			if x < 0:
+				return -val
+			else:
+				return val
+		def chop(x):
+			if x > 10: return x - 10
+			if x < -10: return x + 10
+			return 0
 		x, y, mask = self.window.get_pointer()
 		sx, sy = self.pan_start
-		new = [self.ref_pos[0] + (x - sx) / 8, self.ref_pos[1] + (y - sy)]
+		dx, dy = scale(chop(x - sx)) / 20, scale(chop(y - sy))
+		dx = max(dx, 10 - self.h_limits[1])
+		dx = min(dx, self.last_alloc[0] - 10 - self.h_limits[0])
+		new = [self.ref_pos[0] + dx, self.ref_pos[1] + dy]
+		
 		if new == self.ref_pos:
 			return 1
 
@@ -188,9 +215,15 @@ class Display(g.EventBox):
 
 		# Walk up the parents until we get a ref node above the start of the screen
 		# (redraw will come back down)
-		while self.ref_pos[1] > 0 and self.ref_node.parentNode:
+		while self.ref_pos[1] > 0:
 			src = self.ref_node
-			self.ref_node = self.ref_node.parentNode
+
+			if self.ref_node.previousSibling:
+				self.ref_node = self.ref_node.previousSibling
+			elif self.ref_node.parentNode:
+				self.ref_node = self.ref_node.parentNode
+			else:
+				break
 
 			# Walk from the parent node to find how far it is to this node...
 			for node, bbox, draw_fn in self.walk_tree(self.ref_node, (0, 0)):
@@ -201,7 +234,15 @@ class Display(g.EventBox):
 			self.ref_pos[0] -= bbox[0]
 			self.ref_pos[1] -= bbox[1]
 
-			print "(start from %s at (%d,%d))" % (self.ref_node, self.ref_pos[0], self.ref_pos[1])
+			#print "(start from %s at (%d,%d))" % (self.ref_node, self.ref_pos[0], self.ref_pos[1])
+
+		if self.ref_pos[1] > 10:
+			self.ref_pos[1] = 10
+		elif self.ref_pos[1] < -100:
+			for node, bbox, draw_fn in self.walk_tree(self.ref_node, self.ref_pos):
+				if bbox[3] > 10: break	# Something is visible
+			else:
+				self.ref_pos[1] = -100
 
 		self.update()
 		
@@ -228,3 +269,6 @@ class Display(g.EventBox):
 			return 0
 		return 1
 
+	def marked_changed(self, nodes):
+		"nodes is a list of nodes to be rechecked."
+		self.update_all()
