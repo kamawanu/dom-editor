@@ -228,8 +228,6 @@ class View:
 	
 	def update_replace(self, old, new):
 		if old == self.root:
-			self.model.lock(new)
-			self.model.unlock(old)
 			self.root = new
 		if old in self.current_nodes:
 			self.model.lock(new)
@@ -276,10 +274,10 @@ class View:
 		for l in self.lists:
 			l.destroy()
 		self.model.unlock(self.root)
+		self.root = None
 		self.model.remove_view(self)
 		self.model = None
 		self.current = None
-		self.root = None
 	
 	def home(self):
 		"Move current to the display root."
@@ -593,9 +591,11 @@ class View:
 		self.model.delete_nodes(nodes)
 	
 	def undo(self):
+		self.move_to([])
 		self.model.undo(self.root)
 
 	def redo(self):
+		self.move_to([])
 		self.model.redo(self.root)
 	
 	def default_done(self, exit):
@@ -995,7 +995,14 @@ class View:
 		new = self.model.doc.importNode(new_doc.documentElement, deep = 1)
 		
 		self.model.strip_space(new)
+
+		if self.root:
+			self.model.unlock(self.root)
+		self.move_to([])
 		self.model.replace_node(self.root, new)
+		self.model.lock(new)
+		self.root = new
+		self.move_to(self.root)
 	
 	def show_html(self):
 		from HTML import HTML
@@ -1090,7 +1097,11 @@ class View:
 		new = self.model.doc.importNode(new_doc.documentElement, deep = 1)
 		
 		self.model.strip_space(new)
-		self.model.replace_node(self.current, new)
+
+		old = self.current
+		self.move_to([])
+		self.model.replace_node(old, new)
+		self.move_to(new)
 
 class StrGrab:
 	data = ''
