@@ -2,6 +2,7 @@ from gtk import *
 import GDK
 from support import *
 from xml.dom import Node, ext
+from xml.dom.Document import Document
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
 from xml.dom.ext.reader import PyExpat
 import os, re, string, types
@@ -81,13 +82,11 @@ class View:
 		self.displays = []
 		self.lists = []
 		self.single_step = 1	# 0 = Play   1 = Step-into   2 = Step-over
-		self.model = model
+		self.model = None
 		self.chroots = []
-		self.root = self.model.get_root()
-		self.current_nodes = [self.root]
+		self.current_nodes = []
 		self.clipboard = None
 		self.current_attrib = None
-		model.add_view(self)
 
 		self.exec_point = None		# None, or (Op, Exit)
 		self.rec_point = None		# None, or (Op, Exit)
@@ -100,6 +99,8 @@ class View:
 		self.exec_stack = []		# Ops we are inside (display use only)
 
 		self.breakpoints = {}		# (op, exit) keys, values don't matter
+		self.set_model(model)
+		self.current_nodes = [self.root]
 	
 	def __getattr__(self, attr):
 		if attr == 'current':
@@ -110,6 +111,13 @@ class View:
 		
 	def __cmp__(a, b):
 		return a is not b
+	
+	def set_model(self, model):
+		if self.model:
+			self.model.remove_view(self)
+		self.model = model
+		model.add_view(self)
+		self.set_display_root(self.model.get_root())
 	
 	def running(self):
 		return self.idle_cb != 0 or self.in_callback
@@ -322,26 +330,22 @@ class View:
 		self.update_all(root)
 	
 	def enter(self):
-		"Change the display root to the current node."
-		n = 0
+		"""Change the display root to a COPY of the selected node.
+		Call Leave to check changes back in."""
 		node = self.current
-		while node != self.root:
-			n += 1
-			node = node.parentNode
-		self.chroots.append(n)
-		self.set_display_root(self.current)
+		self.chroots.append((self.model, node))
+		self.set_model(self.model.lock_and_copy(node))
 	
 	def leave(self):
-		"Undo the effect of the last chroot()."
+		"""Undo the effect of the last chroot()."""
 		if not self.chroots:
 			raise Beep
 
-		n = self.chroots.pop()
-		root = self.root
-		while n > 0:
-			n = n - 1
-			root = root.parentNode
-		self.set_display_root(root)
+		(old_model, old_node) = self.chroots.pop()
+		
+		copy = old_model.doc.importNode(self.model.get_root(), deep = 1)
+		old_model.replace_node(old_node, copy)
+		self.set_model(old_model)
 
 	def do_action(self, action):
 		"'action' is a tuple (function, arg1, arg2, ...)"
@@ -738,6 +742,24 @@ class View:
 
 		self.move_to(new)
 
+	def get_base_uri(self, node):
+		"""Go up through the parents looking for a uri attribute.
+		Also explore the chroot stack."""
+		p = node
+		base = None
+		stack = self.chroots[:]
+		while p:
+			if isinstance(p, Document):
+				print "Up the chroot stack!"
+				try:
+					(m, p) = stack.pop()
+				except:
+					return None
+			if p.hasAttributeNS('', 'uri'):
+				return p.getAttributeNS('', 'uri')
+			p = p.parentNode
+		return None
+
 	def suck(self):
 		node = self.current
 
@@ -757,14 +779,8 @@ class View:
 			print "Can't suck", node
 			raise Beep
 		if uri.find('//') == -1:
+			base = self.get_base_uri(node)
 			print "Relative URI..."
-			p = node
-			base = None
-			while p:
-				if p.hasAttributeNS('', 'uri'):
-					base = p.getAttributeNS('', 'uri')
-					break
-				p = p.parentNode
 			if base:
 				print "Base URI is:", base
 				uri = urlparse.urljoin(base, uri)
@@ -975,11 +991,12 @@ class View:
 		self.model.strip_space(new)
 		self.model.replace_node(self.root, new)
 	
+	def show_html(self):
+		from HTML import HTML
+		HTML(self, self.current).show()
+	
 	def show_canvas(self):
-		node = self.current
-		#nv = View(self.model)
-		#nv.clipboard = self.clipboard.cloneNode(deep = 1)
-		Canvas(self, node).show()
+		Canvas(self, self.current).show()
 	
 	def toggle_hidden(self):
 		for node in self.current_nodes:

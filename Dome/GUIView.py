@@ -121,6 +121,7 @@ class GUIView(Display):
 			('Redo', do('redo')),
 			('Enter', do('enter')),
 			('Leave', do('leave')),
+			('Show as HTML', do('show_html')),
 			('Show as canvas', do('show_canvas')),
 			('Close Window', self.window.destroy),
 			]

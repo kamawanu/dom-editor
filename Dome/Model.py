@@ -1,7 +1,6 @@
 # An model contains:
 # - A DOM document
 # - The undo history
-# - A root program
 # All changes to the DOM must go through here.
 # Notification to views of changes is done.
 
@@ -19,6 +18,16 @@ class Model:
 	def __init__(self):
 		self.doc = implementation.createDocument('', 'root', None)
 		self.views = []		# Notified when something changes
+	
+	def lock_and_copy(self, node):
+		"""Locks 'node' in the current model and returns a new model
+		with a copy of the subtree."""
+		print "TODO: lock!"
+		m = Model()
+		copy = m.doc.importNode(node, deep = 1)
+		root = m.get_root()
+		m.replace_node(root, copy)
+		return m
 		
 	def mark(self):
 		"Increment the user_op counter. Undo will undo every operation between"
