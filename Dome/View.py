@@ -1411,8 +1411,11 @@ class View:
 			traceback.print_exception(type, val, tb)
 			print "Replace failed!"
 			raise Beep
+	
+	def put_as_child_end(self):
+		self.put_as_child(end = 1)
 
-	def put_as_child(self):
+	def put_as_child(self, end = 0):
 		node = self.get_current()
 		if self.clipboard == None:
 			raise Beep
@@ -1424,7 +1427,10 @@ class View:
 		else:
 			to = new
 		try:
-			self.model.insert(node, new, index = 0)
+			if end:
+				self.model.insert_before(None, new, parent = node)
+			else:
+				self.model.insert(node, new, index = 0)
 		except:
 			raise Beep
 

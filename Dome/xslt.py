@@ -21,6 +21,15 @@ def import_sheet(doc):
 	op = add(op, 'mark_selection')
 	op = add(op, 'do_search', '/xslt/Source')
 	op = add(op, 'play', 'XSLT/Default mode')
+
+	# This program copies a text node to the output
+	prog = Program('DefaultText')
+	root.add_sub(prog)
+	op = add(prog.code.start, 'yank')
+	op = add(op, 'mark_switch')
+	op = add(op, 'put_as_child_end')
+	op = add(op, 'move_left')
+	op = add(op, 'mark_switch')
 	
 	# To start with, the cursor is on the source document node and
 	# the mark is on the result document node.
@@ -89,6 +98,10 @@ def import_sheet(doc):
 
 		print "Tidy", loose_ends
 
+		tests = add(tests, 'fail_if', 'text()')
+		op = Op(action = ['play', 'XSLT/DefaultText'])
+		tests.link_to(op, 'fail')
+
 		tests = add(tests, 'do_global', '*')
 		tests = add(tests, 'map', prog.get_path())
 		tests = add(tests, 'mark_switch')
@@ -130,7 +143,7 @@ def make_template(op, temp):
 			sub = block.start
 
 			sub = add(sub, 'mark_switch')
-			sub = add(sub, 'do_global', '*')	# XXX
+			sub = add(sub, 'do_global', '*|text()')	# XXX
 			sub = add(sub, 'map', 'XSLT/Default mode')
 			sub = add(sub, 'mark_switch')
 
