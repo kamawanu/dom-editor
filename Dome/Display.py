@@ -449,8 +449,11 @@ class Display(GnomeCanvas):
 		"nodes is a list of nodes to be rechecked."
 		marked = self.view.marked
 		for n in nodes:
-			group = self.node_to_group[n]
-			group.rect.set(outline_color = (marked.has_key(n) and 'orange') or None)
+			try:
+				group = self.node_to_group[n]
+				group.rect.set(outline_color = (marked.has_key(n) and 'orange') or None)
+			except KeyError:
+				pass 	# Will regenerate later
 
 	def highlight(self, group, state):
 		node = group.node

@@ -141,7 +141,7 @@ class View:
 		self.lists = []
 		self.single_step = 1	# 0 = Play   1 = Step-into   2 = Step-over
 		self.model = None
-		self.chroots = []
+		self.chroots = []	# (model, node, marked)
 		self.current_nodes = []
 		self.clipboard = None
 		self.current_attrib = None
@@ -173,6 +173,7 @@ class View:
 		raise Exception('This operation required exactly one selected node!')
 		
 	def set_model(self, model):
+		assert not self.marked
 		if self.root:
 			self.move_to([])
 			self.model.unlock(self.root)
@@ -315,27 +316,6 @@ class View:
 		return TRUE
 	
 	def update_all(self, node):
-		"""
-		# Is the root node still around?
-		if not self.has_ancestor(self.root, self.model.get_root()):
-			# No - reset everything
-			print "[ lost root - using doc root ]"
-			self.root = self.model.doc.documentElement
-			self.chroots = []
-			raise Exception('Root locking error!')
-		
-		# Is the current node still around?
-		for n in self.current_nodes[:]:
-			if not self.has_ancestor(n, self.root):
-				# No - locking error!
-				self.current_nodes.remove(n)
-				raise Exception('Internal locking error on %s!' % n)
-
-		if not (self.has_ancestor(node, self.root) or self.has_ancestor(self.root, node)):
-			#print "[ change to %s doesn't affect us (root %s) ]" % (node, self.root)
-			return
-		"""
-
 		for display in self.displays:
 			display.update_all(node)
 	
@@ -432,7 +412,8 @@ class View:
 			raise Beep		# Locking problems if this happens...
 		if self.model.doc is not node.ownerDocument:
 			raise Exception('Current node not in view!')
-		self.chroots.append((self.model, node))
+		self.chroots.append((self.model, node, self.marked))
+		self.set_marked([])
 		self.move_to([])
 		self.set_model(self.model.lock_and_copy(node))
 	
@@ -441,15 +422,17 @@ class View:
 		if not self.chroots:
 			raise Beep
 
+		self.set_marked([])
 		model = self.model
 
-		(old_model, old_node) = self.chroots.pop()
+		(old_model, old_node, old_marked) = self.chroots.pop()
 
 		copy = old_model.doc.importNode(self.model.get_root(), 1)
 		old_model.unlock(old_node)
 		old_model.replace_node(old_node, copy)
 		self.set_model(old_model)
 		self.move_to([copy])
+		self.set_marked(old_marked.keys())
 
 		if not model.views:
 			model.undo_stack = None
@@ -583,7 +566,10 @@ class View:
 		if not ns:
 			ns = ext.GetAllNs(self.current_nodes[0])
 		ns['ext'] = FT_EXT_NAMESPACE
-		ns['_'] = ns[None]
+		try:
+			ns['_'] = ns[None]
+		except KeyError:
+			pass
 		#print "ns is", ns
 		c = Context.Context(self.get_current(), processorNss = ns)
 		from Ft.Xml.XPath import XPathParser
@@ -1448,29 +1434,17 @@ class View:
 				select.append(n)
 		self.move_to(select)
 	
-	def select_marked_region(self, attr):
-		if ':' in attr:
-			(prefix, localName) = string.split(attr, ':', 1)
-			namespaceURI = self.model.prefix_to_namespace(src, prefix)
-		else:
-			(prefix, localName) = (None, attr)
-			namespaceURI = None
+	def select_marked_region(self, attr = "unused"):
 		select = []
-		def add(node):
-			if node.nodeType != Node.ELEMENT_NODE:
-				return
-			for key in node.attributes.keys():
-				a = node.attributes[key]
-				if a.localName == localName and a.namespaceURI == namespaceURI:
-					select.append(node)
-			map(add, node.childNodes)
-		add(self.root)
-		if len(select) != 2:
-			print "Must be exactly two selected nodes!"
+		if len(self.marked) != 1:
+			print "Must be exactly one marked node!"
+			raise Beep()
+		if len(self.current_nodes) != 1:
+			print "Must be exactly one selected node!"
 			raise Beep()
 		import Path
-		a = Path.path_to(select[0])
-		b = Path.path_to(select[1])
+		a = Path.path_to(self.get_current())
+		b = Path.path_to(self.marked.keys()[0])
 
 		while a and b and a[0] == b[0]:
 			del a[0]
@@ -1483,9 +1457,9 @@ class View:
 			b = b[0]
 			for x in a.parentNode.childNodes:
 				if x == a:
-					s = 1
+					s = not s
 				elif x == b:
-					s = 0
+					s = not s
 				if s:
 					select.append(x)
 			self.move_to(select)
