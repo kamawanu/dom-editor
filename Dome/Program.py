@@ -58,7 +58,7 @@ def load_dome_program(prog):
 	if start:
 		new.set_start(start)
 
-	print "Loading '%s'..." % new.name
+	#print "Loading '%s'..." % new.name
 
 	for node in prog.childNodes:
 		if node.localName == 'dome-program':
