@@ -1364,13 +1364,15 @@ class View:
 		
 		print "parsing...",
 
-		from Ft.Xml.Domlette import NonvalidatingReader
+		from Ft.Xml.InputSource import InputSourceFactory
+		from Ft.Xml.FtMiniDom import nonvalParse
+		isrc = InputSourceFactory()
 
 		try:
 			# Hack to stop 4Suite getting confused with the namespaces
 			i = data.find('<!DOCTYPE')
 			if i != -1: data = data[:i] + data[data.find('>', i) + 1:]
-			root = NonvalidatingReader.parseString(data, uri)
+			root = nonvalParse(isrc.fromString(data, uri))
 			#ext.StripHtml(root)
 		except:
 			type, val, tb = sys.exc_info()
@@ -1612,10 +1614,13 @@ class View:
 	
 	def parse_data(self, data, path):
 		"""Convert and XML document into a DOM Document."""
-		from Ft.Xml.Domlette import NonvalidatingReader
+		from Ft.Xml.InputSource import InputSourceFactory
+		#from Ft.Xml.cDomlette import nonvalParse
+		from Ft.Xml.FtMiniDom import nonvalParse
+		isrc = InputSourceFactory()
 
 		try:
-			doc = NonvalidatingReader.parseString(data, path)
+			doc = nonvalParse(isrc.fromString(data, path))
 		except:
 			type, val, tb = sys.exc_info()
 			traceback.print_exception(type, val, tb)
