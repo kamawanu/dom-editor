@@ -1168,20 +1168,23 @@ class View:
 		if node:
 			self.move_to(node)
 	
-	def suck(self):
+	def suck(self, md5_only = 0):
 		nodes = self.current_nodes[:]
 		attrib = self.current_attrib
 		self.move_to([])
 		final = []
 		for x in nodes:
 			try:
-				new = self.suck_node(x, attrib = attrib)
+				new = self.suck_node(x, attrib = attrib, md5_only = md5_only)
 			finally:
 				self.move_to(x)
 			final.append(new)
 		self.move_to(final)
+	
+	def suck_md5(self):
+		self.suck(md5_only = 1)
 		
-	def suck_node(self, node, post_data = None, attrib = None):
+	def suck_node(self, node, post_data = None, attrib = None, md5_only = 0):
 		uri = None
 		if node.nodeType == Node.TEXT_NODE:
 			uri = node.nodeValue
@@ -1252,6 +1255,11 @@ class View:
 		if old_md5 and new_md5 == old_md5:
 			self.model.set_attrib(node, 'modified', None)
 			print "MD5 sums match => not parsing!"
+			return node
+
+		if md5_only:
+			# This is a nasty hack left in for backwards compat.
+			self.model.set_attrib(node, 'md5_sum', new_md5)
 			return node
 		
 		print "parsing...",
