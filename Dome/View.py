@@ -305,6 +305,8 @@ class View:
 			#if not val.may_record:
 			#	return 0
 			exit = 'fail'
+		except Done:
+			raise
 		except:
 			rox.report_exception()
 			raise
@@ -550,23 +552,25 @@ class View:
 			return
 		
 		next = getattr(op, exit)
-		if next:
-			self.set_oip(next)
-			self.do_action(next.action)	# May raise InProgress
-			return
-
-		if exit == 'fail' and not self.innermost_failure:
-			#print "Setting innermost_failure on", op
-			self.innermost_failure = op
-
-		# If we're in a block, try exiting from it...
-		if isinstance(op.parent, Block):
-			if self.start_block_iteration(op.parent, continuing = exit):
-				return			# Looping...
-			if not op.parent.is_toplevel():
-				self.set_exec((op.parent, exit))
+		try:
+			if next:
+				self.set_oip(next)
+				self.do_action(next.action)	# May raise InProgress
 				return
 
+			if exit == 'fail' and not self.innermost_failure:
+				#print "Setting innermost_failure on", op
+				self.innermost_failure = op
+
+			# If we're in a block, try exiting from it...
+			if isinstance(op.parent, Block):
+				if self.start_block_iteration(op.parent, continuing = exit):
+					return			# Looping...
+				if not op.parent.is_toplevel():
+					self.set_exec((op.parent, exit))
+					return
+		except Done:
+			print "(skipped a whole program!)"
 		if self.callback_on_return:
 			cb = self.callback_on_return
 			self.callback_on_return = None
@@ -1034,6 +1038,10 @@ class View:
 			# No nodes selected...
 			if not block.is_toplevel():
 				self.set_exec((block, 'next'))
+			else:
+				self.set_oip(None)
+				self.set_exec((block.start, 'next'))
+				raise Done
 	
 	def Block(self):
 		assert self.op_in_progress
