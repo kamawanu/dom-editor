@@ -127,6 +127,13 @@ class List(g.VBox):
 	def __init__(self, view):
 		g.VBox.__init__(self)
 
+		def destroyed(widget):
+			print "List destroy!!"
+			sel.disconnect(self.sel_changed_signal)
+			self.view.lists.remove(self)
+			self.view.model.root_program.watchers.remove(self)
+		self.connect('destroy', destroyed)
+
 		self.view = view
 		self.sub_windows = []
 
@@ -141,7 +148,6 @@ class List(g.VBox):
 		swin = g.ScrolledWindow()
 		swin.set_policy(g.POLICY_NEVER, g.POLICY_AUTOMATIC)
 		pane.add1(swin)
-
 		self.prog_model = g.TreeStore(str, str)
 		tree = g.TreeView(self.prog_model)
 		tree.connect('button-press-event', self.button_press)
@@ -153,19 +159,9 @@ class List(g.VBox):
 		column = g.TreeViewColumn('Program', cell, text = 0)
 		tree.append_column(column)
 
-		def change_prog(sel):
-			selected = sel.get_selected()
-			if not selected:
-				return
-			model, iter = selected
-			if iter:
-				path = model.get_value(iter, 1)
-				self.chains.switch_to(self.view.name_to_prog(path))
-			else:
-				self.chains.switch_to(None)
-
 		sel = tree.get_selection()
-		sel.connect('changed', change_prog)
+		# Doesn't get destroyed, so record signal number
+		self.sel_changed_signal = sel.connect('changed', self.change_prog)
 
 		self.chains = ChainDisplay(view)
 		self.prog_tree_changed()
@@ -190,16 +186,22 @@ class List(g.VBox):
 		tree.show()
 		self.view.lists.append(self)
 		self.view.model.root_program.watchers.append(self)
-		del sel
+
+	def change_prog(self, sel):
+		selected = sel.get_selected()
+		if not selected:
+			return
+		model, iter = selected
+		if iter:
+			path = model.get_value(iter, 1)
+			self.chains.switch_to(self.view.name_to_prog(path))
+		else:
+			self.chains.switch_to(None)
 		
 	def set_innermost_failure(self, op):
 		prog = op.get_program()
 		print "list: set_innermost_failure:", prog
 		self.show_prog(prog)
-	
-	def destroy(self):
-		self.view.lists.remove(self)
-		self.view.model.root_program.watchers.remove(self)
 	
 	def update_points(self):
 		self.chains.update_points()
@@ -335,6 +337,7 @@ class ChainDisplay(canvas.Canvas):
 	def __init__(self, view, prog = None):
 		canvas.Canvas.__init__(self)
 		self.connect('destroy', self.destroyed)
+
 		self.view = view
 		self.unset_flags(g.CAN_FOCUS)
 
@@ -441,6 +444,12 @@ class ChainDisplay(canvas.Canvas):
 				item.move((x1 + x2) / 2, (y1 + y2) / 2)
 	
 	def destroyed(self, widget):
+		print "destroyed!"
+
+		# GnomeCanvas is really buggy...
+		del self.nodes
+		del self.op_to_group
+		
 		p = self.prog
 		while p.parent:
 			p = p.parent
@@ -466,8 +475,10 @@ class ChainDisplay(canvas.Canvas):
 
 		self.op_to_group = {}
 		self.nodes = self.root().add(canvas.CanvasGroup, x = 0, y = 0)
+		
 		if self.prog:
 			self.create_node(self.prog.code, self.nodes)
+
 		self.update_links()
 		self.update_points()
 

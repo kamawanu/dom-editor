@@ -18,7 +18,7 @@ class Window(rox.Window, saving.Saveable):
 	def __init__(self, path = None, data = None):
 		# 'data' is used when 'path' is a stylesheet...
 		rox.Window.__init__(self)
-
+		
 		# Make it square, to cope with Xinerama
 		size = min(g.gdk.screen_width(), g.gdk.screen_height())
 		size = size * 3 / 4
@@ -65,6 +65,7 @@ class Window(rox.Window, saving.Saveable):
 		view = View.View(self.model)
 		self.view = view
 		self.list = List(view)
+
 		paned.add1(self.list)
 		self.list.show()
 
@@ -74,7 +75,6 @@ class Window(rox.Window, saving.Saveable):
 		paned.set_position(200)
 
 		self.gui_view = GUIView(self, view)
-		from Display2 import Display
 		#swin.add(self.gui_view)
 		paned.add2(self.gui_view)
 		#swin.set_hadjustment(self.gui_view.get_hadjustment())
