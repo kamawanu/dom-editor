@@ -114,6 +114,7 @@ else:
 	run_nogui()
 
 if show_leaks:
+	del view, model
 	gc.collect()
 	for x in gc.get_objects():
 		if id(x) not in old:
