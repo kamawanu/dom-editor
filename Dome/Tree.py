@@ -6,6 +6,7 @@ from support import *
 
 from Node import *
 from Editor import *
+from Search import Search
 
 # Graphical tree widget
 
@@ -33,6 +34,7 @@ class Tree(GtkDrawingArea):
 			stop = self.handle_key(kev)
 		except:
 			report_exception()
+			stop = 1
 		if stop:
 			widget.emit_stop_by_name('key-press-event')
 		return stop
@@ -42,7 +44,7 @@ class Tree(GtkDrawingArea):
 		key = kev.keyval
 		new = None
 
-		if key == F3:
+		if key == F3 or key == Return:
 			return 0
 		
 		if key == I or key == A or key == O:
@@ -82,6 +84,15 @@ class Tree(GtkDrawingArea):
 				self.move_to(line)
 			else:
 				self.left_hist = []
+		elif key == greater and cur != self.display_root:
+			node = cur
+			while node.parent != self.display_root:
+				node = node.parent
+			self.display_root = node
+			new = cur
+		elif key == less and self.display_root.parent:
+			self.display_root = self.display_root.parent
+			new = cur
 		elif key == Prior and cur is not self.display_root:
 			self.move_to_node(cur.prev_sibling())
 		elif key == Next and cur is not self.display_root:
@@ -97,13 +108,13 @@ class Tree(GtkDrawingArea):
 		elif key == P:
 			new = self.clipboard.copy()
 			key = i
-		elif key == Return:
+		elif key == Tab:
 			edit_node(self, cur)
-		elif key == u and cur.can_undo():
-			cur.do_undo()
+		elif key == u and self.display_root.can_undo():
+			self.display_root.do_undo()
 			new = cur
-		elif key == r and cur.can_redo():
-			cur.do_redo()
+		elif key == r and self.display_root.can_redo():
+			self.display_root.do_redo()
 			new = cur
 		elif key == J:
 			cur.join()
@@ -117,6 +128,8 @@ class Tree(GtkDrawingArea):
 				cur.parent.flatten(cur)
 			else:
 				key = x
+		elif key == slash:
+			Search(self)
 
 		if new and (key == o or key == O):
 			cur.add(new, index = 0)
@@ -140,8 +153,10 @@ class Tree(GtkDrawingArea):
 							self.current_line]
 				self.clipboard = cur.copy()
 				cur.parent.remove(cur)
-		if new and (new.parent or new == self.display_root):
+		if new:
 			self.build_index()
+			if not self.node_to_line.has_key(new):
+				new = self.display_root
 			def cb(self = self, new = new):
 				self.move_to_node(new)
 				return 0
@@ -315,3 +330,6 @@ class Tree(GtkDrawingArea):
 				x, y, w, h)
 		
 		self.queue_draw()
+	
+	def current_node(self):
+		return self.line_to_node[self.current_line]

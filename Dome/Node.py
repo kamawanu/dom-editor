@@ -149,6 +149,31 @@ class Node:
 			self.undo.append((op_time, callback))
 			if not self.redoing:
 				self.redo = []
+	
+	def search_for(self, pattern):
+		if self.matches_wild(pattern):
+			return self
+		for k in self.kids:
+			node = k.search_for(pattern)
+			if node:
+				return node
+		return None
+	
+	def matches_wild(self, pattern):
+		if pattern.type == '(tree)':
+			return 1
+		
+		if not self.matches(pattern):
+			return 0
+		
+		k = self.kids[:]
+		p = pattern.kids[:]
+		if len(k) != len(p):
+			return 0
+		while k:
+			if not k.pop().matches_wild(p.pop()):
+				return 0
+		return 1
 
 # A normal node which can contain subnodes, has a tag type, and may
 # also be given attributes.
@@ -237,6 +262,11 @@ class TagNode(Node):
 		child.parent = None
 		self.add_undo(lambda self, c = child, i = i:
 					self.add(c, index = i))
+	
+	def matches(self, pattern):
+		if pattern.type == '(tag)':
+			return 1
+		return self.type == pattern.type
 
 # Contains several lines of text. Cannot have children.
 # In:
@@ -283,3 +313,10 @@ class DataNode(Node):
 	
 	def to_xml(self):
 		return string.join(self.text, '\n') + '\n'
+	
+	def matches(self, pattern):
+		if pattern.type == '(text)':
+			return 1
+		if isinstance(pattern, DataNode):
+			return 1
+		return 0
