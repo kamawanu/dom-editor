@@ -12,7 +12,6 @@ from GetArg import GetArg
 from Path import make_relative_path
 
 from rox.Menu import Menu
-from gnome import canvas
 
 menu = Menu('main', [
 		('/File', None, '<Branch>', ''),
@@ -251,117 +250,6 @@ class GUIView(Display, XDSLoader):
 			self.cursor_node = None
 			self.edit_box_item.destroy()
 
-	def show_editbox(self):
-		"Edit the current node/attribute"
-		self.do_update_now()
-
-		if self.cursor_node:
-			self.hide_editbox()
-
-		if not self.visible:
-			raise Exception("Can't edit while display is hidden!")
-
-		self.cursor_node = self.view.current_nodes[0]
-		group = self.node_to_group[self.cursor_node]
-		self.cursor_attrib = self.view.current_attrib
-
-		self.highlight(group, FALSE)
-
-		if self.cursor_attrib:
-			group = group.attrib_to_group[self.cursor_attrib]
-
-		self.cursor_hidden_text = group.text
-		if not self.cursor_attrib:
-			# Don't hide for attributes, so we can still see the name
-			group.text.hide()
-		else:
-			group.text.set(text = str(self.cursor_attrib.name) + '=')
-			
-		self.update_now()	# GnomeCanvas bug?
-		lx, ly, hx, hy = group.text.get_bounds()
-		x, y = group.i2w(lx, ly)
-
-		text = g.TextView()
-		text.show()
-		
-		eb = g.Frame()
-		eb.add(text)
-		self.edit_box = eb
-		self.edit_box_text = text
-		m = 3
-
-		#s = eb.get_style().copy()
-		#s.font = load_font('fixed')
-		#eb.set_style(s)
-		#if self.cursor_attrib:
-		#	name_width = s.font.measure(self.cursor_attrib.name + '=') + 1
-		#else:
-		#	name_width = 0
-		name_width = 0
-
-		self.edit_box_item = self.root().add(canvas.CanvasWidget, widget = eb,
-						x = x - m + name_width, y = y - m,
-						anchor = g.ANCHOR_NW)
-
-		#text.set_editable(TRUE)
-		text.get_buffer().insert_at_cursor(self.get_edit_text())
-		text.set_wrap_mode(g.WRAP_NONE)
-		text.get_buffer().connect('changed', self.eb_changed)
-		text.connect('key-press-event', self.eb_key)
-		eb.show()
-		text.realize()
-		self.size_eb()
-		text.grab_focus()
-		#eb.select_region(0, -1)
-		eb.show()
-	
-	def get_edit_text(self):
-		if node.nodeType == Node.ELEMENT_NODE:
-			if self.cursor_attrib:
-				return str(self.cursor_attrib.value)
-			return node.nodeName
-		else:
-			return node.nodeValue
-	
-	def eb_key(self, eb, kev):
-		key = kev.keyval
-		if key == g.keysyms.KP_Enter:
-			key = g.keysyms.Return
-		if key == g.keysyms.Escape:
-			self.hide_editbox()
-		elif key == g.keysyms.Return and kev.state & g.gdk.CONTROL_MASK:
-			eb.insert_defaults('\n')
-			self.size_eb()
-		elif key == g.keysyms.Tab or key == g.keysyms.Return:
-			buffer = eb.get_buffer()
-			s = buffer.get_start_iter()
-			e = buffer.get_end_iter()
-			text = buffer.get_text(s, e, TRUE)
-			try:
-				if text != self.get_edit_text():
-					self.commit_edit(text)
-			finally:
-				self.hide_editbox()
-		return 0
-
-	def commit_edit(self, new):
-		if self.cursor_attrib:
-			self.view.may_record(['set_attrib', new])
-		else:
-			self.view.may_record(['change_node', new])
-	
-	def eb_changed(self, eb):
-		self.size_eb()
-	
-	def size_eb(self):
-		def cb():
-			req = self.edit_box_text.size_request()
-			print "Wants", req
-			width = max(req[0], 10)
-			height = max(req[1], 10)
-			self.edit_box_item.set(width = width + 12, height = height + 4)
-		g.idle_add(cb)
-
 	def toggle_edit(self):
 		node = self.view.current_nodes[0]
 		attrib = self.view.current_attrib
@@ -414,11 +302,6 @@ class GUIView(Display, XDSLoader):
 		eb.connect('response', response)
 
 		eb.show_all()
-		
-		#if self.cursor_node:
-		#	self.hide_editbox()
-		#else:
-		#	self.show_editbox()
 
 	def menu_select_attrib(self):
 		def do_attrib(name):

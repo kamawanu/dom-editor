@@ -37,7 +37,7 @@ def calc_node(display, node, pos):
 
 	# PyGtk leaks PangoLayouts, so just reuse a single one
 	layout = display.surface_layout
-	layout.set_text(text, -1)
+	layout.set_text(text)
 	width, height = layout.get_pixel_size()
 	x, y = pos
 

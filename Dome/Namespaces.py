@@ -10,9 +10,11 @@ fixed_ns = {'xml': XML_NAMESPACE, 'xmlns': XMLNS_NAMESPACE,
 common_ns = {'http://www.w3.org/1999/xhtml': 'xhtml',
 	     'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'rdf',
 	     'http://xmlns.4suite.org/ext': 'ft',
+	     'http://www.w3.org/1999/XSL/Transform': 'xsl',
 	     'http://www.w3.org/1999/XMLSchema': 'xsd',
 	     'http://www.w3.org/1999/XMLSchema-instance': 'xsi',
-	     'http://schemas.xmlsoap.org/soap/envelope/': 'env'}
+	     'http://schemas.xmlsoap.org/soap/envelope/': 'env',
+	     'http://www.w3.org/1999/xlink': 'xlink'}
 
 class Namespaces(g.GenericTreeModel):
 	def __init__(self):

@@ -2,7 +2,6 @@ from __future__ import generators
 
 import rox
 from rox import g, TRUE, FALSE, alert
-from gnome import canvas
 
 from support import *
 import string
@@ -718,68 +717,6 @@ class ChainDisplay(g.EventBox):
 	def create_node(self, op, parent):
 		if op.is_toplevel():
 			return obj
-		return
-
-		if op.next and op.next.prev[0] == op:
-			sx, sy = self.get_arrow_start(op, 'next')
-			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
-			self.create_node(op.next, gr)
-			#self.update_now()	# GnomeCanvas bug?
-			(lx, ly, hx, hy) = gr.get_bounds()
-			drop = max(20, next_off_y + 10)
-			y = drop - ly
-			next = op.next
-			while isinstance(next, Block):
-				next = next.start
-			x = next.dx
-			y += next.dy
-			gr.move(sx + x, sy + y)
-		
-		group.next_line = group.add(canvas.CanvasLine,
-					fill_color = 'black',
-					points = connect(0, 0, 1, 1),
-					width_pixels = 4,
-					last_arrowhead = 1,
-					arrow_shape_a = 5,
-					arrow_shape_b = 5,
-					arrow_shape_c = 5)
-		group.next_line.connect('event', self.line_event, op, 'next')
-
-		(x, y) = DEFAULT_FAIL
-		if op.fail and op.fail.prev[0] == op:
-			sx, sy = self.get_arrow_start(op, 'fail')
-			y = 46
-			gr = group.add(canvas.CanvasGroup, x = 0, y = 0)
-			self.create_node(op.fail, gr)
-			#self.update_now()	# GnomeCanvas bug?
-			(lx, ly, hx, hy) = gr.get_bounds()
-			x = 20 - lx
-			fail = op.fail
-			while isinstance(fail, Block):
-				fail = fail.start
-			x += fail.dx
-			y += fail.dy
-			gr.move(sx + x, sy + y)
-		group.fail_line = group.add(canvas.CanvasLine,
-					fill_color = '#ff6666',
-					points = connect(0, 0, 1, 1),
-					width_pixels = 4,
-					last_arrowhead = 1,
-					arrow_shape_a = 5,
-					arrow_shape_b = 5,
-					arrow_shape_c = 5)
-		group.fail_line.lower_to_bottom()
-		group.fail_line.connect('event', self.line_event, op, 'fail')
-		if op.action[0] == 'Start':
-			group.fail_line.hide()
-
-		self.join_nodes(op, 'next')
-		self.join_nodes(op, 'fail')
-
-		if self.view.breakpoints.has_key((op, 'next')):
-			group.next_line.set(line_style = g.gdk.LINE_ON_OFF_DASH)
-		if self.view.breakpoints.has_key((op, 'fail')):
-			group.fail_line.set(line_style = g.gdk.LINE_ON_OFF_DASH)
 	
 	def edit_op(self, op):
 		def modify():
@@ -1151,13 +1088,6 @@ class ChainDisplay(g.EventBox):
 		self.root().move(0, 0) # Magic!
 		#self.set_usize(max_x - min_x, -1)
 	
-	def canvas_to_world(self, (x, y)):
-		"Canvas routine seems to be broken..."
-		mx, my, maxx, maxy = self.get_scroll_region()
-		sx = self.get_hadjustment().value
-		sy = self.get_hadjustment().value
-		return (x + mx + sx , y + my + sy)
-
 class ChainWindow(rox.Window):
 	def __init__(self, view, prog):
 		rox.Window.__init__(self)
