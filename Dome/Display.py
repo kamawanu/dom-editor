@@ -233,7 +233,7 @@ class Display(GnomeCanvas):
 				if not cramped:
 					l = 0
 					for a in node.attributes:
-						l += len(str(a.name)) + len(str(a.value))
+						l += len(a.name) + len(a.value)
 					acramped = l > 80
 				else:
 					acramped = cramped
