@@ -768,6 +768,7 @@ class View:
 		"Convert a python data structure into a tree and return the root."
 		if type(data) == types.ListType:
 			list = self.model.doc.createElementNS(DOME_NS, 'dome:list')
+			list.setAttributeNS(XMLNS_NAMESPACE, 'xmlns:dome', DOME_NS)
 			for x in data:
 				list.appendChild(self.python_to_node(x))
 			return list
