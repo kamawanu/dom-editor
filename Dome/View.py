@@ -1299,13 +1299,15 @@ class View:
 		if not a:
 			raise Beep()
 		node = self.get_current()
-		self.model.set_attrib(node, a.name, value)
+		a = self.model.set_attrib(node, a.name, value)
+		print "Moving to", a
 		self.move_to(node, a)
 	
 	def add_attrib(self, UNUSED, name, value = ''):
 		node = self.get_current()
-		self.model.set_attrib(node, name, value)
-		self.move_to(node, node.getAttributeNodeNS(namespace, name))
+		a = self.model.set_attrib(node, name, value)
+		print "Moving to", a
+		self.move_to(node, a)
 	
 	def load_html(self, path):
 		"Replace root with contents of this HTML file."

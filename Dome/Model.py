@@ -299,8 +299,9 @@ class Model:
 		self.update_all(parent)
 	
 	def set_attrib(self, node, name, value, with_update = 1):
-		"Set an attribute's value. If value is None, remove the attribute."
-		if name == 'xmlns' or name.startswith('xmlns:'):
+		"""Set an attribute's value. If value is None, remove the attribute.
+		Returns the new attribute node, or None if removing."""
+		if name == 'xmlns':
 			namespaceURI = XMLNS_NAMESPACE
 			localName = name
 		elif ':' in name:
@@ -325,6 +326,10 @@ class Model:
 		
 		if with_update:
 			self.update_all(node)
+		if value != None:
+			if localName == 'xmlns':
+				localName = None
+			return node.attributes[(namespaceURI, localName)]
 	
 	def prefix_to_namespace(self, node, prefix):
 		"Use the xmlns attributes to workout the namespace."
