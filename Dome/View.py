@@ -1254,7 +1254,10 @@ class View:
 				uri = node.getAttributeNS(None, 'uri')
 			else:
 				for attr in node.attributes.keys():
-					uri = node.attributes[attr].value
+					a_node = node.attributes[attr]
+					if a_node.namespaceURI == XMLNS_NAMESPACE:
+						continue
+					uri = a_node.value
 					if uri.find('//') != -1 or uri.find('.htm') != -1:
 						break
 		if not uri:
