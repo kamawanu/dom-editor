@@ -110,6 +110,7 @@ class View:
 				return 0
 			exit = 'fail'
 
+		print "RECORD:", rec, action
 		# Only record if we were recording when this action started
 		if rec:
 			(op, old_exit) = rec
@@ -463,8 +464,8 @@ class View:
 	def redo(self):
 		self.model.redo(self.root)
 
-	def play(self, prog, when_done = None):
-		print "Play", prog.name
+	def play(self, name, when_done = None):
+		prog = self.name_to_prog(name)
 		self.single_step = 0
 		self.set_exec((prog.start, 'next'))
 		self.sched()
@@ -490,27 +491,41 @@ class View:
 			ex = traceback.format_exception_only(type, val) + ['\n\n'] + stack
 			traceback.print_exception(type, val, tb)
 			print "Error in do_one_step(): stopping playback"
+			node = self.op_in_progress
+			self.set_oip(None)
+			self.set_exec((node, 'fail'))
 			return 0
 		if self.op_in_progress or self.single_step:
 			return 0
 		self.sched()
 		return 0
 
-	def map(self, prog):
-		print "Map", prog.name
+	def map(self, name):
+		print "Map", name
 
 		nodes = self.current_nodes[:]
 		inp = [nodes, None]
-		def next(self = self, prog = prog, inp = inp):
+		def next(self = self, name = name, inp = inp):
 			nodes, next = inp
 			self.move_to(nodes[0])
 			print "Next:", self.current
 			del nodes[0]
 			if not nodes:
 				next = None
-			self.play(prog, when_done = next)
+			self.play(name, when_done = next)
 		inp[1] = next
 		next()
+	
+	def name_to_prog(self, name):
+		comps = string.split(name, '/')
+		prog = self.model.root_program
+		if prog.name != comps[0]:
+			raise Exception("No such program as '%s'!" % name)
+		del comps[0]
+		while comps:
+			prog = prog.subprograms[comps[0]]
+			del comps[0]
+		return prog
 
 	def change_node(self, new_data):
 		node = self.current

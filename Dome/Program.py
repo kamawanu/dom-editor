@@ -74,7 +74,7 @@ class Program:
 			start = Op(self)
 		self.start = start
 		self.name = name
-		self.subprograms = []
+		self.subprograms = {}
 		self.watchers = []
 		self.parent = None
 	
@@ -83,18 +83,17 @@ class Program:
 		self.changed(None)
 
 	def changed(self, op):
-		#if op:
-			#print "%s: Op(%s) changed." % (self.name, op.action)
-		#else:	
-			#print "%s: Changed" % self.name
 		for w in self.watchers:
 			w.program_changed(self)
 	
 	def add_sub(self, prog):
 		if prog.parent:
-			raise Exception('%s already has a parent program!' % prog)
+			raise Exception('%s already has a parent program!' % prog.name)
+		if self.subprograms.has_key(prog.name):
+			raise Exception('%s already has a child called %s!' %
+							(self.name, prog.name))
 		prog.parent = self
-		self.subprograms.append(prog)
+		self.subprograms[prog.name] = prog
 		self.changed(None)
 		prog.changed(None)
 	
@@ -102,24 +101,21 @@ class Program:
 		if prog.parent != self:
 			raise Exception('%s is no child of mime!' % prog)
 		prog.parent = None
-		self.subprograms.remove(prog)
+		self.subprograms.remove(prog.name)
 		self.changed(None)
 		prog.changed(None)
 	
 	def rename(self, name):
+		self.parent.remove_sub(self)
 		self.name = name
-		self.changed(None)
-		if self.parent:
-			self.parent.changed(None)
-		for k in self.subprograms:
-			k.changed(None)
+		self.parent.add_sub(self)
 	
 	def to_xml(self):
 		data = "<dome-program name='%s'>\n" % escape_attval(self.name)
 	
 		data += self.start.to_xml_int()
 
-		for p in self.subprograms:
+		for p in self.subprograms.values():
 			data += p.to_xml()
 
 		return data + "</dome-program>\n"
@@ -148,10 +144,14 @@ class Op:
 	
 	def link_to(self, child, exit):
 		# Create a link from this exit to this child Op
-		if getattr(self, exit) != None:
-			raise Exception('%s already has a %s child op!' % (self, exit))
 		if child.prev:
 			raise Exception('%s is already in a chain!' % child)
+		current = getattr(self, exit)
+		if current:
+			if child.next:
+				raise Exception('%s already has a next exit' % child)
+			self.unlink(current)
+			child.link_to(current, 'next')
 		child.prev = self
 		setattr(self, exit, child)
 		self.changed()

@@ -80,7 +80,7 @@ class Window(GtkWindow):
 			print "Not saving macros..."
 			return
 
-		print "Saving %d macros..." % len(self.model.root_program.subprograms)
+		print "Saving programs..."
 		data = self.model.root_program.to_xml()
 
 		file = open(path, 'wb')

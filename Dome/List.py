@@ -33,6 +33,11 @@ def action_to_text(action):
 			details = details + pat
 		elif action[0] == 'add_node':
 			details = action[2]
+		elif action[0] == 'play' or action[0] == 'map':
+			if len(action[1]) > 10:
+				details = '...' + str(action[1][-9:])
+			else:
+				details = str(action[1])
 		else:
 			if len(action) > 2:
 				details = `action[1:]`
@@ -85,7 +90,7 @@ class List(GtkVBox):
 		if prog.subprograms:
 			subtree = GtkTree()
 			subtree.append(GtkTreeItem('Marker'))
-			for k in prog.subprograms:
+			for k in prog.subprograms.values():
 				self.build_tree(subtree, k)
 			item.set_subtree(subtree)
 
@@ -103,11 +108,20 @@ class List(GtkVBox):
 			if event.button == 3:
 				self.show_menu(event, prog)
 			else:
+				name = self.prog_to_name(prog)
 				if event.state & SHIFT_MASK:
-					self.view.map(prog)
+					self.view.may_record(['map', name])
 				else:
-					self.view.play(prog)
+					self.view.may_record(['play', name])
 		return 1
+	
+	def prog_to_name(self, prog):
+		path = ""
+		p = prog
+		while p:
+			path = p.name + '/' + path
+			p = p.parent
+		return path[:-1]
 
 	def show_menu(self, event, sub):
 		def del_prog(self = self, sub = sub):
@@ -123,9 +137,12 @@ class List(GtkVBox):
 			dp = del_prog
 		else:
 			dp = None
+		name = self.prog_to_name(prog)
 		items = [
-			('Play', lambda view = view, s = sub: view.play(s)),
-			('Map', lambda view = view, s = sub: view.map(s)),
+			('Play', lambda view = view, n = name: \
+						self.view.may_record(['play', n])),
+			('Map', lambda view = view, n = name: \
+						self.view.may_record(['map', n])),
 			('Rename', rename_prog),
 			('Delete', dp),
 			]
