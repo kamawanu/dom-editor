@@ -99,6 +99,9 @@ class Model:
 		
 		self.views = []		# Notified when something changes
 		self.locks = {}		# Node -> number of locks
+
+		self.hidden = {}	# Node -> Message
+		self.hidden_code = {}	# XPath to generate Message, if any
 	
 	def load_ns(self, node):
 		assert node.localName == 'namespaces'

@@ -1622,25 +1622,32 @@ class View:
 	
 	def toggle_hidden(self, message = None):
 		"""'message' is a XPath to calculate the message to display.
-		If None, nodes are toggled between '(hidden)' and not hidden."""
+		If None, nodes are toggled between hidden and not hidden."""
 		if message:
 			from Ft.Xml.XPath import XPathParser
 			code = XPathParser.new().parse('string(%s)' % message)
+		else:
+			code = None
 
 		nodes = self.current_nodes[:]
 		self.move_to([])
+		hidden = self.model.hidden
+		hidden_code = self.model.hidden_code
 		for node in nodes:
 			if node.nodeType != Node.ELEMENT_NODE:
 				raise Beep
-			if message is None and node.hasAttributeNS(None, 'hidden'):
-				new = None
-			elif message:
-				ns = self.model.namespaces.uri
-				c = Context.Context(node, [node], processorNss = ns)
-				new = code.evaluate(c).strip()
+			print code
+			if code:
+				hidden_code[node] = code
+			if node in hidden:
+				del hidden[node]
 			else:
-				new = ''
-			self.model.set_attrib(node, 'hidden', new, with_update = 0)
+				if node in hidden_code:
+					ns = self.model.namespaces.uri
+					c = Context.Context(node, [node], processorNss = ns)
+					hidden[node] = hidden_code[node].evaluate(c).strip()
+				else:
+					hidden[node] = 'hidden'
 		self.model.update_all(self.root)
 		self.move_to(nodes)
 	

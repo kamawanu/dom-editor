@@ -55,10 +55,9 @@ def calc_node(display, node, pos):
 			marker = True
 			surface.draw_rectangle(fg[g.STATE_NORMAL], True,
 						x, y, 8, height - 1)
-			if node.nodeType == Node.ELEMENT_NODE and node.hasAttributeNS(None, 'hidden'):
-				message = node.attributes[(None, 'hidden')].value or 'hidden'
+			if node in display.view.model.hidden:
 				surface.draw_layout(fg[g.STATE_PRELIGHT], text_x + width + 2, y,
-					display.create_pango_layout('(%s)' % message))
+					display.create_pango_layout('(%s)' % display.view.model.hidden[node]))
 		else:
 			marker = False
 		
@@ -275,14 +274,13 @@ class Display(g.HBox):
 	def walk_tree(self, node, pos):
 		"""Yield this (node, bbox), and all following ones in document order."""
 		pos = list(pos)
+		hidden = self.view.model.hidden
 		while node:
 			bbox, draw_fn = calc_node(self, node, pos)
 			yield (node, bbox, draw_fn)
 
-			hidden = False
 			if node.nodeType == Node.ELEMENT_NODE:
-				hidden = node.hasAttributeNS(None, 'hidden')
-				if not hidden:
+				if node not in hidden:
 					apos = [bbox[2] + 4, bbox[1]]
 					for key in node.attributes:
 						a = node.attributes[key]
@@ -293,7 +291,7 @@ class Display(g.HBox):
 						yield (a, abbox, draw_fn)
 			
 			pos[1] = bbox[3] + 2
-			if node.childNodes and not hidden:
+			if node.childNodes and node not in hidden:
 				node = node.childNodes[0]
 				pos[0] += 16
 			else:
