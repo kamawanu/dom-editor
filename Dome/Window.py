@@ -14,8 +14,6 @@ code = None
 from codecs import lookup
 utf8_encoder = lookup('UTF-8')[0]
 
-save_formats = ('a', 'b')
-
 class Window(rox.Window, saving.Saveable):
 	def __init__(self, path = None, data = None):
 		# 'data' is used when 'path' is a stylesheet...
@@ -118,24 +116,35 @@ class Window(rox.Window, saving.Saveable):
 
 		self.savebox = saving.SaveBox(self, path,
 					'application/x-dome', discard = discard)
-		toggle = g.CheckButton("Export XML")
+		radio_dome = g.RadioButton(None, 'Save everything (.dome)')
+		radio_xml = g.RadioButton(radio_dome, 'Export data as XML')
+		radio_html = g.RadioButton(radio_xml, 'Export data as HTML')
+
+		self.save_radios = (
+			(radio_dome, 'dome', 'application/x-dome', self.save_as_dome),
+			(radio_xml, 'xml', 'text/xml', self.save_as_xml),
+			(radio_html, 'html', 'text/html', self.save_as_html))
+				    
 		def changed(toggle):
 			name = self.savebox.save_area.entry.get_text()
 			if name.endswith('.xml'):
 				name = name[:-4]
 			elif name.endswith('.dome'):
 				name = name[:-5]
-			if toggle.get_active():
-				name += '.xml'
-				self.savebox.set_type('text/xml')
-			else:
-				name += '.dome'
-				self.savebox.set_type('application/x-dome')
+			elif name.endswith('.html'):
+				name = name[:-5]
+
+			for radio, ext, mime, fn in self.save_radios:
+				if radio.get_active():
+					name += '.' + ext
+					self.savebox.set_type(mime)
 			self.savebox.save_area.entry.set_text(name)
-		toggle.connect('toggled', changed)
-		toggle.show()
-		self.savebox.toggle_export_xml = toggle
-		self.savebox.vbox.pack_start(toggle)
+
+		for radio, ext, mime, fn in self.save_radios:
+			self.savebox.vbox.pack_start(radio, False, True, 0)
+			radio.connect('toggled', changed)
+
+		self.savebox.vbox.show_all()
 		self.savebox.show()
 	
 	def write(self, text):
@@ -144,21 +153,31 @@ class Window(rox.Window, saving.Saveable):
 		self.output_data.write(text)
 
 	def save_to_stream(self, stream):
-		export = self.savebox.toggle_export_xml.get_active()
+		for radio, ext, mime, fn in self.save_radios:
+			if radio.get_active():
+				fn(stream)
 
+	def save_as_dome(self, stream):
 		print "Saving", self.view.root
 		#self.view.model.strip_space()
-		if export:
-			doc = self.view.model.doc
-		else:
-			doc = self.view.export_all()
-
+		doc = self.view.export_all()
 		print "Writing data..."
+		PrettyPrint(doc, stream)
 
+	def save_as_xml(self, stream):
+		print "Saving XML", self.view.root
+		doc = self.view.model.doc
+		print "Writing data..."
 		PrettyPrint(doc, stream)
 		
+	def save_as_html(self, stream):
+		from xml.dom.html import HTMLDocument
+		import to_html
+		print "Saving HTML", self.view.root
+		print >>stream, to_html.to_html(self.view.root.ownerDocument)
+
 	def set_uri(self, uri):
-		if not self.savebox.toggle_export_xml.get_active():
+		if self.savebox.save_radios[0].get_active():
 			self.model.uri = uri
 			self.model.root_program.modified = 0
 			self.update_title()
