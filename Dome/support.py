@@ -5,7 +5,6 @@ import traceback
 from xml.dom import Node
 from Ft.Xml.Domlette import implementation
 from Ft.Xml import XMLNS_NAMESPACE
-from Ft.Xml.Lib.Nss import GetAllNs
 
 from string import find, lower, join
 from socket import gethostbyaddr, gethostname

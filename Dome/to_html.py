@@ -32,6 +32,13 @@ stream = StringIO('''
       <xsl:apply-templates/>
     </xsl:copy>
   </xsl:template>
+ 
+  <xsl:template match='h:*'>
+    <xsl:element name='{local-name(.)}' namespace='http://www.w3.org/1999/xhtml'>
+      <xsl:apply-templates select='@*'/>
+      <xsl:apply-templates/>
+    </xsl:element>
+  </xsl:template>
 
 </xsl:stylesheet>
 ''')

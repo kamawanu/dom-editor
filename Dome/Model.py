@@ -14,6 +14,7 @@ from Ft.Xml import XMLNS_NAMESPACE
 from xml.dom import Node
 import support
 from Beep import Beep
+import constants
 
 class Model:
 	def __init__(self, path, root_program = None, dome_data = None, do_load = 1):
@@ -47,11 +48,12 @@ class Model:
 		data_to_load = None
 
 		from Program import Program, load_dome_program
-		import constants
 		if root.namespaceURI == constants.DOME_NS and root.localName == 'dome':
 			for x in root.childNodes:
 				if x.namespaceURI == constants.DOME_NS:
-					if x.localName == 'dome-program':
+					if x.localName == 'namespaces':
+						self.load_ns(x)
+					elif x.localName == 'dome-program':
 						self.root_program = load_dome_program(x,
 										self.namespaces)
 					elif x.localName == 'dome-data':
@@ -93,6 +95,17 @@ class Model:
 		
 		self.views = []		# Notified when something changes
 		self.locks = {}		# Node -> number of locks
+	
+	def load_ns(self, node):
+		assert node.localName == 'namespaces'
+		assert node.namespaceURI == constants.DOME_NS
+		for x in node.childNodes:
+			if x.nodeType != Node.ELEMENT_NODE: continue
+			if x.localName != 'ns': continue
+			if x.namespaceURI != constants.DOME_NS: continue
+
+			self.namespaces.ensure_ns(x.getAttributeNS(None, 'prefix'),
+						  x.getAttributeNS(None, 'uri'))
 	
 	def import_with_ns(self, node):
 		"""Return a copy of node for this model. All namespaces used in the subtree
@@ -168,7 +181,7 @@ class Model:
 		if self.get_locks(node):
 			raise Exception("Can't enter locked node!")
 		m = Model(self.get_base_uri(node), root_program = self.root_program, do_load = 0)
-		copy = self.doc.importNode(node, 1)
+		copy = m.import_with_ns(node)
 		root = m.get_root()
 		m.replace_node(root, copy)
 		self.lock(node)

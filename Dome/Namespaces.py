@@ -1,14 +1,18 @@
 from xml.dom import XMLNS_NAMESPACE, XML_NAMESPACE
+from constants import DOME_NS
 
 import rox
 from rox import g
 
 fixed_ns = {'xml': XML_NAMESPACE, 'xmlns': XMLNS_NAMESPACE,
-	    'dome': 'http://www.ecs.soton.ac.uk/~tal00r/Dome'}
+	    'dome': DOME_NS}
 
 common_ns = {'http://www.w3.org/1999/xhtml': 'xhtml',
 	     'http://www.w3.org/1999/02/22-rdf-syntax-ns#': 'rdf',
-	     'http://xmlns.4suite.org/ext': 'ft'}
+	     'http://xmlns.4suite.org/ext': 'ft',
+	     'http://www.w3.org/1999/XMLSchema': 'xsd',
+	     'http://www.w3.org/1999/XMLSchema-instance': 'xsi',
+	     'http://schemas.xmlsoap.org/soap/envelope/': 'env'}
 
 class Namespaces(g.GenericTreeModel):
 	def __init__(self):
@@ -93,6 +97,16 @@ class Namespaces(g.GenericTreeModel):
 			self[suggested_prefix] = uri
 			print "Added", suggested_prefix, uri
 			return suggested_prefix
+	
+	def to_xml(self, doc):
+		node = doc.createElementNS(DOME_NS, 'dome:namespaces')
+		for prefix, uri in self.uri.iteritems():
+			if prefix in fixed_ns: continue
+			ns = doc.createElementNS(DOME_NS, 'dome:ns')
+			ns.setAttributeNS(None, 'prefix', prefix)
+			ns.setAttributeNS(None, 'uri', uri)
+			node.appendChild(ns)
+		return node
 
 class GUI(rox.Dialog):
 	def __init__(self, model):
@@ -152,6 +166,17 @@ class GUI(rox.Dialog):
 		hbox.pack_start(g.Label('Prefix:'), False, True, 0)
 		prefix = g.Entry()
 		hbox.pack_start(prefix, True, True, 0)
+
+		def check_prefix(entry):
+			if not uri.get_text():
+				pre = prefix.get_text()
+				for u, p in common_ns.iteritems():
+					if p == pre:
+						uri.set_text(u)
+						break
+			uri.grab_focus()
+					
+		prefix.connect('activate', check_prefix)
 
 		hbox = g.HBox(False, 2)
 		d.vbox.pack_start(hbox, False, True)

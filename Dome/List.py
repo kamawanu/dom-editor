@@ -602,8 +602,17 @@ class ChainDisplay(g.DrawingArea):
 		except:
 			print "Can't find %s!\n" % op
 			return
-		w.draw_rectangle(self.style.black_gc, False, obj.x, obj.y + 5, 11, 11)
-		w.draw_rectangle(self.style.bg_gc[g.STATE_SELECTED], True, obj.x + 1, obj.y + 5 + 1, 10, 10)
+		if point is self.view.rec_point:
+			size = 11
+			colour = 'red'
+		else:
+			size = 6
+			colour = 'yellow'
+		pen = self.style.white_gc
+		pen.set_rgb_fg_color(g.gdk.color_parse(colour))
+		w.draw_rectangle(self.style.black_gc, False, obj.x, obj.y + 5, size, size)
+		w.draw_rectangle(pen, True, obj.x + 1, obj.y + 5 + 1, size - 1, size - 1)
+		pen.set_rgb_fg_color(g.gdk.color_parse('white'))
 	
 	def destroyed(self, widget):
 		self.view.model.root_program.watchers.remove(self)

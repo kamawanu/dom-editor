@@ -1666,6 +1666,13 @@ class View:
 	def soap_send(self):
 		copy = node_to_xml(self.get_current())
 		env = copy.documentElement
+		from Ft.Xml.Lib.Nss import GetAllNs
+		nss = GetAllNs(env)
+		for p, u in self.model.namespaces.uri.iteritems():
+			if p in nss:
+				assert nss[p] == u
+			elif p not in ('xml', 'xmlns'):
+				env.setAttributeNS(XMLNS_NAMESPACE, 'xmlns:%s' % p, u)
 
 		if env.namespaceURI != SOAPENV_NS:
 			alert("Not a SOAP-ENV:Envelope (bad namespace)")
@@ -1721,6 +1728,7 @@ class View:
 		stream = StrGrab()
 		PrettyPrint(copy, stream = stream)
 		message = stream.data
+		print message
 
 		conn = httplib.HTTP(addr)
 		conn.putrequest("POST", path)
@@ -1766,6 +1774,9 @@ class View:
 	
 	def export_all(self):
 		doc = implementation.createDocument(DOME_NS, 'dome:dome', None)
+		
+		doc.documentElement.appendChild(self.model.namespaces.to_xml(doc))
+		
 		node = self.model.root_program.to_xml(doc)
 		doc.documentElement.appendChild(node)
 		node = doc.createElementNS(DOME_NS, 'dome:dome-data')

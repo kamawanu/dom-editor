@@ -20,7 +20,12 @@ def calc_node(display, node, pos):
 		else:
 			text = node.localName
 	elif node.nodeType == Node.ATTRIBUTE_NODE:
-		text = ' %s=%s' % (unicode(node.name), unicode(node.value))
+		if node.namespaceURI:
+			text = display.view.model.namespaces.prefix.get(node.namespaceURI, 'ERROR') + \
+				':' + node.localName
+		else:
+			text = node.localName
+		text = ' %s=%s' % (unicode(text), unicode(node.value))
 	elif node.nodeType == Node.COMMENT_NODE:
 		text = node.nodeValue.strip()
 	elif node.nodeName:
