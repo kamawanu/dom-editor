@@ -601,7 +601,11 @@ class ChainDisplay(GnomeCanvas):
 					best = fail
 			return best
 		
-		node, dist = closest_node(self.prog.start)
+		result = closest_node(self.prog.start)
+		if result:
+			node, dist = result
+		else:
+			dist = 1000
 		if dist > 12:
 			# Too far... put the line back to the disconnected state...
 			if exit == 'next':

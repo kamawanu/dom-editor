@@ -1,3 +1,5 @@
+Cut and paste loops.
+
 Subtrees don't layout properly when there are several subtrees all together
 (nodes and lines draw over the top of other nodes and lines).
 

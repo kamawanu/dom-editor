@@ -73,7 +73,12 @@ def load(chain):
 	tree = _load(chain)
 	print "IDs:", id_hash
 	for (op, exit, child) in to_link:
-		op.link_to(id_hash[child], exit)
+		try:
+			to = id_hash[child]
+		except:
+			print "**** Not adding link to unknown ID ****"
+		else:
+			op.link_to(to, exit)
 	return tree
 
 def load_dome_program(prog):

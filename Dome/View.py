@@ -968,6 +968,7 @@ class View:
 		os.close(w)
 		
 		data = os.fdopen(r).read()
+		os.waitpid(child, 0)
 		
 		old_md5 = node.getAttributeNS(None, 'md5_sum')
 		
