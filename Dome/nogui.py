@@ -16,6 +16,7 @@ if len(sys.argv) < 2:
 code = sys.argv[1]
 model.load_program(code)
 
+print "XXX: root_program!"
 view.set_exec((model.root_program.start, 'next'))
 try:
 	while 1:

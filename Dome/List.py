@@ -70,8 +70,8 @@ class List(GtkVBox):
 
 		self.tree = GtkTree()
 		self.tree.unset_flags(CAN_FOCUS)
-		self.chains = ChainDisplay(view, view.model.root_program)
-		self.prog_tree_changed(self.view.model.root_program)
+		self.chains = ChainDisplay(view, view.root_program)
+		self.prog_tree_changed(self.view.root_program)
 
 		self.pack_start(self.tree, expand = 0, fill = 1)
 
@@ -87,11 +87,11 @@ class List(GtkVBox):
 		self.chains.show()
 		self.tree.show()
 		self.view.lists.append(self)
-		self.view.model.root_program.watchers.append(self)
+		self.view.root_program.watchers.append(self)
 	
 	def destroy(self):
 		self.view.lists.remove(self)
-		self.view.model.root_program.watchers.remove(self)
+		self.view.root_program.watchers.remove(self)
 	
 	def update_points(self):
 		self.chains.update_points()
@@ -99,7 +99,7 @@ class List(GtkVBox):
 	def prog_tree_changed(self, prog = None):
 		self.prog_to_tree = {}
 		self.tree.clear_items(0, -1)
-		self.build_tree(self.tree, self.view.model.root_program)
+		self.build_tree(self.tree, self.view.root_program)
 		# Redraw goes wrong if we don't use a callback...
 		def cb(self = self, prog = prog):
 			while prog:

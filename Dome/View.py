@@ -76,7 +76,8 @@ class Done(Exception):
 	"Thrown when the chain is completed successfully"
 
 class View:
-	def __init__(self, model):
+	def __init__(self, model, program):
+		self.root_program = program
 		self.displays = []
 		self.lists = []
 		self.single_step = 1	# 0 = Play   1 = Step-into   2 = Step-over
@@ -692,7 +693,7 @@ class View:
 	
 	def name_to_prog(self, name):
 		comps = string.split(name, '/')
-		prog = self.model.root_program
+		prog = self.root_program
 		if prog.name != comps[0]:
 			raise Exception("No such program as '%s'!" % name)
 		del comps[0]

@@ -16,10 +16,9 @@ from Beep import Beep
 from support import html_to_xml
 
 class Model:
-	def __init__(self, program):
+	def __init__(self):
 		self.doc = implementation.createDocument('', 'root', None)
 		self.views = []		# Notified when something changes
-		self.root_program = program
 		
 	def mark(self):
 		"Increment the user_op counter. Undo will undo every operation between"

@@ -35,7 +35,7 @@ class Window(GtkWindow):
 	def __init__(self, path = None):
 		GtkWindow.__init__(self)
 		
-		self.model = Model(root_program)
+		self.model = Model()
 		self.gui_view = None
 		
 		self.set_default_size(gdk_screen_width() * 2 / 3,
@@ -72,7 +72,7 @@ class Window(GtkWindow):
 		hbox = GtkHBox(FALSE, 0)
 		vbox.pack_start(hbox)
 
-		view = View(self.model)
+		view = View(self.model, root_program)
 		self.list = List(view)
 		hbox.pack_start(self.list, FALSE, TRUE, 0)
 		self.list.show()
@@ -111,7 +111,7 @@ class Window(GtkWindow):
 			return
 
 		print "Saving programs..."
-		data = self.model.root_program.to_xml()
+		data = root_program.to_xml()
 
 		file = open(path, 'wb')
 
