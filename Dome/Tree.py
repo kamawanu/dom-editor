@@ -1,7 +1,7 @@
 from gtk import *
 from GDK import *
 from _gtk import *
-import string, os
+import re, string, os
 from xml.dom import Node
 from xml.xpath import XPathParser, FT_EXT_NAMESPACE, Context
 from xml.dom import ext
@@ -545,7 +545,7 @@ class Tree(GtkDrawingArea):
 		self.move_to_node(cur.nextSibling)
 
 	def search(self):
-		GetArg('Search for:', self.user_do_search)
+		GetArg('Search for:', self.user_do_search, ['Pattern:'])
 	
 	def search_next(self, node):
 		self.do_action(self.last_search)
@@ -645,13 +645,23 @@ class Tree(GtkDrawingArea):
 	def edit_node(self):
 		edit_node(self, self.line_to_node[self.current_line])
 
+	def python_to_node(self, data):
+		"Convert a python data structure into a tree and return the root."
+		if type(data) == types.ListType:
+			list = self.doc.createElement('List')
+			for x in data:
+				list.appendChild(self.python_to_node(x))
+			return list
+		return self.doc.createTextNode(str(data))
+
 	def python(self, node, expr):
 		"Replace node with result of expr(old_value)"
 		if node.nodeType == Node.TEXT_NODE:
-			vars = {'x': node.data}
-			new = str(eval(expr, vars))
-			Change.set_data(node, new)
-			return node
+			vars = {'x': node.data, 're': re, 'sub': re.sub, 'string': string}
+			result = eval(expr, vars)
+			new = self.python_to_node(result)
+			Change.replace_node(node, new)
+			return new
 		else:
 			raise Beep
 
@@ -659,8 +669,22 @@ class Tree(GtkDrawingArea):
 		def do_pipe(expr, self = self):
 			action = ["python", expr]
 			self.may_record(action)
-		GetArg('Python expression:', do_pipe,
-			"'x' is the old text...")
+		GetArg('Python expression:', do_pipe, ['Eval:'], "'x' is the old text...")
+
+	def subst(self, node, replace, with):
+		"re search and replace on the current node"
+		if node.nodeType == Node.TEXT_NODE:
+			new = re.sub(replace, with, node.data)
+			Change.set_data(node, new)
+			return node
+		else:
+			raise Beep
+	
+	def show_subst(self):
+		def do_subst(args, self = self):
+			action = ["subst", args[0], args[1]]
+			self.may_record(action)
+		GetArg('Substitute:', do_subst, ('Replace:', 'With:'))
 
 	def delete_node(self, cur):
 		"Delete"
@@ -799,6 +823,7 @@ class Tree(GtkDrawingArea):
 
 		Tab	: edit_node,
 		exclam	: pipe_python,
+		s	: show_subst,
 
 		x	: ["delete_node"],
 		X	: ["delete_prev_sib"],

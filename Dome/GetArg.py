@@ -8,10 +8,11 @@ import Tree
 history = {}
 
 # A window which allows the user to enter a string.
-# When this is done, callback(string) is called.
+# When this is done, callback(string) or callback(strings) is called.
+# args is a list like ('Replace:', 'With:')
 
 class GetArg(GtkWindow):
-	def __init__(self, text, callback, message = None):
+	def __init__(self, text, callback, args, message = None):
 		GtkWindow.__init__(self, WINDOW_DIALOG)
 
 		self.callback = callback
@@ -25,14 +26,24 @@ class GetArg(GtkWindow):
 		if message:
 			self.vbox.pack_start(GtkLabel(message), TRUE, TRUE, 0)
 
-		self.pattern = GtkEntry()
-		self.vbox.pack_start(self.pattern, FALSE, TRUE, 0)
-		self.pattern.grab_focus()
+		self.args = []
 
-		if history.has_key(text):
-			self.pattern.set_text(history[text])
-		self.pattern.select_region(0, -1)
-		self.pattern.connect('activate', self.do_it)
+		for a in args:
+			hbox = GtkHBox(FALSE, 0)
+			hbox.pack_start(GtkLabel(a), FALSE, TRUE, 0)
+			arg = GtkEntry()
+			hbox.pack_start(arg, TRUE, TRUE, 0)
+			self.vbox.pack_start(hbox, FALSE, TRUE, 0)
+			if not self.args:
+				arg.grab_focus()
+				arg.select_region(0, -1)
+			self.args.append((a, arg))
+			if len(self.args) < len(args):
+				arg.connect('activate', self.to_next)
+			else:
+				arg.connect('activate', self.do_it)
+			if history.has_key(a):
+				arg.set_text(history[a])
 
 		actions = GtkHBox(TRUE, 32)
 		self.vbox.pack_end(actions, FALSE, TRUE, 0)
@@ -62,9 +73,24 @@ class GetArg(GtkWindow):
 		if kev.keyval == Escape:
 			self.destroy()
 
+	def to_next(self, widget):
+		next = 0
+		for (a, entry) in self.args:
+			if next:
+				entry.grab_focus()
+				return
+			if entry == widget:
+				next = 1
+		
 	def do_it(self, widget):
-		value = self.pattern.get_text()
-		history[self.text] = value
-		self.callback(value)
+		values = []
+		for (a, entry) in self.args:
+			val = entry.get_text()
+			values.append(val)
+			history[a] = val
+		if len(values) > 1:
+			self.callback(values)
+		else:
+			self.callback(values[0])
 		self.destroy()
 		return 1
