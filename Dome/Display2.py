@@ -267,6 +267,7 @@ class Display(g.HBox):
 			self.update_timeout = g.timeout_add(10, self.update)
 	
 	def move_from(self, old = []):
+		if not self.pm: return
 		if self.view.current_nodes:
 			selection = {}
 			for n in self.view.current_nodes:

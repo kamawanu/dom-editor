@@ -35,6 +35,11 @@ class Window(rox.Window, saving.Saveable):
 			path = os.path.abspath(path)
 			
 		import Model
+		if path.endswith('.html'):
+			html_path = path
+			path = None
+		else:
+			html_path = None
 		self.model = Model.Model(path, dome_data = data)
 		self.gui_view = None
 		self.dome_state = ""
@@ -91,6 +96,9 @@ class Window(rox.Window, saving.Saveable):
 				return 1
 			return 0
 		self.connect('delete-event', delete)
+
+		if html_path:
+			view.load_html(html_path)
 	
 	def discard(self):
 		self.destroy()

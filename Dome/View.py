@@ -1645,7 +1645,7 @@ class View:
 		data = file(path).read()
 		data = to_html(data)
 		doc = self.parse_data(data, path)
-		#doc = ext.StripHtml(doc)
+		self.model.strip_space(doc)
 		self.set_root_from_doc(doc)
 		
 	def load_xml(self, path):
