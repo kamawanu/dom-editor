@@ -20,6 +20,8 @@ class GUINode:
 	
 	def render(self, widget, x, y):
 		surface = widget.pm
+		self.x = x
+		self.y = y
 		fg = widget.style.fg_gc
 		bg = widget.style.bg_gc
 		surface.draw_rectangle(fg[g.STATE_NORMAL], True,
@@ -31,7 +33,14 @@ class GUINode:
 			surface.draw_layout(fg[g.STATE_SELECTED], x + 12, y, self.layout)
 		else:
 			surface.draw_layout(fg[g.STATE_NORMAL], x + 12, y, self.layout)
+	
+	def contains_point(self, x, y):
+		# The region which, if clicked, should select this node:
+		node_bbox = (self.x, self.y, self.x + 12 + self.text_width, self.y + self.text_height)
 
+		return x >= node_bbox[0] and x <= node_bbox[2] and \
+		       y >= node_bbox[1] and y <= node_bbox[3]
+		
 	def get_text(self, node):
 		if node.nodeType == Node.TEXT_NODE:
 			return node.nodeValue.strip()
@@ -178,8 +187,26 @@ class Display(g.EventBox):
 
 	def show_menu(self, bev):
 		pass
+	
+	def node_clicked(self, node, event):
+		pass
+
+	def xy_to_node(self, x, y):
+		for (n, g) in self.drawn.iteritems():
+			if g.contains_point(x, y):
+				return n
 
 	def bg_event(self, widget, event):
 		if event.type == g.gdk.BUTTON_PRESS and event.button == 3:
 			self.show_menu(event)
-			return 1
+		elif (event.type == g.gdk.BUTTON_PRESS or event.type == g.gdk._2BUTTON_PRESS) \
+		      and event.button == 1:
+			self.do_update_now()
+			node = self.xy_to_node(event.x, event.y)
+			if node:
+				print node
+				#self.node_clicked(node, event)
+		else:
+			return 0
+		return 1
+
