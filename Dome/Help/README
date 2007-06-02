@@ -8,7 +8,7 @@
 Instructions for using Dome:
 
 -> There is a tutorial here:
-	http://www.ecs.soton.ac.uk/~tal00r/Dome/tutorial/
+	http://www.ecs.soton.ac.uk/~tal/Dome/tutorial/
 
 The main area shows the XML/HTML document you are editing on the right
 and the code to manipulate it on the left. Clicking the right-mouse button
@@ -214,4 +214,6 @@ suck each of the 'Artist' ones. If nothing has changed, it will all go very
 quickly. To force a re-suck, delete the md5_sum and last-modified attributes.
 
 
-Problems? Comments? Email <tal00r@ecs.soton.ac.uk>
+Problems? Comments? Go to:
+
+  http://code.google.com/p/dom-editor/
