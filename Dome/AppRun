@@ -45,7 +45,7 @@ rox.app_options.notify()
 #import gnome.ui
 #sys.argv.pop()
 
-mime.install_mime_info('Dome')
+mime.install_mime_info('Dome-MIME')
 
 mono = 0
 while len(sys.argv) > 1 and sys.argv[1].startswith('--'):
@@ -76,7 +76,7 @@ if show_leaks:
 	old = {}
 	for x in gc.get_objects():
 		old[id(x)] = None
-import profile
+#import profile
 #profile.run('go()')
 go()
 

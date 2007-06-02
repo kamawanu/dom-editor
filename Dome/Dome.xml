@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<?xml-stylesheet type='text/xsl' href='interface.xsl'?>
+<interface xmlns="http://zero-install.sourceforge.net/2004/injector/interface">
+  <name>Dome</name>
+  <summary>GTK-based XML editor</summary>
+  <description>
+Dome is an visual programming language for manipulation of XML documents
+developed at the University of Southampton. It has been used in the AKT project
+to trawl through large websites, extracting information from them by
+transforming the source HTML into RDF.
+
+Dome is written in Python and uses the 4suite and PyGTK libraries.</description>
+  <homepage>http://code.google.com/p/dom-editor/</homepage>
+  <category>Utility</category>
+  <feed-for interface="http://dom-editor.googlecode.com/svn/trunk/Dome/Dome.xml"/>
+  <icon href="http://0install.net/feed_icons/Dome.png" type="image/png"/>
+  <group doc-dir="Help" license="OSI Approved :: GNU General Public License (GPL)" main="AppRun">
+    <implementation id="." released="2007-06-02" version="1.0"/>
+    <requires interface="http://rox.sourceforge.net/2005/interfaces/ROX-Lib">
+      <environment insert="ROX-Lib2/python" mode="prepend" name="PYTHONPATH"/>
+    </requires>
+  </group>
+</interface>
