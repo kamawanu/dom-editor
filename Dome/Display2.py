@@ -5,6 +5,7 @@ from rox import g
 from xml.dom import Node
 import pango
 from constants import XMLNS_NAMESPACE
+import gobject
 
 import __main__
 default_font = __main__.default_font
@@ -327,7 +328,7 @@ class Display(g.HBox):
 	def do_update_now(self):
 		# Update now, if we need to
 		if self.update_timeout:
-			g.timeout_remove(self.update_timeout)
+			gobject.source_remove(self.update_timeout)
 			self.update_timeout = 0
 			self.update()
 
@@ -338,9 +339,9 @@ class Display(g.HBox):
 			return		# Going to update anyway...
 
 		if self.view.running():
-			self.update_timeout = g.timeout_add(2000, self.update)
+			self.update_timeout = gobject.timeout_add(2000, self.update)
 		else:
-			self.update_timeout = g.timeout_add(10, self.update)
+			self.update_timeout = gobject.timeout_add(10, self.update)
 	
 	def move_from(self, old = []):
 		if not self.pm: return

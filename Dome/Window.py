@@ -55,14 +55,22 @@ class Window(rox.Window, saving.Saveable):
 		vbox.pack_start(tools, FALSE, TRUE, 0)
 		tools.show()
 
-		tools.insert_stock(g.STOCK_HELP, 'Help', None, self.tool_help, None, 0)
-		tools.insert_stock(g.STOCK_JUMP_TO, 'Step', None, self.tool_step, None, 0)
-		tools.insert_stock(g.STOCK_JUMP_TO, 'Next', None, self.tool_next, None, 0)
-		tools.insert_stock(g.STOCK_GO_FORWARD, 'Play', None, self.tool_play, None, 0)
-		tools.insert_stock(g.STOCK_STOP, 'Stop', None, self.tool_stop, None, 0)
-		tools.insert_stock(g.STOCK_NO, 'Record', None, self.tool_record, None, 0)
-		tools.insert_stock(g.STOCK_SAVE, 'Save', None, self.tool_save, None, 0)
-		tools.insert_stock(g.STOCK_GO_UP, 'Up', None, self.tool_parent, None, 0)
+		tips = g.Tooltips()
+
+		for stock, label, callback in [
+				(g.STOCK_GO_UP, 'Up', self.tool_parent),
+				(g.STOCK_SAVE, 'Save', self.tool_save),
+				(g.STOCK_MEDIA_RECORD, 'Record', self.tool_record),
+				(g.STOCK_MEDIA_STOP, 'Stop', self.tool_stop),
+				(g.STOCK_MEDIA_PLAY, 'Play', self.tool_play),
+				(g.STOCK_MEDIA_NEXT, 'Next', self.tool_next),
+				(g.STOCK_MEDIA_NEXT, 'Step', self.tool_step),
+				(g.STOCK_HELP, 'Help', self.tool_help) ]:
+			item = g.ToolButton(stock)
+			item.set_label(label)
+			item.set_tooltip(tips, label)
+			item.connect('clicked', callback)
+			tools.add(item)
 
 		paned = g.HPaned()
 		vbox.pack_start(paned)
