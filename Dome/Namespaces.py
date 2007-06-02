@@ -43,6 +43,9 @@ class Namespaces(g.GenericTreeModel):
 			return self.list[iter]
 		return self.uri[self.list[iter]]
 	
+	def on_get_flags(self):
+		return 0
+	
 	def on_iter_nth_child(self, iter, n):
 		if iter == None:
 			return n
