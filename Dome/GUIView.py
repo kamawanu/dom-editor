@@ -104,7 +104,7 @@ menu = Menu('main', [
 		('/View/Hide with label', 'menu_hide_with_expr', '', ''),
 		('/View/Show as HTML', 'do_show_html', '', ''),
 		('/View/Show as canvas', 'do_show_canvas', '', ''),
-		('/View/Show namespaces', 'show_namespaces', '', '<Ctrl>;'),
+		('/View/Show namespaces', 'show_namespaces', '', '<Ctrl>semicolon'),
 		('/View/Close Window', 'menu_close_window', '<StockItem>', '<Ctrl>Q', g.STOCK_CLOSE),
 
 		#('/Options...', 'menu_options', '', '<Ctrl>O'),
