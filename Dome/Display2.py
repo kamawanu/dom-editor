@@ -153,7 +153,11 @@ class Display(g.HBox):
 		self.last_alloc = None
 		self.surface.connect('size-allocate', lambda w, a: self.size_allocate(a))
 		self.surface.connect('size-request', lambda w, r: self.size_request(r))
-		self.surface.connect('expose-event', lambda w, e: 1)
+		def expose(w, e):
+			area = e.area
+			w.window.clear_area(area.x, area.y, area.width, area.height)
+			return True
+		self.surface.connect('expose-event', expose)
 
 		self.pan_timeout = None
 		self.h_limits = (0, 0)
