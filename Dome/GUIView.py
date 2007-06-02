@@ -428,6 +428,8 @@ class GUIView(Display, XDSLoader):
 			qname = False
 		elif nodeType == Node.ATTRIBUTE_NODE:
 			action += 'a'
+		else:
+			raise Exception("Unknown nodeType %d" % nodeType)
 
 		if qname:
 			# Check name is valid
@@ -471,7 +473,7 @@ class GUIView(Display, XDSLoader):
 		box.set_default_response(g.RESPONSE_OK)
 		text.grab_focus()
 		def response(box, resp):
-			if resp == g.RESPONSE_CANCEL:
+			if resp in (g.RESPONSE_CANCEL, g.RESPONSE_DELETE_EVENT):
 				box.destroy()
 				return
 			buffer = text.get_buffer()

@@ -485,11 +485,11 @@ class Display(g.HBox):
 			elif event.button == 2:
 				assert self.pan_timeout is None
 				self.pan_start = (event.x, event.y)
-				self.pan_timeout = g.timeout_add(100, self.pan)
+				self.pan_timeout = gobject.timeout_add(100, self.pan)
 		elif event.type == g.gdk.BUTTON_RELEASE:
 			if event.button == 2:
 				assert self.pan_timeout is not None
-				g.timeout_remove(self.pan_timeout)
+				gobject.source_remove(self.pan_timeout)
 				self.pan_timeout = None
 			elif event.button == 1 and self.drag_info:
 				src_node, src_attr_parent, x, y, in_progress = self.drag_info
