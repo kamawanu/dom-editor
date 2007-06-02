@@ -7,7 +7,7 @@ from __future__ import nested_scopes
 # All changes to the DOM must go through here.
 # Notification to views of changes is done.
 
-from Ft.Xml.cDomlette import implementation, nonvalParse
+from Ft.Xml.cDomlette import implementation, NonvalParse
 from Ft.Xml.Domlette import GetAllNs
 from Ft.Xml import XMLNS_NAMESPACE
 
@@ -26,7 +26,7 @@ class Model:
 		if dome_data:
 			from Ft.Xml.InputSource import InputSourceFactory
 			isrc = InputSourceFactory()
-			dome_data = nonvalParse(isrc.fromUri(dome_data))
+			dome_data = NonvalParse(isrc.fromUri(dome_data))
 
 		self.clear_undo()
 
@@ -40,7 +40,7 @@ class Model:
 				from Ft.Xml.InputSource import InputSourceFactory
 				isrc = InputSourceFactory()
 				try:
-					doc = nonvalParse(isrc.fromUri(path))
+					doc = NonvalParse(isrc.fromUri(path))
 				except:
 					import rox
 					rox.report_exception()

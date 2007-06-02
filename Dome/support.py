@@ -91,18 +91,18 @@ def to_html_doc(data):
 def parse_data(data, path):
 	"""Convert and XML document into a DOM Document."""
 	from Ft.Xml.InputSource import InputSourceFactory
-	#from Ft.Xml.cDomlette import nonvalParse
-	from Ft.Xml.FtMiniDom import nonvalParse
+	#from Ft.Xml.cDomlette import NonvalParse
+	from Ft.Xml.FtMiniDom import NonvalParse
 	isrc = InputSourceFactory()
 
 	try:
 		try:
 			#print "Parsing (with entities)..."
-			doc = nonvalParse(isrc.fromString(data, path))
+			doc = NonvalParse(isrc.fromString(data, path))
 		except:
 			print "Parse failed.. retry without entities..."
 			data = entrefpattern.sub('&amp;\\1;',data)
-			doc = nonvalParse(isrc.fromString(data, path))
+			doc = NonvalParse(isrc.fromString(data, path))
 	except:
 		type, val, tb = sys.exc_info()
 		traceback.print_exception(type, val, tb)
