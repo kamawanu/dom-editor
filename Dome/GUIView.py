@@ -183,7 +183,7 @@ class GUIView(Display, XDSLoader):
 		self.view.may_record(['move_selection', path])
 
 	def node_clicked(self, node, bev):
-		print "Clicked", node.namespaceURI, node.localName
+		#print "Clicked", node.namespaceURI, node.localName
 		if node:
 			if bev.type == g.gdk.BUTTON_PRESS:
 				if len(self.view.current_nodes) == 0:

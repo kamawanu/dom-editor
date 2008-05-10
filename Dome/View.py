@@ -762,13 +762,13 @@ class View:
 		pattern = self.macro_pattern(pattern)
 		return self.do_search("//text()[ext:match('%s')]" % pattern)
 
-	def subst(self, replace, with):
+	def subst(self, replace, replace_with):
 		"re search and replace on the current node"
 		nodes = self.current_nodes[:]
 		check = len(nodes) == 1
 		a = self.current_attrib
 		if a:
-			new, num = re.subn(replace, with, a.value)
+			new, num = re.subn(replace, replace_with, a.value)
 			if not num:
 				raise Beep
 			a = self.model.set_attrib(nodes[0], a.name, new)
@@ -779,7 +779,7 @@ class View:
 			for n in nodes:
 				if n.nodeType == Node.TEXT_NODE:
 					old = n.data.replace('\n', ' ')
-					new, num = re.subn(replace, with, old)
+					new, num = re.subn(replace, replace_with, old)
 					if check and not num:
 						self.move_to(n)
 						raise Beep
@@ -787,7 +787,7 @@ class View:
 					final.append(n)
 				elif n.nodeType == Node.ELEMENT_NODE:
 					old = str(n.nodeName)
-					new, num = re.subn(replace, with, old)
+					new, num = re.subn(replace, replace_with, old)
 					if check and not num:
 						self.move_to(n)
 						raise Beep
