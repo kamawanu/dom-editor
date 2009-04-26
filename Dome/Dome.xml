@@ -15,7 +15,7 @@ Dome is written in Python and uses the 4suite and PyGTK libraries.</description>
   <feed-for interface="http://dom-editor.googlecode.com/svn/feed/Dome.xml"/>
   <icon href="http://0install.net/feed_icons/Dome.png" type="image/png"/>
   <group doc-dir="Help" license="OSI Approved :: GNU General Public License (GPL)" main="AppRun">
-    <implementation id="." version="1.1-post"/>
+    <implementation id="." released="2009-04-26" version="1.2"/>
     <requires interface="http://rox.sourceforge.net/2005/interfaces/ROX-Lib">
       <environment insert="ROX-Lib2/python" mode="prepend" name="PYTHONPATH"/>
     </requires>
